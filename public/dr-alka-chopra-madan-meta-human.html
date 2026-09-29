@@ -288,20 +288,28 @@ header.nav{
 .prow:hover .go,.prow:focus-visible .go{opacity:1}
 
 /* ---------- books ---------- */
-.rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(268px,1fr);gap:18px;
-  overflow-x:auto;padding-bottom:16px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+.rail{overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.rail-track{display:flex;width:max-content;gap:16px;padding:4px 8px 16px;animation:railmove 60s linear infinite}
+@media (hover:hover){.rail:hover .rail-track{animation-play-state:paused}}
+.rail:has(:focus-visible) .rail-track{animation-play-state:paused}
+@keyframes railmove{from{transform:translateX(calc(-50% - 8px))}to{transform:translateX(0)}}
+@media (prefers-reduced-motion:reduce){.rail{overflow-x:auto;-webkit-mask-image:none;mask-image:none}.rail-track{animation:none!important}}
 .vol{
-  scroll-snap-align:start;border-radius:14px;padding:28px;min-height:330px;
+  flex:0 0 224px;width:224px;height:530px;border-radius:14px;padding:16px;
   display:flex;flex-direction:column;justify-content:space-between;
-  background:var(--vellum-2);border:1px solid rgba(42,38,24,.14);color:var(--ink);
+  background:linear-gradient(165deg,var(--ink),#2C2246);border:1px solid transparent;color:var(--vellum);
 }
-.vol--series{background:linear-gradient(165deg,var(--ink),#2C2246);color:var(--vellum);border-color:transparent}
-.vol--series p{color:#C6CBD8}
-.vol--series .tagline{color:var(--halo)}
-.vol .tagline{font-size:.76rem;letter-spacing:.14em;color:var(--gold)}
-.vol h3{font-size:1.7rem;margin:18px 0 12px}
-.vol p{font-size:.92rem;margin:0}
-.vol .meta-line{font-size:.84rem;margin-top:20px;padding-top:14px;border-top:1px solid rgba(128,128,128,.25)}
+a.vol{text-decoration:none;transition:transform .2s}
+a.vol:hover{transform:translateY(-4px)}
+.vol .buy{display:inline-block;background:var(--halo);color:var(--void,#070B18);font-weight:700;border-radius:999px;padding:6px 12px}
+.vol .cover{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:2/3;object-fit:cover;object-position:top;border-radius:8px;margin-bottom:12px;box-shadow:0 8px 20px rgba(0,0,0,.35)}
+.vol .cover--empty{border:1px dashed rgba(237,231,218,.25);box-shadow:none;font-size:.78rem;color:#A9B0C2}
+.vol .tagline{font-size:.68rem;letter-spacing:.14em;color:var(--halo)}
+.vol h3{font-size:1.15rem;margin:8px 0 0;line-height:1.3;min-height:2.6em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vol p{font-size:.8rem;margin:8px 0 0;color:#C6CBD8;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.vol .meta-line{min-height:3.4em;font-size:.78rem;margin-top:12px;padding-top:10px;border-top:1px solid rgba(128,128,128,.25)}
 .langs{display:flex;gap:22px;flex-wrap:wrap;margin-top:32px;font-size:.9rem;color:#4A4638}
 .langs b{font-family:var(--display);font-size:1.3rem;font-weight:400;color:var(--ink);display:block}
 
@@ -321,6 +329,7 @@ header.nav{
   text-decoration:none;border:1px solid rgba(42,38,24,.2);border-radius:999px;
   padding:11px 20px;font-size:.9rem;color:var(--ink);transition:.2s;
 }
+.ico{width:1.1em;height:1.1em;vertical-align:-.15em;margin-right:.5em}
 .plat:hover{background:var(--ink);color:var(--vellum);border-color:var(--ink)}
 
 /* ---------- about ---------- */
@@ -653,56 +662,63 @@ footer b{color:var(--vellum)}
         <p>The books are not companion products to the practice — they are where the frameworks are set down in full. The AAO series is the spine; the earlier titles are the inquiry that led to it.</p>
       </div>
 
-      <div class="rail rise">
-        <article class="vol vol--series">
-          <div><span class="tagline">AAO series · Part One</span>
+      <div class="rail rise"><div class="rail-track">
+        <a class="vol" href="https://www.amazon.com/dp/B0GX33FYHW" target="_blank" rel="noopener noreferrer" aria-label="Arrive at Origin — buy on Amazon">
+          <div><img class="cover" src="/aao-part-one.png" alt="Arrive at Origin, Part One book cover" loading="lazy"><span class="tagline">AAO series · Part One</span>
             <h3>Arrive at Origin</h3>
             <p>The central work. Origin as the position that remains when you stop moving away from yourself, and the method for returning to it.</p></div>
-          <div class="meta-line"><span class="ph">link to Amazon / KDP listing</span></div>
-        </article>
+          <div class="meta-line"><span class="buy">Buy on Amazon <span aria-hidden="true">→</span></span></div>
+        </a>
 
-        <article class="vol vol--series">
-          <div><span class="tagline">AAO series · Part Two</span>
+        <a class="vol" href="https://www.amazon.com/dp/B0H1H83KNV" target="_blank" rel="noopener noreferrer" aria-label="Arrive at Origin II — buy on Amazon">
+          <div><img class="cover" src="/aao-part-two.png" alt="Arrive at Origin, Part Two book cover" loading="lazy"><span class="tagline">AAO series · Part Two</span>
             <h3>Arrive at Origin II</h3>
             <p>The elaboration: Concept Clearing as gateway, the four movements in depth, and living from Origin inside ordinary obligation.</p></div>
-          <div class="meta-line"><span class="ph">confirm publication date and listing link</span></div>
-        </article>
+          <div class="meta-line"><span class="buy">Buy on Amazon <span aria-hidden="true">→</span></span></div>
+        </a>
 
-        <article class="vol">
-          <div><span class="tagline">Earlier work</span>
+        <a class="vol" href="https://www.amazon.com/dp/B0CR9H7YMH" target="_blank" rel="noopener noreferrer" aria-label="Your Path to Transformation — buy on Amazon">
+          <div><img class="cover" src="/your-path-to-transformation.png" alt="Your Path to Transformation book cover" loading="lazy"><span class="tagline">Earlier work</span>
             <h3>Your Path to Transformation</h3>
             <p>Change, unpredictability, and the way we meet a life that does not consult us first.</p></div>
-          <div class="meta-line"><span class="ph">listing link</span></div>
-        </article>
+          <div class="meta-line"><span class="buy">Buy on Amazon <span aria-hidden="true">→</span></span></div>
+        </a>
 
-        <article class="vol">
-          <div><span class="tagline">Earlier work</span>
+        <a class="vol" href="https://www.amazon.com/dp/B0BBS9GRPJ" target="_blank" rel="noopener noreferrer" aria-label="Your Path to Spirituality — buy on Amazon">
+          <div><img class="cover" src="/your-path-to-spirituality.png" alt="Your Path to Spirituality book cover" loading="lazy"><span class="tagline">Earlier work</span>
             <h3>Your Path to Spirituality</h3>
             <p>A return to what spirituality is underneath the labels it has collected.</p></div>
-          <div class="meta-line"><span class="ph">listing link</span></div>
-        </article>
+          <div class="meta-line"><span class="buy">Buy on Amazon <span aria-hidden="true">→</span></span></div>
+        </a>
 
-        <article class="vol">
-          <div><span class="tagline">Earlier work</span>
+        <a class="vol" href="https://www.amazon.com/dp/B0C386DNVQ" target="_blank" rel="noopener noreferrer" aria-label="Your Path to Healing — buy on Amazon">
+          <div><img class="cover" src="/your-path-to-healing.png" alt="Your Path to Healing book cover" loading="lazy"><span class="tagline">Earlier work</span>
             <h3>Your Path to Healing</h3>
             <p>What healing means across living, loss and recovery — held as inquiry rather than instruction.</p></div>
-          <div class="meta-line"><span class="ph">listing link</span></div>
-        </article>
+          <div class="meta-line"><span class="buy">Buy on Amazon <span aria-hidden="true">→</span></span></div>
+        </a>
 
-        <article class="vol">
-          <div><span class="tagline">Earlier work</span>
+        <a class="vol" href="https://www.amazon.com/dp/B07VRKSC9P" target="_blank" rel="noopener noreferrer" aria-label="Keeping It Simple — buy on Amazon">
+          <div><img class="cover" src="/keeping-it-simple.png" alt="Keeping It Simple book cover" loading="lazy"><span class="tagline">Earlier work</span>
             <h3>Keeping It Simple</h3>
             <p>Soul, body and mind do not require life to be made more complicated than it already is.</p></div>
-          <div class="meta-line"><span class="ph">listing link</span></div>
-        </article>
+          <div class="meta-line"><span class="buy">Buy on Amazon <span aria-hidden="true">→</span></span></div>
+        </a>
+
+        <a class="vol" href="https://www.amazon.com/dp/B0GJQV5M2F" target="_blank" rel="noopener noreferrer" aria-label="Your Path to Peace — buy on Amazon">
+          <div><img class="cover" src="/your-path-to-peace.png" alt="Your Path to Peace book cover" loading="lazy"><span class="tagline">Earlier work</span>
+            <h3>Your Path to Peace</h3>
+            <p>A journey beyond calmness — toward the peace that remains when what is unfinished is no longer veiled.</p></div>
+          <div class="meta-line"><span class="buy">Buy on Amazon <span aria-hidden="true">→</span></span></div>
+        </a>
 
         <article class="vol">
-          <div><span class="tagline">Earlier work</span>
+          <div><div class="cover cover--empty">Cover coming soon</div><span class="tagline">Earlier work</span>
             <h3>Life Force: Lost and Found</h3>
             <p>Energy, wholeness, and reconnecting with the vitality of being alive.</p></div>
           <div class="meta-line"><span class="ph">listing link</span></div>
         </article>
-      </div>
+      </div></div>
 
       <div class="langs rise">
         <span><b>हिन्दी</b> AAO in Hindi — in translation</span>
@@ -756,10 +772,11 @@ footer b{color:var(--vellum)}
         </div>
       </div>
       <div class="platforms rise">
-        <a class="plat" href="#">Google reviews <span class="ph">live link</span></a>
+        <a class="plat" href="https://g.page/r/CVDKnf9pk9KdEBM/review" target="_blank" rel="noopener noreferrer"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.8 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.5a4.7 4.7 0 0 1-2 3.1v2.6h3.3c1.9-1.8 3-4.4 3-7.5ZM12 22c2.7 0 5-.9 6.7-2.4l-3.3-2.6c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.100H3v2.600A10 10 0 0 0 12 22ZM6.400 13.900a6 6 0 0 1 0-3.800V7.500H3a10 10 0 0 0 0 9l3.400-2.600ZM12 6c1.500 0 2.800.5 3.800 1.500l2.900-2.900A10 10 0 0 0 3 7.500l3.400 2.600C7.200 7.800 9.400 6 12 6Z"/></svg>Google reviews</a>
         <a class="plat" href="#">Facebook recommendations <span class="ph">live link</span></a>
-        <a class="plat" href="#">Yelp <span class="ph">live link</span></a>
+        <a class="plat" href="https://www.yelp.com/biz/soul-body-healing-center-fremont-2" target="_blank" rel="noopener noreferrer"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.300 2.100c-.9-.2-1.700.5-1.700 1.400v7.300c0 .8.900 1.200 1.500.7l4.800-5.500c.4-.5.300-1.200-.2-1.500a10 10 0 0 0-4.400-2.400ZM9.700 13.500 4 15.200c-.7.200-1.100 1-.7 1.700a10 10 0 0 0 2.800 3.200c.6.400 1.400.2 1.700-.4l2.800-5.100c.4-.8-.200-1.700-.9-1.100Zm-.4-2.500L4 8.500c-.6-.3-1.300 0-1.500.7a10 10 0 0 0-.2 4.200c.1.700.8 1.100 1.400.900l5.300-2c.8-.3.900-1.300.3-1.300Zm5 3.400c-.8-.1-1.400.8-1 1.500l2.800 5.100c.3.600 1.100.7 1.600.3a10 10 0 0 0 2.500-3.400c.3-.7-.1-1.400-.8-1.600l-5.100-1.900Zm.200-2.100 5.500-.9c.7-.1 1.100-.8.900-1.500a10 10 0 0 0-2-3.700c-.5-.5-1.300-.4-1.700.1l-3.500 4.400c-.5.700 0 1.700.8 1.600Z"/></svg>Yelp</a>
         <a class="plat" href="#">Thumbtack <span class="ph">live link</span></a>
+        <a class="plat" href="https://www.instagram.com/soulbodyhealing.path/" target="_blank" rel="noopener noreferrer"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2Zm0 1.8A3.7 3.7 0 0 0 3.8 7.5v9a3.7 3.7 0 0 0 3.7 3.7h9a3.7 3.7 0 0 0 3.7-3.7v-9a3.7 3.7 0 0 0-3.7-3.7h-9ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 1.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4Zm5.2-2.6a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4Z"/></svg>Instagram</a>
       </div>
     </div>
   </section>
@@ -768,7 +785,7 @@ footer b{color:var(--vellum)}
   <section class="band" id="about">
     <div class="shell about">
       <div class="portrait rise">
-        <p class="note"><span class="ph">Replace with a current, high-resolution portrait — warm, natural light, direct eye contact, not a stock wellness image</span></p>
+        <img src="/dr-alka-chopra-madan.png" alt="Dr. Alka Chopra Madan — AAO: Arrive at Origin" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
       </div>
       <div class="rise">
         <h2 style="font-size:clamp(2rem,4vw,3.2rem);margin-bottom:.4em">A life spent watching people, and life itself.</h2>
@@ -806,7 +823,8 @@ footer b{color:var(--vellum)}
     <div>
       <b>Soul Body Healing Center</b><br>
       Fremont, California. In person and online.<br>
-      Founded and led by Dr. Alka Chopra Madan, D.Msc.
+      Founded and led by Dr. Alka Chopra Madan, D.Msc.<br>
+      <a href="https://www.instagram.com/soulbodyhealing.path/" target="_blank" rel="noopener noreferrer"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2Zm0 1.8A3.7 3.7 0 0 0 3.8 7.5v9a3.7 3.7 0 0 0 3.7 3.7h9a3.7 3.7 0 0 0 3.7-3.7v-9a3.7 3.7 0 0 0-3.7-3.7h-9ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 1.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4Zm5.2-2.6a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4Z"/></svg>Instagram</a> · <a href="https://g.page/r/CVDKnf9pk9KdEBM/review" target="_blank" rel="noopener noreferrer"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.8 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.5a4.7 4.7 0 0 1-2 3.1v2.6h3.3c1.9-1.8 3-4.4 3-7.5ZM12 22c2.7 0 5-.9 6.7-2.4l-3.3-2.6c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.100H3v2.600A10 10 0 0 0 12 22ZM6.400 13.900a6 6 0 0 1 0-3.800V7.500H3a10 10 0 0 0 0 9l3.400-2.600ZM12 6c1.500 0 2.800.5 3.800 1.500l2.900-2.900A10 10 0 0 0 3 7.500l3.400 2.600C7.200 7.800 9.400 6 12 6Z"/></svg>Google reviews</a> · <a href="https://www.yelp.com/biz/soul-body-healing-center-fremont-2" target="_blank" rel="noopener noreferrer"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.300 2.100c-.9-.2-1.700.5-1.700 1.400v7.300c0 .8.900 1.200 1.500.7l4.800-5.500c.4-.5.300-1.200-.2-1.500a10 10 0 0 0-4.400-2.400ZM9.700 13.500 4 15.200c-.7.200-1.100 1-.7 1.700a10 10 0 0 0 2.800 3.200c.6.400 1.400.2 1.700-.4l2.800-5.100c.4-.8-.200-1.700-.9-1.100Zm-.4-2.500L4 8.500c-.6-.3-1.300 0-1.500.7a10 10 0 0 0-.2 4.200c.1.700.8 1.100 1.400.900l5.300-2c.8-.3.900-1.300.3-1.300Zm5 3.400c-.8-.1-1.400.8-1 1.500l2.800 5.100c.3.600 1.100.7 1.600.3a10 10 0 0 0 2.500-3.400c.3-.7-.1-1.400-.8-1.600l-5.100-1.900Zm.200-2.100 5.500-.9c.7-.1 1.100-.8.900-1.500a10 10 0 0 0-2-3.700c-.5-.5-1.300-.4-1.700.1l-3.500 4.400c-.5.700 0 1.700.8 1.600Z"/></svg>Yelp</a>
     </div>
     <div>
       <b>Please note.</b> Dr. Alka Chopra Madan holds a Doctorate in Metaphysics. The services described here are spiritual, educational and wellness oriented. They are not medical treatment, mental-health diagnosis, psychotherapy or psychiatric care, and they are not a substitute for care from a licensed medical or mental-health professional.
@@ -815,6 +833,17 @@ footer b{color:var(--vellum)}
 </footer>
 
 <script>
+(function(){
+  var track = document.querySelector('.rail-track');
+  if (track) {
+    Array.prototype.slice.call(track.children).forEach(function(c){
+      var d = c.cloneNode(true);
+      d.setAttribute('aria-hidden','true'); if (d.tagName === 'A') d.setAttribute('tabindex','-1');
+      Array.prototype.forEach.call(d.querySelectorAll('img'), function(im){ im.alt=''; });
+      track.appendChild(d);
+    });
+  }
+})();
 (function(){
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

@@ -49,3 +49,33 @@
     scroll-behavior: auto;
   }
 }
+
+/* Books marquee: cards drift left to right, pause on hover */
+.book-marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.book-track {
+  display: flex;
+  width: max-content;
+  gap: 16px;
+  padding: 4px 8px 16px;
+  animation: book-marquee 60s linear infinite;
+}
+@media (hover: hover) {
+  .book-marquee:hover .book-track {
+    animation-play-state: paused;
+  }
+}
+.book-marquee:has(:focus-visible) .book-track {
+  animation-play-state: paused;
+}
+@keyframes book-marquee {
+  from { transform: translateX(calc(-50% - 8px)); }
+  to { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .book-marquee { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
+  .book-track { animation: none !important; }
+}

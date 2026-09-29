@@ -1,3 +1,4 @@
+import SocialIcon from "../components/SocialIcon";
 import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
@@ -47,6 +48,9 @@ const books = [
   {
     tagline: "AAO series · Part One",
     title: "Arrive at Origin",
+    href: "https://www.amazon.com/dp/B0GX33FYHW",
+    image: "/aao-part-one.png",
+    alt: "Arrive at Origin, Part One book cover",
     text: "The central work. Origin as the position that remains when you stop moving away from yourself, and the method for returning to it.",
     meta: "link to Amazon / KDP listing",
     series: true,
@@ -54,6 +58,9 @@ const books = [
   {
     tagline: "AAO series · Part Two",
     title: "Arrive at Origin II",
+    href: "https://www.amazon.com/dp/B0H1H83KNV",
+    image: "/aao-part-two.png",
+    alt: "Arrive at Origin, Part Two book cover",
     text: "The elaboration: Concept Clearing as gateway, the four movements in depth, and living from Origin inside ordinary obligation.",
     meta: "confirm publication date and listing link",
     series: true,
@@ -61,25 +68,46 @@ const books = [
   {
     tagline: "Earlier work",
     title: "Your Path to Transformation",
+    href: "https://www.amazon.com/dp/B0CR9H7YMH",
+    image: "/your-path-to-transformation.png",
+    alt: "Your Path to Transformation book cover",
     text: "Change, unpredictability, and the way we meet a life that does not consult us first.",
     meta: "listing link",
   },
   {
     tagline: "Earlier work",
     title: "Your Path to Spirituality",
+    href: "https://www.amazon.com/dp/B0BBS9GRPJ",
+    image: "/your-path-to-spirituality.png",
+    alt: "Your Path to Spirituality book cover",
     text: "A return to what spirituality is underneath the labels it has collected.",
     meta: "listing link",
   },
   {
     tagline: "Earlier work",
     title: "Your Path to Healing",
+    href: "https://www.amazon.com/dp/B0C386DNVQ",
+    image: "/your-path-to-healing.png",
+    alt: "Your Path to Healing book cover",
     text: "What healing means across living, loss and recovery — held as inquiry rather than instruction.",
     meta: "listing link",
   },
   {
     tagline: "Earlier work",
     title: "Keeping It Simple",
+    href: "https://www.amazon.com/dp/B07VRKSC9P",
+    image: "/keeping-it-simple.png",
+    alt: "Keeping It Simple book cover",
     text: "Soul, body and mind do not require life to be made more complicated than it already is.",
+    meta: "listing link",
+  },
+  {
+    tagline: "Earlier work",
+    title: "Your Path to Peace",
+    href: "https://www.amazon.com/dp/B0GJQV5M2F",
+    image: "/your-path-to-peace.png",
+    alt: "Your Path to Peace book cover",
+    text: "A journey beyond calmness — toward the peace that remains when what is unfinished is no longer veiled.",
     meta: "listing link",
   },
   {
@@ -106,6 +134,58 @@ const voices = [
 ];
 
 const placeholder = "text-[0.82em] font-medium tracking-[0.01em] text-[#E8963C] before:content-['[_'] after:content-['_]']";
+
+function BookCard({ book, hidden }) {
+  const Tag = book.href ? "a" : "article";
+  const linkProps = book.href
+    ? {
+        href: book.href,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        "aria-label": `${book.title} — buy on Amazon`,
+        tabIndex: hidden ? -1 : undefined,
+      }
+    : {};
+  return (
+    <Tag
+      {...linkProps}
+      aria-hidden={hidden || undefined}
+      className={`flex h-[530px] w-[224px] shrink-0 flex-col justify-between rounded-2xl border border-transparent p-4 text-vellum no-underline ${
+        book.href ? "transition-transform duration-200 hover:-translate-y-1" : ""
+      }`}
+      style={{ background: "linear-gradient(165deg, #0E1630, #2C2246)" }}
+    >
+      <div>
+        {book.image ? (
+          <img
+            src={book.image}
+            alt={hidden ? "" : book.alt}
+            loading="lazy"
+            className="mb-3 aspect-[2/3] w-full rounded-lg object-cover object-top shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
+          />
+        ) : (
+          <div className="mb-3 flex aspect-[2/3] w-full items-center justify-center rounded-lg border border-dashed border-[rgba(237,231,218,0.25)] text-[0.78rem] text-[#A9B0C2]">
+            Cover coming soon
+          </div>
+        )}
+        <span className="text-[0.68rem] tracking-[0.14em] text-halo">{book.tagline}</span>
+        <h3 className="mb-0 mt-2 line-clamp-2 min-h-[2.6em] font-display text-[1.15rem] font-light leading-[1.3]">
+          {book.title}
+        </h3>
+        {book.text && <p className="m-0 mt-2 line-clamp-3 text-[0.8rem] text-[#C6CBD8]">{book.text}</p>}
+      </div>
+      <div className="mt-3 min-h-[3.4em] border-t border-[rgba(128,128,128,0.25)] pt-[10px] text-[0.78rem]">
+        {book.href ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-halo px-3 py-1.5 text-[0.78rem] font-bold text-void">
+            Buy on Amazon <span aria-hidden="true">→</span>
+          </span>
+        ) : (
+          <span className={placeholder}>{book.meta}</span>
+        )}
+      </div>
+    </Tag>
+  );
+}
 
 function Home() {
   return (
@@ -373,32 +453,12 @@ function Home() {
               </p>
             </Reveal>
 
-            <Reveal
-              as="div"
-              className="grid auto-cols-[minmax(268px,1fr)] grid-flow-col gap-[18px] overflow-x-auto pb-4 [scrollbar-width:thin] snap-x snap-mandatory"
-            >
-              {books.map((book) => (
-                <article
-                  key={book.title}
-                  className={`flex min-h-[330px] snap-start flex-col justify-between rounded-2xl border p-7 ${
-                    book.series
-                      ? "border-transparent text-vellum"
-                      : "border-[rgba(42,38,24,0.14)] bg-vellum-2 text-ink"
-                  }`}
-                  style={book.series ? { background: "linear-gradient(165deg, #0E1630, #2C2246)" } : undefined}
-                >
-                  <div>
-                    <span className={`text-[0.76rem] tracking-[0.14em] ${book.series ? "text-halo" : "text-gold"}`}>
-                      {book.tagline}
-                    </span>
-                    <h3 className="my-[18px] font-display text-[1.7rem] font-light">{book.title}</h3>
-                    <p className={`m-0 text-[0.92rem] ${book.series ? "text-[#C6CBD8]" : ""}`}>{book.text}</p>
-                  </div>
-                  <div className="mt-5 border-t border-[rgba(128,128,128,0.25)] pt-[14px] text-[0.84rem]">
-                    <span className={placeholder}>{book.meta}</span>
-                  </div>
-                </article>
-              ))}
+            <Reveal as="div" className="book-marquee -mx-[clamp(20px,5vw,64px)]">
+              <div className="book-track">
+                {[...books, ...books].map((book, i) => (
+                  <BookCard key={`${book.title}-${i}`} book={book} hidden={i >= books.length} />
+                ))}
+              </div>
             </Reveal>
 
             <Reveal className="mt-8 flex flex-wrap gap-[22px] text-[0.9rem] text-[#4A4638]">
@@ -482,13 +542,21 @@ function Home() {
               ))}
             </Reveal>
             <Reveal className="mt-11 flex flex-wrap gap-3">
-              {["Google reviews", "Facebook recommendations", "Yelp", "Thumbtack"].map((plat) => (
+              {[
+                { name: "Google reviews", icon: "google", href: "https://g.page/r/CVDKnf9pk9KdEBM/review" },
+                { name: "Facebook recommendations" },
+                { name: "Yelp", icon: "yelp", href: "https://www.yelp.com/biz/soul-body-healing-center-fremont-2" },
+                { name: "Thumbtack" },
+                { name: "Instagram", icon: "instagram", href: "https://www.instagram.com/soulbodyhealing.path/" },
+              ].map((plat) => (
                 <a
-                  key={plat}
-                  href="#"
-                  className="rounded-full border border-[rgba(42,38,24,0.2)] px-5 py-[11px] text-[0.9rem] text-ink no-underline transition-all duration-200 hover:border-ink hover:bg-ink hover:text-vellum"
+                  key={plat.name}
+                  href={plat.href || "#"}
+                  {...(plat.href ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  className="inline-flex items-center gap-2 rounded-full border border-[rgba(42,38,24,0.2)] px-5 py-[11px] text-[0.9rem] text-ink no-underline transition-all duration-200 hover:border-ink hover:bg-ink hover:text-vellum"
                 >
-                  {plat} <span className={placeholder}>live link</span>
+                  {plat.icon && <SocialIcon name={plat.icon} />}
+                  {plat.name} {!plat.href && <span className={placeholder}>live link</span>}
                 </a>
               ))}
             </Reveal>
@@ -505,12 +573,11 @@ function Home() {
                   "radial-gradient(90% 70% at 50% 18%, rgba(232,206,140,.28), transparent 60%), linear-gradient(170deg, #1B2647, #0A1024 70%)",
               }}
             >
-              <p className="rounded-[10px] bg-void/55 p-[14px_16px] text-[0.85rem] text-[#A9B0C2] backdrop-blur-[6px]">
-                <span className={placeholder}>
-                  Replace with a current, high-resolution portrait — warm, natural light, direct eye contact, not a
-                  stock wellness image
-                </span>
-              </p>
+              <img
+                src="/dr-alka-chopra-madan.png"
+                alt="Dr. Alka Chopra Madan — AAO: Arrive at Origin"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
             </Reveal>
             <Reveal>
               <h2 className={`${heading} mb-[0.4em] text-[clamp(2rem,4vw,3.2rem)]`}>

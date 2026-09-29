@@ -1,3 +1,5 @@
+import SocialIcon from "../SocialIcon";
+
 function SiteFooter() {
   return (
     <footer className="border-t border-[rgba(237,231,218,0.12)] py-[52px] pb-[68px] text-[0.86rem] text-dim">
@@ -8,6 +10,18 @@ function SiteFooter() {
           Fremont, California. In person and online.
           <br />
           Founded and led by Dr. Alka Chopra Madan, D.Msc.
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+            {[
+              ["instagram", "Instagram", "https://www.instagram.com/soulbodyhealing.path/"],
+              ["google", "Google reviews", "https://g.page/r/CVDKnf9pk9KdEBM/review"],
+              ["yelp", "Yelp", "https://www.yelp.com/biz/soul-body-healing-center-fremont-2"],
+            ].map(([icon, label, href]) => (
+              <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-vellum underline-offset-4 hover:underline">
+                <SocialIcon name={icon} />
+                {label}
+              </a>
+            ))}
+          </div>
         </div>
         <div>
           <b className="text-vellum">Please note.</b> Dr. Alka Chopra Madan holds a Doctorate in Metaphysics. The
