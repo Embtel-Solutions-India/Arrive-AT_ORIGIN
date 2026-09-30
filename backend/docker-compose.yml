@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: soulbody
+      POSTGRES_PASSWORD: soulbody
+      POSTGRES_DB: soulbody
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import SocialIcon from "../components/SocialIcon";
 import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
@@ -113,6 +114,9 @@ const books = [
   {
     tagline: "Earlier work",
     title: "Life Force: Lost and Found",
+    href: "https://www.amazon.com/Life-Force-Alka-Chopra-Madan-ebook/dp/B07VQDY6VP",
+    image: "/life-force-lost-and-found.png",
+    alt: "Life Force: Lost and Found book cover",
     text: "Energy, wholeness, and reconnecting with the vitality of being alive.",
     meta: "listing link",
   },
@@ -121,15 +125,26 @@ const books = [
 const voices = [
   {
     quote: "The process seemed original, simple, effective.",
-    cite: "Soul Body Healing Center client · [ verify source and consent ]",
+    cite: "Soul Body Healing Center client",
   },
   {
     quote: "Helped me to clearly and smoothly channelize my thought process.",
-    cite: "Soul Body Healing Center client · [ verify source and consent ]",
+    cite: "Soul Body Healing Center client",
   },
   {
     quote: "Very helpful and extremely knowledgeable.",
-    cite: "Soul Body Healing Center client · [ verify source and consent ]",
+    cite: "Soul Body Healing Center client",
+  },
+];
+
+const ratings = [
+  { name: "Google", icon: "google", score: "5.0", count: 120, href: "https://g.page/r/CVDKnf9pk9KdEBM/review" },
+  {
+    name: "Yelp",
+    icon: "yelp",
+    score: "4.8",
+    count: 45,
+    href: "https://www.yelp.com/biz/soul-body-healing-center-fremont-2",
   },
 ];
 
@@ -224,12 +239,12 @@ function Home() {
               >
                 See what meta-human means
               </a>
-              <a
-                href="#begin"
+              <Link
+                to="/schedule"
                 className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-[rgba(237,231,218,0.32)] bg-transparent px-[26px] text-[0.95rem] font-bold text-vellum no-underline transition-all duration-200 hover:border-halo hover:bg-[rgba(237,231,218,0.08)]"
               >
                 Book a conversation
-              </a>
+              </Link>
             </div>
             <div className="mt-10 flex flex-wrap gap-x-[26px] gap-y-[10px] text-[0.86rem] text-dim">
               <span>
@@ -424,9 +439,9 @@ function Home() {
 
             <Reveal as="div" className="border-t border-[rgba(237,231,218,0.14)]">
               {practiceItems.map((item) => (
-                <a
+                <Link
                   key={item.title}
-                  href="#begin"
+                  to="/schedule"
                   className="group grid grid-cols-1 items-baseline gap-2 border-b border-[rgba(237,231,218,0.14)] py-[30px] no-underline transition-all duration-300 hover:bg-linear-to-r hover:from-[rgba(232,206,140,0.1)] hover:to-transparent hover:pl-[18px] focus-visible:bg-linear-to-r focus-visible:from-[rgba(232,206,140,0.1)] focus-visible:to-transparent focus-visible:pl-[18px] sm:grid-cols-[minmax(220px,0.9fr)_1.4fr_auto] sm:gap-6"
                 >
                   <h3 className={`${heading} text-[clamp(1.3rem,2vw,1.7rem)] font-normal text-vellum`}>{item.title}</h3>
@@ -434,7 +449,7 @@ function Home() {
                   <span className="text-[0.85rem] whitespace-nowrap text-halo opacity-100 transition-opacity duration-300 sm:opacity-[0.55] sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
                     {item.cta}
                   </span>
-                </a>
+                </Link>
               ))}
             </Reveal>
           </div>
@@ -487,8 +502,8 @@ function Home() {
                 The work does not stop at the consulting room.
               </h2>
               <p className="max-w-[56ch] text-vellum">
-                The same metaphysics runs through teaching and through service. Both were built so the framework
-                would outlast any one practitioner, including me.
+                The same metaphysics runs through teaching. It was built so the framework would outlast any one
+                practitioner, including me.
               </p>
             </Reveal>
             <Reveal className="grid grid-cols-1 gap-[clamp(20px,3vw,32px)] md:grid-cols-2">
@@ -501,19 +516,14 @@ function Home() {
                   intends to carry this work into their own community.
                 </p>
                 <p className="mb-0 text-[#A9B0C2]">
-                  <span className={placeholder}>curriculum, enrolment status and link</span>
-                </p>
-              </article>
-              <article className="rounded-2xl border border-[rgba(237,231,218,0.16)] bg-[rgba(237,231,218,0.04)] p-[clamp(26px,3vw,40px)]">
-                <h3 className={`${heading} mb-[0.4em] text-[clamp(1.5rem,2.6vw,2rem)] text-vellum`}>
-                  Global Women Power &amp; Community Kitchen
-                </h3>
-                <p className="mb-[0.8em] text-[#A9B0C2]">
-                  Metaphysics that stays theoretical has not finished its sentence. This is the service arm: women's
-                  empowerment, and food given without conditions attached.
-                </p>
-                <p className="mb-0 text-[#A9B0C2]">
-                  <span className={placeholder}>programme details, volunteer and donation links</span>
+                  <a
+                    href="https://soulbodyhealingcenter.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-vellum underline underline-offset-4"
+                  >
+                    Visit University of Spiritual Sciences →
+                  </a>
                 </p>
               </article>
             </Reveal>
@@ -531,6 +541,30 @@ function Home() {
                 Ratings and counts should be pulled live from each platform so this page never shows a stale number.
               </p>
             </Reveal>
+            <Reveal className="mb-[clamp(28px,4vw,48px)] grid grid-cols-1 gap-[clamp(16px,2vw,24px)] sm:grid-cols-2 md:max-w-[720px]">
+              {ratings.map((r) => (
+                <a
+                  key={r.name}
+                  href={r.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${r.name}: ${r.score} out of 5 from ${r.count} reviews`}
+                  className="rounded-2xl border border-[rgba(42,38,24,0.2)] bg-[rgba(255,255,255,0.4)] p-6 text-ink no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-ink"
+                >
+                  <div className="mb-3 flex items-center gap-2 text-[0.9rem] font-medium">
+                    <SocialIcon name={r.icon} />
+                    {r.name}
+                  </div>
+                  <div className="flex items-baseline gap-3">
+                    <span className={`${heading} text-[clamp(2.4rem,4vw,3.2rem)] font-normal`}>{r.score}</span>
+                    <span aria-hidden="true" className="text-[1.2rem] tracking-[0.1em] text-gold">
+                      ★★★★★
+                    </span>
+                  </div>
+                  <div className="mt-1 text-[0.84rem] text-dim-warm">{r.count} reviews</div>
+                </a>
+              ))}
+            </Reveal>
             <Reveal className="grid grid-cols-1 gap-[clamp(20px,3vw,34px)] md:grid-cols-3">
               {voices.map((v) => (
                 <div key={v.quote} className="border-t-2 border-gold pt-[22px]">
@@ -544,7 +578,7 @@ function Home() {
             <Reveal className="mt-11 flex flex-wrap gap-3">
               {[
                 { name: "Google reviews", icon: "google", href: "https://g.page/r/CVDKnf9pk9KdEBM/review" },
-                { name: "Facebook recommendations" },
+                { name: "Facebook recommendations", icon: "facebook", href: "https://www.facebook.com/soulbodyhealingcenter" },
                 { name: "Yelp", icon: "yelp", href: "https://www.yelp.com/biz/soul-body-healing-center-fremont-2" },
                 { name: "Thumbtack" },
                 { name: "Instagram", icon: "instagram", href: "https://www.instagram.com/soulbodyhealing.path/" },
@@ -556,7 +590,7 @@ function Home() {
                   className="inline-flex items-center gap-2 rounded-full border border-[rgba(42,38,24,0.2)] px-5 py-[11px] text-[0.9rem] text-ink no-underline transition-all duration-200 hover:border-ink hover:bg-ink hover:text-vellum"
                 >
                   {plat.icon && <SocialIcon name={plat.icon} />}
-                  {plat.name} {!plat.href && <span className={placeholder}>live link</span>}
+                  {plat.name}
                 </a>
               ))}
             </Reveal>
@@ -595,12 +629,12 @@ function Home() {
               </p>
               <p className="max-w-[64ch] text-vellum">AAO is the clearest expression of that. The meta-human is who it is addressed to.</p>
               <div className="mt-[34px] flex flex-wrap gap-[14px]">
-                <a
-                  href="#begin"
+                <Link
+                  to="/schedule"
                   className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-halo bg-halo px-[26px] text-[0.95rem] font-bold text-void no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-white hover:bg-white"
                 >
                   Book a conversation
-                </a>
+                </Link>
                 <a
                   href="#books"
                   className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-[rgba(237,231,218,0.32)] bg-transparent px-[26px] text-[0.95rem] font-bold text-vellum no-underline transition-all duration-200 hover:border-halo hover:bg-[rgba(237,231,218,0.08)]"
@@ -642,7 +676,9 @@ function Home() {
                 info@soulbodyhealingcenter.com
               </a>
               <br />
-              <span className={placeholder}>online booking link</span>
+              <Link to="/schedule" className="border-b border-[rgba(232,206,140,0.35)] text-halo no-underline">
+                Schedule an appointment online
+              </Link>
             </Reveal>
           </div>
         </section>

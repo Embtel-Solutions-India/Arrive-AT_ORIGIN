@@ -1,0 +1,21 @@
+/* Admin design tokens: aliases of the public site's palette (see src/index.css @theme). */
+.admin-root {
+  --admin-primary: var(--color-gold);
+  --admin-secondary: var(--color-slate);
+  --admin-accent: var(--color-halo);
+  --admin-background: var(--color-void);
+  --admin-surface: var(--color-ink);
+  --admin-surface-raised: #141d3b;
+  --admin-text-primary: var(--color-vellum);
+  --admin-text-secondary: #a9b0c2;
+  --admin-text-muted: var(--color-dim);
+  --admin-border: rgba(237, 231, 218, 0.14);
+  --admin-success: var(--color-verdigris);
+  --admin-warning: #e8963c;
+  --admin-danger: #d8665a;
+  --admin-radius: 16px;
+
+  background: var(--admin-background);
+  color: var(--admin-text-primary);
+  font-family: var(--font-text);
+}

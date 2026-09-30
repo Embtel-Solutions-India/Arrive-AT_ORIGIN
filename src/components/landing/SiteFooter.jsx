@@ -12,6 +12,7 @@ function SiteFooter() {
           Founded and led by Dr. Alka Chopra Madan, D.Msc.
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
             {[
+              ["facebook", "Facebook", "https://www.facebook.com/soulbodyhealingcenter"],
               ["instagram", "Instagram", "https://www.instagram.com/soulbodyhealing.path/"],
               ["google", "Google reviews", "https://g.page/r/CVDKnf9pk9KdEBM/review"],
               ["yelp", "Yelp", "https://www.yelp.com/biz/soul-body-healing-center-fremont-2"],
