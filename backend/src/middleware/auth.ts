@@ -2,15 +2,15 @@ import type { RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
 import { ACCESS_COOKIE } from "../config/cookies.js";
-import type { Permission } from "../config/permissions.js";
-import { prisma } from "../database/prisma.js";
+import { Permission, ROLE_PERMISSIONS, RoleName } from "../config/permissions.js";
+import { User } from "../models/User.js";
 import { HttpError } from "../utils/httpError.js";
 
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  role: string;
+  role: RoleName;
   permissions: Permission[];
 }
 
@@ -20,28 +20,37 @@ declare module "express-serve-static-core" {
   }
 }
 
-/** Verifies the access cookie and loads the user's *current* role + permissions from the DB. */
+/** Verifies the access cookie or Authorization header and loads the user's role + permissions from MongoDB. */
 export const authenticate: RequestHandler = async (req, _res, next) => {
   try {
-    const token = req.cookies?.[ACCESS_COOKIE] as string | undefined;
-    if (!token) throw HttpError.unauthorized();
+    let token = req.cookies?.[ACCESS_COOKIE] as string | undefined;
+    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.substring(7);
+    }
+
+    if (!token) throw HttpError.unauthorized("Authentication required");
+
     let payload: jwt.JwtPayload;
     try {
       payload = jwt.verify(token, env.JWT_SECRET, { algorithms: ["HS256"] }) as jwt.JwtPayload;
     } catch {
-      throw HttpError.unauthorized("Session expired");
+      throw HttpError.unauthorized("Session expired or invalid");
     }
-    const user = await prisma.user.findUnique({
-      where: { id: String(payload.sub) },
-      include: { role: { include: { permissions: true } } },
-    });
-    if (!user || !user.active) throw HttpError.unauthorized();
+
+    const user = await User.findById(payload.sub);
+    if (!user || user.status !== "ACTIVE") {
+      throw HttpError.unauthorized("User account not found or inactive");
+    }
+
+    const role = (user.role || "ADMIN") as RoleName;
+    const permissions = (ROLE_PERMISSIONS[role] || []) as Permission[];
+
     req.user = {
-      id: user.id,
+      id: user._id.toString(),
       email: user.email,
       name: user.name,
-      role: user.role.name,
-      permissions: user.role.permissions.map((p) => p.key as Permission),
+      role,
+      permissions,
     };
     next();
   } catch (e) {
@@ -55,6 +64,9 @@ export const requirePermission =
   (req, _res, next) => {
     const user = req.user;
     if (!user) return next(HttpError.unauthorized());
-    if (!needed.every((p) => user.permissions.includes(p))) return next(HttpError.forbidden());
+    if (user.role === "SUPER_ADMIN") return next();
+    if (!needed.every((p) => user.permissions.includes(p))) {
+      return next(HttpError.forbidden("Insufficient permissions"));
+    }
     next();
   };

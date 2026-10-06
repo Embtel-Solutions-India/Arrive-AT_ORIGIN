@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { authRouter } from "../modules/auth/auth.routes.js";
-import { usersRouter } from "../modules/users/users.routes.js";
+import { adminRouter } from "./admin.routes.js";
+import { publicRouter } from "./public.routes.js";
+import { seoController } from "../modules/seo/seo.controller.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const apiRouter = Router();
 
@@ -8,8 +11,9 @@ apiRouter.get("/health", (_req, res) => {
   res.json({ success: true, data: { status: "ok" }, message: "Healthy" });
 });
 
-apiRouter.use("/auth", authRouter);
-apiRouter.use("/users", usersRouter);
+apiRouter.get("/sitemap.xml", asyncHandler(seoController.getSitemapXml));
+apiRouter.get("/robots.txt", asyncHandler(seoController.getRobotsTxt));
 
-// Later phases mount here: /blog, /media, /products, /inventory, /cart, /checkout, /orders,
-// /payments, /consultations, /availability, /bookings, /customers, /coupons, /analytics
+apiRouter.use("/auth", authRouter);
+apiRouter.use("/admin", adminRouter);
+apiRouter.use("/public", publicRouter);

@@ -6,7 +6,6 @@ import {
   clearOptions,
   refreshCookieOptions,
 } from "../../config/cookies.js";
-import { audit } from "../../services/audit.service.js";
 import { ok } from "../../utils/response.js";
 import { HttpError } from "../../utils/httpError.js";
 import { authService, type SessionTokens } from "./auth.service.js";
@@ -22,20 +21,20 @@ function setSession(res: Response, t: SessionTokens) {
 export const authController = {
   async login(req: Request, res: Response) {
     const { email, password, remember } = req.body as LoginInput;
-    const { user, tokens } = await authService.login(email, password, remember, ctx(req));
+    const { user, tokens } = await authService.login(email, password, remember ?? false, ctx(req));
     setSession(res, tokens);
-    await audit(req, "auth.login", "User", user.id, undefined, user.id);
-    ok(res, { user }, "Logged in");
+    ok(res, { user, token: tokens.accessToken }, "Logged in");
   },
 
   async refresh(req: Request, res: Response) {
-    const { user, tokens } = await authService.refresh(req.cookies?.[REFRESH_COOKIE], ctx(req));
+    const token = req.cookies?.[REFRESH_COOKIE] || req.body?.refreshToken;
+    if (!token) throw HttpError.unauthorized("No refresh token provided");
+    const { user, tokens } = await authService.refresh(token, ctx(req));
     setSession(res, tokens);
-    ok(res, { user }, "Session refreshed");
+    ok(res, { user, token: tokens.accessToken }, "Session refreshed");
   },
 
-  async logout(req: Request, res: Response) {
-    await authService.logout(req.cookies?.[REFRESH_COOKIE]);
+  async logout(_req: Request, res: Response) {
     res.clearCookie(ACCESS_COOKIE, clearOptions("/"));
     res.clearCookie(REFRESH_COOKIE, clearOptions("/api/auth"));
     ok(res, null, "Logged out");
@@ -43,7 +42,8 @@ export const authController = {
 
   async me(req: Request, res: Response) {
     if (!req.user) throw HttpError.unauthorized();
-    ok(res, { user: await authService.me(req.user.id) });
+    const user = await authService.getMe(req.user.id);
+    ok(res, { user });
   },
 
   async forgotPassword(req: Request, res: Response) {

@@ -9,6 +9,7 @@ export default defineConfig({
     // Same-origin in dev so the HTTP-only auth cookies work without cross-site config.
     proxy: {
       '/api': { target: 'http://localhost:4000', changeOrigin: false },
+      '/uploads': { target: 'http://localhost:4000', changeOrigin: false },
     },
   },
 })

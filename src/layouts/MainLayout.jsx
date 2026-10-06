@@ -1,15 +1,15 @@
 import { Outlet } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import SiteNav from "../components/landing/SiteNav";
+import SiteFooter from "../components/landing/SiteFooter";
 
 function MainLayout() {
   return (
-    <div className="flex min-h-screen flex-col bg-[#070B18] text-[#EDE7DA]">
-      <Navbar />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-16">
+    <div className="flex min-h-screen flex-col bg-void text-vellum">
+      <SiteNav />
+      <main className="mx-auto w-full max-w-[1240px] flex-1 px-[clamp(20px,5vw,64px)] py-12">
         <Outlet />
       </main>
-      <Footer />
+      <SiteFooter />
     </div>
   );
 }

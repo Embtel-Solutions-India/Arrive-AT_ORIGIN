@@ -458,14 +458,22 @@ function Home() {
         {/* BOOKS */}
         <section className="relative bg-vellum-2 py-[clamp(72px,10vw,132px)] text-ink" id="books">
           <div className={shell}>
-            <Reveal className="mb-[clamp(36px,5vw,64px)] max-w-[34ch]">
-              <h2 className={`${heading} mb-[0.34em] text-[clamp(2.2rem,4.6vw,3.9rem)] text-ink`}>
-                The written body of work.
-              </h2>
-              <p className="max-w-[56ch] text-[#4A4638]">
-                The books are not companion products to the practice — they are where the frameworks are set down in
-                full. The AAO series is the spine; the earlier titles are the inquiry that led to it.
-              </p>
+            <Reveal className="mb-[clamp(36px,5vw,64px)] flex flex-wrap items-end justify-between gap-6">
+              <div className="max-w-[34ch]">
+                <h2 className={`${heading} mb-[0.34em] text-[clamp(2.2rem,4.6vw,3.9rem)] text-ink`}>
+                  The written body of work.
+                </h2>
+                <p className="max-w-[56ch] text-[#4A4638]">
+                  The books are not companion products to the practice — they are where the frameworks are set down in
+                  full. The AAO series is the spine; the earlier titles are the inquiry that led to it.
+                </p>
+              </div>
+              <Link
+                to="/books"
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-xs font-bold uppercase tracking-wider text-vellum hover:bg-gold hover:text-ink transition-colors no-underline"
+              >
+                Visit Book Store & Orders →
+              </Link>
             </Reveal>
 
             <Reveal as="div" className="book-marquee -mx-[clamp(20px,5vw,64px)]">

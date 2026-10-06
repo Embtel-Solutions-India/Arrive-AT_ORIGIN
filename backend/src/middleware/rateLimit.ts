@@ -12,8 +12,9 @@ export const apiLimiter = rateLimit({
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60_000,
-  limit: 20,
+  limit: process.env.NODE_ENV === "production" ? 20 : 1000,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: json("Too many attempts, try again later"),
+  skip: (req) => process.env.NODE_ENV !== "production" && (req.ip === "127.0.0.1" || req.ip === "::1" || req.ip?.includes("127.0.0.1")),
 });

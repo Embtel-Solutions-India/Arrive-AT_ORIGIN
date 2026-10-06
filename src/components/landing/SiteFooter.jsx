@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import SocialIcon from "../SocialIcon";
 
 function SiteFooter() {
@@ -22,6 +23,18 @@ function SiteFooter() {
                 {label}
               </a>
             ))}
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-dim">
+            <Link to="/books" className="hover:text-vellum">Book Store</Link>
+            <span>·</span>
+            <Link to="/blog" className="hover:text-vellum">Blog</Link>
+            <span>·</span>
+            <Link to="/schedule" className="hover:text-vellum">Consultations</Link>
+            <span>·</span>
+            <Link to="/account" className="hover:text-vellum">My Account</Link>
+            <span>·</span>
+            <Link to="/admin" className="text-halo/80 hover:text-halo">Admin Portal</Link>
           </div>
         </div>
         <div>

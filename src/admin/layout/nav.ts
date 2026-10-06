@@ -2,6 +2,7 @@ export interface NavItem {
   label: string;
   to: string;
   permission?: string;
+  badge?: string;
 }
 
 export interface NavGroup {
@@ -10,48 +11,43 @@ export interface NavGroup {
 }
 
 export const adminNav: NavGroup[] = [
-  { items: [{ label: "Dashboard", to: "/admin/dashboard" }] },
   {
-    label: "Content",
+    items: [{ label: "Dashboard", to: "/admin/dashboard" }],
+  },
+  {
+    label: "Blog CMS",
     items: [
-      { label: "Pages", to: "/admin/pages", permission: "BLOG_READ" },
-      { label: "Blog Posts", to: "/admin/blog", permission: "BLOG_READ" },
+      { label: "All Posts", to: "/admin/blog", permission: "BLOG_READ" },
+      { label: "Add New Post", to: "/admin/blog/new", permission: "BLOG_WRITE" },
       { label: "Categories", to: "/admin/blog/categories", permission: "BLOG_READ" },
-      { label: "Media", to: "/admin/media", permission: "BLOG_READ" },
+      { label: "Tags", to: "/admin/blog/tags", permission: "BLOG_READ" },
     ],
   },
   {
-    label: "Store",
+    label: "Book Store",
     items: [
-      { label: "Books", to: "/admin/products", permission: "PRODUCT_READ" },
-      { label: "Categories", to: "/admin/products/categories", permission: "PRODUCT_READ" },
-      { label: "Inventory", to: "/admin/inventory", permission: "PRODUCT_READ" },
-      { label: "Orders", to: "/admin/orders", permission: "ORDER_READ" },
-      { label: "Coupons", to: "/admin/coupons", permission: "ORDER_READ" },
+      { label: "All Books", to: "/admin/books", permission: "PRODUCT_READ" },
+      { label: "Add New Book", to: "/admin/books/new", permission: "PRODUCT_WRITE" },
+      { label: "Book Categories", to: "/admin/books/categories", permission: "PRODUCT_READ" },
+      { label: "Authors", to: "/admin/authors", permission: "BLOG_READ" },
+      { label: "Inventory", to: "/admin/books/inventory", permission: "PRODUCT_READ" },
     ],
   },
   {
-    label: "Consultations",
+    label: "Orders & Sales",
     items: [
-      { label: "Services", to: "/admin/consultations", permission: "BOOKING_READ" },
-      { label: "Bookings", to: "/admin/bookings", permission: "BOOKING_READ" },
-      { label: "Calendar", to: "/admin/calendar", permission: "BOOKING_READ" },
-      { label: "Availability", to: "/admin/availability", permission: "BOOKING_READ" },
-    ],
-  },
-  { items: [{ label: "Customers", to: "/admin/customers", permission: "ORDER_READ" }] },
-  {
-    label: "Payments",
-    items: [
-      { label: "Transactions", to: "/admin/payments", permission: "PAYMENT_READ" },
-      { label: "Refunds", to: "/admin/payments/refunds", permission: "PAYMENT_READ" },
+      { label: "All Orders", to: "/admin/orders", permission: "ORDER_READ" },
+      { label: "Customers", to: "/admin/customers", permission: "CUSTOMER_READ" },
+      { label: "Payments", to: "/admin/payments", permission: "PAYMENT_READ" },
     ],
   },
   {
+    label: "Assets & System",
     items: [
-      { label: "Analytics", to: "/admin/analytics", permission: "PAYMENT_READ" },
-      { label: "Users & Roles", to: "/admin/users", permission: "USER_MANAGE" },
+      { label: "Media Library", to: "/admin/media", permission: "MEDIA_READ" },
+      { label: "SEO Management", to: "/admin/seo", permission: "SETTINGS_MANAGE" },
       { label: "Settings", to: "/admin/settings", permission: "SETTINGS_MANAGE" },
+      { label: "Admin Users", to: "/admin/users", permission: "USER_MANAGE" },
     ],
   },
 ];
