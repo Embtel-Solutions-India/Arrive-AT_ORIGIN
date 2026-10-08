@@ -13,6 +13,7 @@ import { SystemTab } from "./tabs/SystemTab";
 import { BackupsTab } from "./tabs/BackupsTab";
 import { AuditLogsTab } from "./tabs/AuditLogsTab";
 import { IntegrationsTab } from "./tabs/IntegrationsTab";
+import { CouponsTab } from "./tabs/CouponsTab";
 
 export type SettingsTabId =
   | "account"
@@ -20,6 +21,7 @@ export type SettingsTabId =
   | "security"
   | "sessions"
   | "payments"
+  | "coupons"
   | "email"
   | "notifications"
   | "booking"
@@ -67,6 +69,13 @@ const SETTINGS_NAV: NavItem[] = [
     label: "Payments",
     icon: "💳",
     description: "Configure Stripe, Razorpay, PayPal, multi-currency processing, and fees.",
+  },
+  {
+    id: "coupons",
+    label: "Coupons & Discounts",
+    icon: "🎟️",
+    badge: "Promo",
+    description: "Configure discount codes for store checkouts and consultation session bookings.",
   },
   {
     id: "email",
@@ -140,6 +149,8 @@ export function SettingsPage() {
         return <SessionsTab />;
       case "payments":
         return <PaymentsTab />;
+      case "coupons":
+        return <CouponsTab />;
       case "email":
         return <EmailTab />;
       case "notifications":

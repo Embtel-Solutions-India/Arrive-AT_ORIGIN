@@ -93,7 +93,11 @@ export const bookController = {
       categoryName,
       tags,
       price,
+      priceINR,
+      priceUSD,
       salePrice,
+      salePriceINR,
+      salePriceUSD,
       currency,
       sku,
       stockQuantity,
@@ -104,7 +108,16 @@ export const bookController = {
       seo,
     } = req.body;
 
-    if (!title || price === undefined) {
+    const effectivePrice =
+      priceINR !== undefined && priceINR !== ""
+        ? Number(priceINR)
+        : price !== undefined && price !== ""
+        ? Number(price)
+        : priceUSD !== undefined && priceUSD !== ""
+        ? Number(priceUSD)
+        : undefined;
+
+    if (!title || effectivePrice === undefined) {
       throw HttpError.badRequest("Title and price are required");
     }
 
@@ -137,9 +150,13 @@ export const bookController = {
       images: Array.isArray(images) ? images : [],
       categoryName: categoryName || "Metaphysics",
       tags: Array.isArray(tags) ? tags : [],
-      price: Number(price),
-      salePrice: salePrice ? Number(salePrice) : undefined,
-      currency: currency || "USD",
+      price: effectivePrice,
+      priceINR: priceINR !== undefined && priceINR !== "" ? Number(priceINR) : (currency === "INR" ? effectivePrice : undefined),
+      priceUSD: priceUSD !== undefined && priceUSD !== "" ? Number(priceUSD) : (currency === "USD" ? effectivePrice : undefined),
+      salePrice: salePriceINR ? Number(salePriceINR) : (salePrice ? Number(salePrice) : (salePriceUSD ? Number(salePriceUSD) : undefined)),
+      salePriceINR: salePriceINR ? Number(salePriceINR) : undefined,
+      salePriceUSD: salePriceUSD ? Number(salePriceUSD) : undefined,
+      currency: currency || "INR",
       sku: finalSku,
       stockQuantity: Number(stockQuantity) ?? 50,
       lowStockThreshold: Number(lowStockThreshold) ?? 5,
@@ -188,7 +205,11 @@ export const bookController = {
       "categoryName",
       "tags",
       "price",
+      "priceINR",
+      "priceUSD",
       "salePrice",
+      "salePriceINR",
+      "salePriceUSD",
       "currency",
       "stockQuantity",
       "lowStockThreshold",

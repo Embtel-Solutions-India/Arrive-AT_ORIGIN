@@ -52,16 +52,19 @@
 
 /* Books marquee: cards drift left to right, pause on hover */
 .book-marquee {
+  position: relative;
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  padding-top: 8px;
+  padding-bottom: 20px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 2.5%, #000 97.5%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 2.5%, #000 97.5%, transparent);
 }
 .book-track {
   display: flex;
   width: max-content;
-  gap: 16px;
-  padding: 4px 8px 16px;
-  animation: book-marquee 60s linear infinite;
+  gap: 20px;
+  padding: 8px 16px 32px;
+  animation: book-marquee 65s linear infinite;
 }
 @media (hover: hover) {
   .book-marquee:hover .book-track {
@@ -72,7 +75,7 @@
   animation-play-state: paused;
 }
 @keyframes book-marquee {
-  from { transform: translateX(calc(-50% - 8px)); }
+  from { transform: translateX(calc(-50% - 10px)); }
   to { transform: translateX(0); }
 }
 @media (prefers-reduced-motion: reduce) {

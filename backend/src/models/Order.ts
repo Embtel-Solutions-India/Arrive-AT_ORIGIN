@@ -26,6 +26,7 @@ export interface IOrder extends Document {
   shipping: number;
   tax: number;
   discount: number;
+  couponCode?: string;
   total: number;
   currency: string;
   paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
@@ -75,6 +76,7 @@ const OrderSchema = new Schema<IOrder>(
     shipping: { type: Number, default: 0, min: 0 },
     tax: { type: Number, default: 0, min: 0 },
     discount: { type: Number, default: 0, min: 0 },
+    couponCode: { type: String, default: "" },
     total: { type: Number, required: true, min: 0 },
     currency: { type: String, default: "USD" },
     paymentStatus: {

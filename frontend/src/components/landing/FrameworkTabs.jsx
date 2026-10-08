@@ -39,14 +39,14 @@ const frameworks = [
   },
   {
     numeral: "III",
-    label: "Induced Calmness",
-    role: "The state — what becomes available afterward",
-    title: "Induced Calmness",
+    label: "Living from Origin",
+    role: "The integration — carrying origin into daily life",
+    title: "Living from Origin",
     paragraphs: [
-      "Calm is usually treated as something that happens to you when conditions cooperate. Induced Calmness treats it as something a person can deliberately enter, on an ordinary Tuesday, in the middle of a difficult room, without waiting for the room to change.",
-      "It is the most portable part of the work, which is why it travels well into organisations. Leaders and teams learn to recover attention under pressure rather than perform composure while depleting themselves underneath it.",
+      "Arriving at Origin is not about withdrawing from life — it is about how you return to it. Living from Origin means meeting work, family, grief, and decisions from your own centered reality rather than from inherited conditioning.",
+      "Calm and clarity are not artificially forced or induced. When you remain seated in your authentic origin, steady presence becomes your natural baseline even in difficult rooms and demanding situations.",
     ],
-    asideTitle: "Where it is used",
+    asideTitle: "Where it is lived",
     asideType: "ul",
     asideItems: [
       "Grief and the hours that ambush you",

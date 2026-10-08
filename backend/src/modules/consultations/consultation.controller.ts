@@ -10,6 +10,8 @@ import { env } from "../../config/env.js";
 import { logger } from "../../utils/logger.js";
 import { generateCustomerToken } from "../customerAuth/customerAuth.controller.js";
 import { sendConsultationConfirmationEmail } from "../../services/email.service.js";
+import { Coupon } from "../../models/Coupon.js";
+import { calculateCouponDiscount } from "../coupons/coupon.controller.js";
 
 export const CONSULTATION_PACKAGES = [
   {
@@ -17,7 +19,7 @@ export const CONSULTATION_PACKAGES = [
     name: "Silver - Single Consultation",
     meetingType: "1-on-1 Metaphysical Diagnostic & Counsel",
     sessionsCount: 1,
-    duration: "60 Minutes",
+    duration: "1 Session",
     price: 250,
     currency: "USD",
     badge: "Starter",
@@ -34,16 +36,16 @@ export const CONSULTATION_PACKAGES = [
     name: "Relationship & Spiritual Harmony",
     meetingType: "Couples & Family Metaphysical Alignment",
     sessionsCount: 1,
-    duration: "90 Minutes",
+    duration: "1 Session",
     price: 350,
     currency: "USD",
     badge: "Spiritual Alignment",
     description: "Specialized joint spiritual counsel, clearing relational conditioning and emotional discord.",
     features: [
-      "90-min joint or family counsel",
+      "Joint or family counsel",
       "Harmonization of interpersonal field",
       "Conflict clearing & meta-human communication",
-      "Guided induced calmness exercises",
+      "Guided Living from Origin practices",
     ],
   },
   {
@@ -51,7 +53,7 @@ export const CONSULTATION_PACKAGES = [
     name: "Grief & Trauma Release Intensive",
     meetingType: "Emotional Freedom & Stress Alleviation",
     sessionsCount: 2,
-    duration: "2 x 60 Min Sessions",
+    duration: "2 Sessions",
     price: 600,
     currency: "USD",
     badge: "Intensive",
@@ -68,14 +70,14 @@ export const CONSULTATION_PACKAGES = [
     name: "Gold - Wellness Series",
     meetingType: "5-Session Holistic Transformation Sequence",
     sessionsCount: 5,
-    duration: "5 x 60 Min Sessions",
+    duration: "5 Sessions",
     price: 1250,
     currency: "USD",
     badge: "Most Popular",
     featured: true,
     description: "Boost your well-being with a comprehensive package of five curated metaphysical sessions.",
     features: [
-      "Five 60-minute scheduled sessions",
+      "Five scheduled transformation sessions",
       "Full Arrive at Origin (AAO) curriculum",
       "Ongoing personal energetic monitoring",
       "Priority scheduling & email support",
@@ -86,13 +88,13 @@ export const CONSULTATION_PACKAGES = [
     name: "Platinum - Life Transformation Experience",
     meetingType: "10-Session Comprehensive Metaphysical Mastery",
     sessionsCount: 10,
-    duration: "10 x 60 Min Sessions",
+    duration: "10 Sessions",
     price: 2500,
     currency: "USD",
     badge: "Total Transformation",
     description: "Dive into a deeply transformative experience with ten sessions for total life calibration and spiritual freedom.",
     features: [
-      "Ten 60-minute scheduled sessions",
+      "Ten scheduled transformation sessions",
       "Complete concept clearing & meta-human mastery",
       "Direct phone / priority access for urgent counsel",
       "Personalized meditation & contemplation roadmap",
@@ -124,6 +126,7 @@ export const consultationController = {
       appointmentTime,
       meetingMode = "ONLINE_ZOOM",
       notes = "",
+      couponCode = "",
     } = req.body;
 
     if (!packageId || !clientName || !clientEmail || !appointmentDate || !appointmentTime) {
@@ -135,12 +138,27 @@ export const consultationController = {
       throw HttpError.badRequest("Invalid consultation package selected");
     }
 
+    let discount = 0;
+    let appliedCouponCode = "";
+    let finalPrice = selectedPackage.price;
+
+    if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+      try {
+        const discountResult = await calculateCouponDiscount(couponCode, "CONSULTATION", selectedPackage.price);
+        discount = discountResult.discountAmount;
+        appliedCouponCode = discountResult.code;
+        finalPrice = discountResult.newAmount;
+      } catch (err: any) {
+        throw HttpError.badRequest(err.message || "Invalid coupon code");
+      }
+    }
+
     // Generate unique booking number
     const bookingNumber = `SB-CNS-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
 
     // Create Razorpay Order
     const rzpOrder = await razorpayService.createOrder({
-      amount: selectedPackage.price,
+      amount: finalPrice,
       currency: selectedPackage.currency,
       receipt: bookingNumber,
       notes: {
@@ -149,6 +167,7 @@ export const consultationController = {
         clientEmail,
         packageId: selectedPackage.id,
         packageName: selectedPackage.name,
+        couponCode: appliedCouponCode,
       },
     });
 
@@ -161,7 +180,10 @@ export const consultationController = {
       packageName: selectedPackage.name,
       meetingType: selectedPackage.meetingType,
       sessionsCount: selectedPackage.sessionsCount,
-      price: selectedPackage.price,
+      price: finalPrice,
+      originalPrice: selectedPackage.price,
+      discount,
+      couponCode: appliedCouponCode,
       currency: (rzpOrder as any).currency || selectedPackage.currency,
       appointmentDate,
       appointmentTime,
@@ -182,7 +204,10 @@ export const consultationController = {
         currency: rzpOrder.currency,
         keyId: env.RAZORPAY_KEY_ID,
         packageName: selectedPackage.name,
-        price: selectedPackage.price,
+        originalPrice: selectedPackage.price,
+        discount,
+        couponCode: appliedCouponCode,
+        price: finalPrice,
       },
       "Booking initiated. Complete payment to confirm.",
       201
@@ -265,16 +290,21 @@ export const consultationController = {
           subtotal: consultation.price,
         },
       ],
-      subtotal: consultation.price,
+      subtotal: consultation.originalPrice || consultation.price,
       shipping: 0,
       tax: 0,
-      discount: 0,
+      discount: consultation.discount || 0,
+      couponCode: consultation.couponCode || "",
       total: consultation.price,
       currency: consultation.currency,
       paymentStatus: "PAID",
       orderStatus: "PAYMENT_CONFIRMED",
-      notes: `Appointment scheduled for ${consultation.appointmentDate} at ${consultation.appointmentTime} (${consultation.meetingMode}). Client notes: ${consultation.notes || "None"}`,
+      notes: `Appointment scheduled for ${consultation.appointmentDate} at ${consultation.appointmentTime} (${consultation.meetingMode}).${consultation.couponCode ? ` (Coupon Applied: ${consultation.couponCode})` : ""} Client notes: ${consultation.notes || "None"}`,
     });
+
+    if (consultation.couponCode) {
+      await Coupon.updateOne({ code: consultation.couponCode }, { $inc: { usedCount: 1 } });
+    }
 
     // Create Payment entry in database
     const payment = await Payment.create({

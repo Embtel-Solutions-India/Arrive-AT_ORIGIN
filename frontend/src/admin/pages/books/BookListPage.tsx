@@ -12,6 +12,8 @@ interface BookItem {
   sku: string;
   isbn?: string;
   price: number;
+  priceINR?: number;
+  priceUSD?: number;
   salePrice?: number;
   currency: string;
   stockQuantity: number;
@@ -27,7 +29,10 @@ interface BookListResponse {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
-const money = (n: number) => `$${(n || 0).toFixed(2)}`;
+const money = (n: number, cur = "INR") => {
+  const val = (n || 0).toFixed(2);
+  return cur === "USD" ? `$${val}` : `₹${val}`;
+};
 
 export function BookListPage() {
   const queryClient = useQueryClient();
@@ -215,13 +220,22 @@ export function BookListPage() {
                     <td className="py-3 font-semibold text-[var(--admin-text-primary)]">
                       {bk.salePrice ? (
                         <div>
-                          <span className="text-[var(--admin-accent)]">{money(bk.salePrice)}</span>
+                          <span className="text-[var(--admin-accent)]">
+                            {money(bk.salePrice, bk.priceINR ? "INR" : bk.currency)}
+                          </span>
                           <span className="ml-1.5 text-xs line-through text-[var(--admin-text-muted)]">
-                            {money(bk.price)}
+                            {money(bk.price, bk.priceINR ? "INR" : bk.currency)}
                           </span>
                         </div>
                       ) : (
-                        money(bk.price)
+                        <div>
+                          <span>{money(bk.priceINR ?? bk.price, bk.priceINR ? "INR" : bk.currency)}</span>
+                          {bk.priceUSD && (
+                            <span className="block text-[0.72rem] text-[var(--admin-text-muted)] font-mono">
+                              ${bk.priceUSD.toFixed(2)} USD
+                            </span>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className="py-3">

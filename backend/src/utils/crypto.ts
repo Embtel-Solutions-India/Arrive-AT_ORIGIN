@@ -20,7 +20,12 @@ export function maskSecret(val?: string, visibleTail = 4): string {
 const ALGORITHM = "aes-256-gcm";
 
 function getEncryptionKey(customKey?: string): Buffer {
-  const secret = customKey || env.JWT_SECRET || "default_arrive_at_origin_master_key_32";
+  const secret = customKey || env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      "Encryption key unavailable: JWT_SECRET is not configured in environment variables. Refusing to operate with an insecure fallback key."
+    );
+  }
   return createHash("sha256").update(secret).digest();
 }
 

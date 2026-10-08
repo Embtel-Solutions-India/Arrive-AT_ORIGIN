@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { useAdminTheme } from "./AdminThemeContext";
+import { AdminThemeToggle } from "../components/AdminThemeToggle";
 import { adminNav } from "./nav";
 
 export function AdminLayout() {
   const { user, can, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const { theme } = useAdminTheme();
 
   const link = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2.5 rounded-xl px-3.5 py-2 text-[0.88rem] no-underline transition-all duration-150 ${
@@ -16,7 +19,10 @@ export function AdminLayout() {
     }`;
 
   return (
-    <div className="admin-root min-h-svh lg:grid lg:grid-cols-[260px_minmax(0,1fr)] bg-[var(--admin-background)]">
+    <div
+      className={`admin-root admin-theme-${theme} min-h-svh lg:grid lg:grid-cols-[260px_minmax(0,1fr)] bg-[var(--admin-background)]`}
+      data-theme={theme}
+    >
       {/* Mobile & Tablet Drawer Backdrop */}
       {open && (
         <div
@@ -79,6 +85,19 @@ export function AdminLayout() {
             );
           })}
         </nav>
+
+        {/* Sidebar Footer: Theme Toggle & Mode Indicator */}
+        <div className="flex-shrink-0 border-t border-[var(--admin-border)]/60 p-3 bg-[var(--admin-background)]/40">
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-[var(--admin-border)]/50 bg-[var(--admin-surface)] px-3 py-2">
+            <div className="flex flex-col">
+              <span className="text-[0.72rem] font-medium text-[var(--admin-text-secondary)]">Theme</span>
+              <span className="text-[0.62rem] text-[var(--admin-text-muted)] capitalize">
+                {theme === "dark" ? "Cosmic Night" : "Warm Vellum"}
+              </span>
+            </div>
+            <AdminThemeToggle variant="switch" />
+          </div>
+        </div>
       </aside>
 
       {/* Main Content Area */}
@@ -102,6 +121,9 @@ export function AdminLayout() {
 
           {/* User Profile & Actions Group */}
           <div className="flex items-center gap-2.5 sm:gap-4 flex-shrink-0 ml-auto">
+            {/* Dark/Light Mode Theme Toggle Pill */}
+            <AdminThemeToggle variant="pill" />
+
             <a
               href="/"
               target="_blank"

@@ -14,6 +14,7 @@ import { seoController } from "../modules/seo/seo.controller.js";
 import { userController } from "../modules/users/user.controller.js";
 import { consultationController } from "../modules/consultations/consultation.controller.js";
 import { settingsController } from "../modules/settings/settings.controller.js";
+import { couponController } from "../modules/coupons/coupon.controller.js";
 
 export const adminRouter = Router();
 
@@ -65,6 +66,14 @@ adminRouter.get("/orders", requirePermission("ORDER_READ"), asyncHandler(orderCo
 adminRouter.get("/orders/:id", requirePermission("ORDER_READ"), asyncHandler(orderController.getOrderById));
 adminRouter.put("/orders/:id", requirePermission("ORDER_UPDATE"), asyncHandler(orderController.updateOrder));
 adminRouter.get("/consultations", requirePermission("ORDER_READ"), asyncHandler(consultationController.getConsultations));
+
+// ─── Coupons & Promo Codes ───
+adminRouter.get("/coupons", requirePermission("ORDER_READ"), asyncHandler(couponController.getCoupons));
+adminRouter.post("/coupons", requirePermission("ORDER_UPDATE"), asyncHandler(couponController.createCoupon));
+adminRouter.get("/coupons/:id", requirePermission("ORDER_READ"), asyncHandler(couponController.getCouponById));
+adminRouter.put("/coupons/:id", requirePermission("ORDER_UPDATE"), asyncHandler(couponController.updateCoupon));
+adminRouter.delete("/coupons/:id", requirePermission("ORDER_UPDATE"), asyncHandler(couponController.deleteCoupon));
+adminRouter.put("/coupons/:id/toggle", requirePermission("ORDER_UPDATE"), asyncHandler(couponController.toggleCoupon));
 
 
 // ─── Customers ───

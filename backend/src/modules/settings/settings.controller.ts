@@ -92,9 +92,9 @@ const DEFAULT_PAYMENTS = {
     currency: "USD",
   },
   razorpay: {
-    active: true,
-    mode: "test", // "test" | "live"
-    keyId: env.RAZORPAY_KEY_ID || "rzp_test_TkLddG9htwxQbf",
+    active: Boolean(env.RAZORPAY_KEY_ID),
+    mode: env.NODE_ENV === "production" ? "live" : "test",
+    keyId: env.RAZORPAY_KEY_ID || "",
     keySecret: env.RAZORPAY_KEY_SECRET || "",
     webhookSecret: "",
     currency: "USD",

@@ -3,10 +3,32 @@ import crypto from "crypto";
 import { env } from "../config/env.js";
 import { logger } from "../utils/logger.js";
 
-// Initialize Razorpay client
-export const razorpayInstance = new Razorpay({
-  key_id: env.RAZORPAY_KEY_ID,
-  key_secret: env.RAZORPAY_KEY_SECRET,
+export function isRazorpayConfigured(): boolean {
+  return Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
+}
+
+let _razorpayClient: Razorpay | null = null;
+
+export function getRazorpayClient(): Razorpay {
+  if (!_razorpayClient) {
+    if (!isRazorpayConfigured()) {
+      throw new Error(
+        "Razorpay credentials (RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET) are not configured in environment variables."
+      );
+    }
+    _razorpayClient = new Razorpay({
+      key_id: env.RAZORPAY_KEY_ID,
+      key_secret: env.RAZORPAY_KEY_SECRET,
+    });
+  }
+  return _razorpayClient;
+}
+
+// Proxied razorpayInstance for backwards-compatibility without crashing on module import
+export const razorpayInstance = new Proxy({} as Razorpay, {
+  get(_target, prop) {
+    return (getRazorpayClient() as any)[prop];
+  },
 });
 
 export interface CreateOrderParams {
@@ -82,6 +104,11 @@ export const razorpayService = {
     signature: string;
   }): boolean {
     try {
+      if (!env.RAZORPAY_KEY_SECRET) {
+        logger.error("Cannot verify Razorpay payment signature: RAZORPAY_KEY_SECRET is not configured");
+        return false;
+      }
+
       const generatedSignature = crypto
         .createHmac("sha256", env.RAZORPAY_KEY_SECRET)
         .update(`${orderId}|${paymentId}`)

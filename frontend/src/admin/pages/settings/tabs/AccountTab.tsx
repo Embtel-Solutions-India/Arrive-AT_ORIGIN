@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../../lib/api";
 import { Button, Card, Field } from "../../../components/ui";
 import { MediaPickerModal } from "../../../components/MediaPickerModal";
+import { AdminThemeToggle } from "../../../components/AdminThemeToggle";
 
 export function AccountTab() {
   const queryClient = useQueryClient();
@@ -374,6 +375,26 @@ export function AccountTab() {
                 <span className="font-semibold text-amber-300">
                   {profile?.twoFactorEnabled ? "ENABLED ✓" : "DISABLED (Setup in Security)"}
                 </span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Theme & Display Customization */}
+          <Card title="Appearance & Theme">
+            <div className="space-y-3.5 text-xs">
+              <p className="text-[var(--admin-text-muted)] leading-relaxed">
+                Choose your preferred admin visual theme. Mode selection is saved directly to your browser session.
+              </p>
+              <div className="pt-2 border-t border-[var(--admin-border)]/40 flex items-center justify-between gap-3">
+                <div>
+                  <span className="font-semibold text-[var(--admin-text-primary)] block text-xs">
+                    Interface Mode
+                  </span>
+                  <span className="text-[0.68rem] text-[var(--admin-accent)]">
+                    Cosmic Night / Warm Vellum
+                  </span>
+                </div>
+                <AdminThemeToggle variant="switch" />
               </div>
             </div>
           </Card>

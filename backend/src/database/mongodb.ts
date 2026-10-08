@@ -20,6 +20,12 @@ export async function connectDB(): Promise<typeof mongoose> {
     isConnecting = true;
     mongoose.set("strictQuery", false);
 
+    if (!env.MONGODB_URI) {
+      const msg = "MongoDB connection failed: MONGODB_URI is not configured in environment variables. Please define MONGODB_URI in your .env file.";
+      logger.error(msg);
+      throw new Error(msg);
+    }
+
     const conn = await mongoose.connect(env.MONGODB_URI, {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 10000,

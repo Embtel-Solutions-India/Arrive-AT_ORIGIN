@@ -4,17 +4,18 @@ import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import { useCart } from "../context/CartContext";
+import { useCurrency } from "../context/CurrencyContext";
 import { apiUrl } from "../utils/api";
 
 const shell = "mx-auto w-full max-w-[1240px] px-[clamp(20px,5vw,64px)]";
 const heading = "font-display font-light leading-[1.02] tracking-[-0.015em]";
-const money = (n) => `$${(n || 0).toFixed(2)}`;
 
 function Books() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedFormat, setSelectedFormat] = useState("all");
   const { addToCart } = useCart();
+  const { formatPrice, getProductPrice } = useCurrency();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -45,7 +46,7 @@ function Books() {
                 Books & Publications
               </h1>
               <p className="max-w-[62ch] text-[#C6CBD8]">
-                Authored by Dr. Alka Chopra Madan. Printed volumes, paperbacks, and editions on metaphysics, living from origin, and induced calmness.
+                Authored by Dr. Alka Chopra Madan. Printed volumes, paperbacks, and editions on metaphysics, concept clearing, and living from origin.
               </p>
             </div>
 
@@ -74,6 +75,7 @@ function Books() {
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {books.map((book) => {
                 const isOutOfStock = book.stockQuantity <= 0;
+                const pricing = getProductPrice(book);
                 return (
                   <div
                     key={book._id}
@@ -90,7 +92,7 @@ function Books() {
                           alt={book.title}
                           className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
-                        {book.salePrice && (
+                        {pricing.isSale && (
                           <div className="absolute top-3 right-3 rounded-full bg-rose-500 px-3 py-1 text-xs font-bold text-white shadow">
                             SALE
                           </div>
@@ -120,13 +122,13 @@ function Books() {
                     <div className="border-t border-[rgba(237,231,218,0.1)] pt-4 mt-2">
                       <div className="flex items-baseline justify-between mb-4">
                         <div>
-                          {book.salePrice ? (
+                          {pricing.isSale ? (
                             <div className="flex items-baseline gap-2">
-                              <span className="text-xl font-bold text-halo">{money(book.salePrice)}</span>
-                              <span className="text-sm text-dim line-through">{money(book.price)}</span>
+                              <span className="text-xl font-bold text-halo">{formatPrice(pricing.effectivePrice)}</span>
+                              <span className="text-sm text-dim line-through">{formatPrice(pricing.price)}</span>
                             </div>
                           ) : (
-                            <span className="text-xl font-bold text-vellum">{money(book.price)}</span>
+                            <span className="text-xl font-bold text-vellum">{formatPrice(pricing.effectivePrice)}</span>
                           )}
                         </div>
                         <span

@@ -5,20 +5,72 @@ import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import { useCart } from "../context/CartContext";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
+import { useCurrency } from "../context/CurrencyContext";
 import { apiUrl } from "../utils/api";
 
 const shell = "mx-auto w-full max-w-[1100px] px-[clamp(20px,5vw,64px)]";
 const heading = "font-display font-light leading-[1.05] tracking-[-0.015em]";
-const money = (n) => `$${(n || 0).toFixed(2)}`;
 
 function Checkout() {
   const navigate = useNavigate();
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal, clearCart, getItemPrice } = useCart();
   const { autoLogin } = useCustomerAuth();
+  const { currency, formatPrice, shippingRules, country: activeCountry } = useCurrency();
 
-  const shipping = subtotal >= 50 ? 0 : 5;
-  const tax = Number((subtotal * 0.05).toFixed(2));
-  const total = Number((subtotal + shipping + tax).toFixed(2));
+  // Coupon State
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [couponSuccess, setCouponSuccess] = useState("");
+
+  const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+  const isFreeShipping = subtotal >= shippingRules.freeThreshold;
+  const shipping = isFreeShipping ? 0 : shippingRules.fee;
+  const taxableSubtotal = Math.max(0, subtotal - discount);
+  const tax = Number((taxableSubtotal * 0.05).toFixed(2));
+  const total = Number((taxableSubtotal + shipping + tax).toFixed(2));
+
+  const handleApplyCoupon = async (e) => {
+    e?.preventDefault();
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+
+    setCouponLoading(true);
+    setCouponError("");
+    setCouponSuccess("");
+
+    try {
+      const res = await fetch(apiUrl("/public/coupons/validate"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          context: "CHECKOUT",
+          amount: subtotal,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "Invalid coupon code");
+      }
+
+      setAppliedCoupon(json.data);
+      setCouponSuccess(`Coupon ${json.data.code} applied! -${formatPrice(json.data.discountAmount)}`);
+      setCouponInput("");
+    } catch (err) {
+      setCouponError(err.message || "Failed to validate coupon");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponSuccess("");
+    setCouponError("");
+  };
 
   // Customer & Shipping Form
   const [name, setName] = useState("");
@@ -28,7 +80,7 @@ function Checkout() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [postalCode, setPostalCode] = useState("");
-  const [country, setCountry] = useState("United States");
+  const [country, setCountry] = useState(activeCountry === "IN" ? "India" : "United States");
   const [paymentMethod, setPaymentMethod] = useState("Razorpay");
 
   const [loading, setLoading] = useState(false);
@@ -57,6 +109,8 @@ function Checkout() {
           body: JSON.stringify({
             items: items.map((i) => ({ bookId: i.bookId, quantity: i.quantity, format: i.format })),
             customerInfo: { name, email, phone },
+            couponCode: appliedCoupon?.code || undefined,
+            currency,
           }),
         });
 
@@ -65,16 +119,16 @@ function Checkout() {
           throw new Error(rzpData.message || "Failed to initialize Razorpay order.");
         }
 
-        const { razorpayOrderId, amount, currency, keyId } = rzpData.data;
+        const { razorpayOrderId, amount, currency: serverCurrency, keyId } = rzpData.data;
 
         if (typeof window.Razorpay === "undefined") {
           throw new Error("Razorpay gateway is initializing. Please try again in a few seconds.");
         }
 
         const options = {
-          key: keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_TkLddG9htwxQbf",
+          key: keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || "",
           amount,
-          currency: currency || "USD",
+          currency: serverCurrency || currency || "USD",
           name: "Soul Body Healing Center",
           description: "Online Book Store Order",
           image: "/favicon.svg",
@@ -101,6 +155,8 @@ function Checkout() {
                   })),
                   shippingAddress: { street, city, state, postalCode, country },
                   paymentMethod: "Razorpay",
+                  currency,
+                  couponCode: appliedCoupon?.code || undefined,
                   razorpayPaymentId: response.razorpay_payment_id,
                   razorpayOrderId: response.razorpay_order_id,
                   razorpaySignature: response.razorpay_signature,
@@ -148,6 +204,8 @@ function Checkout() {
           })),
           shippingAddress: { street, city, state, postalCode, country },
           paymentMethod,
+          currency,
+          couponCode: appliedCoupon?.code || undefined,
         }),
       });
 
@@ -319,6 +377,7 @@ function Checkout() {
                         className="w-full rounded-xl border border-[rgba(237,231,218,0.2)] bg-black/40 px-3.5 py-2.5 text-sm text-vellum focus:outline-none"
                       >
                         <option value="United States" className="bg-[#14161f]">United States</option>
+                        <option value="India" className="bg-[#14161f]">India</option>
                         <option value="Canada" className="bg-[#14161f]">Canada</option>
                         <option value="United Kingdom" className="bg-[#14161f]">United Kingdom</option>
                         <option value="Australia" className="bg-[#14161f]">Australia</option>
@@ -353,7 +412,7 @@ function Checkout() {
                       <div className="font-semibold text-vellum text-sm flex items-center gap-2">
                         <span>Razorpay Gateway (Cards, UPI, Netbanking)</span>
                         <span className="text-[0.7rem] bg-halo/20 text-halo px-2 py-0.5 rounded-full font-bold">
-                          Test Key: rzp_test_TkLdd...
+                          Secure Gateway
                         </span>
                       </div>
                       <p className="text-xs text-dim mt-0.5">
@@ -416,29 +475,102 @@ function Checkout() {
                         </p>
                       </div>
                       <div className="text-xs font-semibold text-vellum">
-                        {money(it.price * it.quantity)}
+                        {formatPrice(getItemPrice(it) * it.quantity)}
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Coupon Code Input */}
+                <div className="border-t border-[rgba(237,231,218,0.1)] pt-4 pb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-vellum flex items-center gap-1.5">
+                      <span>🎟️</span>
+                      <span>Promo / Coupon Code</span>
+                    </span>
+                    {appliedCoupon && (
+                      <span className="text-[0.7rem] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full">
+                        APPLIED
+                      </span>
+                    )}
+                  </div>
+
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-xs">
+                      <div className="min-w-0">
+                        <span className="font-mono font-bold text-emerald-300 mr-2">{appliedCoupon.code}</span>
+                        <span className="text-dim">(-{money(discount)})</span>
+                        {appliedCoupon.description && (
+                          <p className="text-[0.7rem] text-dim truncate mt-0.5">{appliedCoupon.description}</p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-[0.75rem] text-red-400 hover:text-red-300 ml-2 font-medium cursor-pointer"
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="e.g. WELCOME10, ORIGIN20"
+                          value={couponInput}
+                          onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleApplyCoupon();
+                            }
+                          }}
+                          className="min-h-[38px] flex-1 rounded-xl border border-[rgba(237,231,218,0.15)] bg-black/40 px-3 text-xs text-vellum placeholder:text-dim uppercase font-mono focus:border-halo focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyCoupon}
+                          disabled={couponLoading || !couponInput.trim()}
+                          className="px-4 py-2 rounded-xl bg-halo/20 border border-halo/40 text-halo text-xs font-bold hover:bg-halo hover:text-void transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {couponLoading ? "…" : "Apply"}
+                        </button>
+                      </div>
+
+                      {couponError && (
+                        <p className="text-[0.72rem] text-red-400 mt-1.5">{couponError}</p>
+                      )}
+                      {couponSuccess && (
+                        <p className="text-[0.72rem] text-emerald-400 mt-1.5">{couponSuccess}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Calculation */}
                 <div className="border-t border-[rgba(237,231,218,0.1)] pt-4 space-y-2 text-xs text-[#A9B0C2]">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span className="font-medium text-white">{money(subtotal)}</span>
+                    <span className="font-medium text-white">{formatPrice(subtotal)}</span>
                   </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-emerald-400 font-medium">
+                      <span>Discount ({appliedCoupon?.code})</span>
+                      <span>-{formatPrice(discount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span>Shipping</span>
-                    <span>{shipping === 0 ? "FREE" : money(shipping)}</span>
+                    <span>{shipping === 0 ? "FREE" : formatPrice(shipping)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Estimated Sales Tax (5%)</span>
-                    <span>{money(tax)}</span>
+                    <span>{formatPrice(tax)}</span>
                   </div>
                   <div className="flex justify-between border-t border-[rgba(237,231,218,0.1)] pt-3 text-base font-bold text-white">
                     <span>Total Due</span>
-                    <span className="text-halo">{money(total)}</span>
+                    <span className="text-halo">{formatPrice(total)}</span>
                   </div>
                 </div>
 
@@ -447,7 +579,7 @@ function Checkout() {
                   disabled={loading}
                   className="mt-6 w-full rounded-full bg-halo py-3.5 text-center text-sm font-bold text-void hover:bg-white transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {loading ? "Processing Order…" : `Place Order · ${money(total)}`}
+                  {loading ? "Processing Order…" : `Place Order · ${formatPrice(total)}`}
                 </button>
 
                 <p className="mt-3 text-center text-[0.7rem] text-dim">

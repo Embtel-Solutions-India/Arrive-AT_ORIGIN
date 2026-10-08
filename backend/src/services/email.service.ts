@@ -24,6 +24,11 @@ export async function sendEmail(msg: EmailMessage): Promise<{ id?: string; succe
 
   logger.info({ to, subject: msg.subject }, "Dispatching transactional email via Resend API");
 
+  if (!env.RESEND_API_KEY) {
+    logger.warn({ to, subject: msg.subject }, "RESEND_API_KEY is not configured in environment variables. Email dispatch skipped.");
+    return { success: false };
+  }
+
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",

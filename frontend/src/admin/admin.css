@@ -1,5 +1,9 @@
-/* Admin design tokens: aliases of the public site's palette (see src/index.css @theme). */
-.admin-root {
+/* ========================================================================= */
+/* Admin Design Tokens: Dark Theme (Default Cosmic Mode)                     */
+/* ========================================================================= */
+.admin-root,
+.admin-root[data-theme="dark"],
+.admin-root.admin-theme-dark {
   --admin-primary: var(--color-gold);
   --admin-secondary: var(--color-slate);
   --admin-accent: var(--color-halo);
@@ -18,6 +22,35 @@
   background: var(--admin-background);
   color: var(--admin-text-primary);
   font-family: var(--font-text);
+  color-scheme: dark;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* ========================================================================= */
+/* Admin Design Tokens: Light Theme (Warm Vellum & Gold Luxury Mode)         */
+/* ========================================================================= */
+.admin-root[data-theme="light"],
+.admin-root.admin-theme-light {
+  --admin-primary: #b8861d;
+  --admin-secondary: #ede6d9;
+  --admin-accent: #c9992e;
+  --admin-background: #f6f3eb;
+  --admin-surface: #ffffff;
+  --admin-surface-raised: #f2ecd8;
+  --admin-text-primary: #121624;
+  --admin-text-secondary: #3f475e;
+  --admin-text-muted: #6e7992;
+  --admin-border: rgba(26, 36, 68, 0.12);
+  --admin-success: #1b7a66;
+  --admin-warning: #c2670e;
+  --admin-danger: #d32f2f;
+  --admin-radius: 16px;
+
+  background: var(--admin-background);
+  color: var(--admin-text-primary);
+  font-family: var(--font-text);
+  color-scheme: light;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* Cosmic Auth Portal styles */
@@ -128,6 +161,35 @@
 .admin-root select,
 .admin-root textarea {
   color-scheme: dark;
+}
+
+.admin-root[data-theme="light"] input,
+.admin-root[data-theme="light"] select,
+.admin-root[data-theme="light"] textarea,
+.admin-root.admin-theme-light input,
+.admin-root.admin-theme-light select,
+.admin-root.admin-theme-light textarea {
+  color-scheme: light;
+}
+
+.admin-root[data-theme="light"] ::-webkit-scrollbar-track,
+.admin-root.admin-theme-light ::-webkit-scrollbar-track {
+  background: rgba(18, 22, 36, 0.05);
+}
+
+.admin-root[data-theme="light"] ::-webkit-scrollbar-thumb,
+.admin-root.admin-theme-light ::-webkit-scrollbar-thumb {
+  background: rgba(201, 153, 46, 0.35);
+}
+
+.admin-root[data-theme="light"] ::-webkit-scrollbar-thumb:hover,
+.admin-root.admin-theme-light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 153, 46, 0.65);
+}
+
+.admin-root[data-theme="light"] .admin-sticky-header,
+.admin-root.admin-theme-light .admin-sticky-header {
+  background: rgba(246, 243, 235, 0.94);
 }
 
 .admin-root input:focus,

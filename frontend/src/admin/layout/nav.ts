@@ -39,6 +39,7 @@ export const adminNav: NavGroup[] = [
       { label: "All Orders", to: "/admin/orders", permission: "ORDER_READ" },
       { label: "Customers", to: "/admin/customers", permission: "CUSTOMER_READ" },
       { label: "Payments", to: "/admin/payments", permission: "PAYMENT_READ" },
+      { label: "Coupons", to: "/admin/coupons", permission: "ORDER_READ" },
     ],
   },
   {

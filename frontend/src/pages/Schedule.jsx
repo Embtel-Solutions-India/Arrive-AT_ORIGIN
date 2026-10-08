@@ -17,7 +17,7 @@ const DEFAULT_PACKAGES = [
     name: "Silver - Single Consultation",
     meetingType: "1-on-1 Metaphysical Diagnostic & Counsel",
     sessionsCount: 1,
-    duration: "60 Minutes",
+    duration: "1 Session",
     price: 250,
     currency: "USD",
     badge: "Starter",
@@ -34,16 +34,16 @@ const DEFAULT_PACKAGES = [
     name: "Relationship & Spiritual Harmony",
     meetingType: "Couples & Family Metaphysical Alignment",
     sessionsCount: 1,
-    duration: "90 Minutes",
+    duration: "1 Session",
     price: 350,
     currency: "USD",
     badge: "Spiritual Alignment",
     description: "Specialized joint spiritual counsel, clearing relational conditioning and emotional discord.",
     features: [
-      "90-min joint or family counsel",
+      "Joint or family counsel",
       "Harmonization of interpersonal field",
       "Conflict clearing & meta-human communication",
-      "Guided induced calmness exercises",
+      "Guided Living from Origin practices",
     ],
   },
   {
@@ -51,7 +51,7 @@ const DEFAULT_PACKAGES = [
     name: "Grief & Trauma Release Intensive",
     meetingType: "Emotional Freedom & Stress Alleviation",
     sessionsCount: 2,
-    duration: "2 x 60 Min Sessions",
+    duration: "2 Sessions",
     price: 600,
     currency: "USD",
     badge: "Intensive",
@@ -68,14 +68,14 @@ const DEFAULT_PACKAGES = [
     name: "Gold - Wellness Series",
     meetingType: "5-Session Holistic Transformation Sequence",
     sessionsCount: 5,
-    duration: "5 x 60 Min Sessions",
+    duration: "5 Sessions",
     price: 1250,
     currency: "USD",
     badge: "Most Popular",
     featured: true,
     description: "Boost your well-being with a comprehensive package of five curated metaphysical sessions.",
     features: [
-      "Five 60-minute scheduled sessions",
+      "Five scheduled transformation sessions",
       "Full Arrive at Origin (AAO) curriculum",
       "Ongoing personal energetic monitoring",
       "Priority scheduling & email support",
@@ -86,13 +86,13 @@ const DEFAULT_PACKAGES = [
     name: "Platinum - Life Transformation Experience",
     meetingType: "10-Session Comprehensive Metaphysical Mastery",
     sessionsCount: 10,
-    duration: "10 x 60 Min Sessions",
+    duration: "10 Sessions",
     price: 2500,
     currency: "USD",
     badge: "Total Transformation",
     description: "Dive into a deeply transformative experience with ten sessions for total life calibration and spiritual freedom.",
     features: [
-      "Ten 60-minute scheduled sessions",
+      "Ten scheduled transformation sessions",
       "Complete concept clearing & meta-human mastery",
       "Direct phone / priority access for urgent counsel",
       "Personalized meditation & contemplation roadmap",
@@ -118,7 +118,7 @@ function Schedule() {
   const { autoLogin } = useCustomerAuth();
   const [packages, setPackages] = useState(DEFAULT_PACKAGES);
   const [razorpayKeyId, setRazorpayKeyId] = useState(
-    import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_TkLddG9htwxQbf"
+    import.meta.env.VITE_RAZORPAY_KEY_ID || ""
   );
 
   // Booking Modal State
@@ -138,6 +138,16 @@ function Schedule() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [confirmedBooking, setConfirmedBooking] = useState(null);
+
+  // Coupon State
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [couponSuccess, setCouponSuccess] = useState("");
+
+  const discount = appliedCoupon ? Number(appliedCoupon.discountAmount || 0) : 0;
+  const finalPrice = Math.max(0, Number((selectedPackage.price - discount).toFixed(2)));
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -162,7 +172,61 @@ function Schedule() {
     setSelectedPackage(pkg);
     setErrorMsg("");
     setConfirmedBooking(null);
+    setCouponInput("");
+    setAppliedCoupon(null);
+    setCouponError("");
+    setCouponSuccess("");
     setIsModalOpen(true);
+  };
+
+  const handleSelectPackage = (pkg) => {
+    setSelectedPackage(pkg);
+    if (appliedCoupon) {
+      setAppliedCoupon(null);
+      setCouponSuccess("");
+      setCouponError("Package changed. Please re-apply your coupon code.");
+    }
+  };
+
+  const handleApplyCoupon = async (e) => {
+    e?.preventDefault();
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+
+    setCouponLoading(true);
+    setCouponError("");
+    setCouponSuccess("");
+
+    try {
+      const res = await fetch(apiUrl("/public/coupons/validate"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          context: "CONSULTATION",
+          amount: selectedPackage.price,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "Invalid coupon code");
+      }
+
+      setAppliedCoupon(json.data);
+      setCouponSuccess(`Coupon ${json.data.code} applied! -$${Number(json.data.discountAmount).toFixed(2)} off`);
+      setCouponInput("");
+    } catch (err) {
+      setCouponError(err.message || "Failed to validate coupon");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponSuccess("");
+    setCouponError("");
   };
 
   const handleProceedToPayment = async (e) => {
@@ -189,6 +253,7 @@ function Schedule() {
           appointmentTime,
           meetingMode,
           notes: notes.trim(),
+          couponCode: appliedCoupon?.code || undefined,
         }),
       });
 
@@ -456,6 +521,15 @@ function Schedule() {
                         : "🏛️ In-Person Sanctuary (Fremont, CA)"}
                     </span>
                   </div>
+                  {confirmedBooking.couponCode && (
+                    <div className="flex justify-between border-b border-white/10 pb-2.5">
+                      <span className="text-dim">Coupon Applied:</span>
+                      <span className="font-mono text-emerald-400 font-bold">
+                        {confirmedBooking.couponCode}
+                        {confirmedBooking.discount ? ` (-$${confirmedBooking.discount})` : ""}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-dim">Amount Paid:</span>
                     <span className="font-bold text-emerald-400">${confirmedBooking.price} USD</span>
@@ -534,7 +608,7 @@ function Schedule() {
                           <button
                             key={pkg.id}
                             type="button"
-                            onClick={() => setSelectedPackage(pkg)}
+                            onClick={() => handleSelectPackage(pkg)}
                             className={`flex flex-col text-left p-3 rounded-xl border transition-all cursor-pointer ${
                               isSelected
                                 ? "border-halo bg-halo/10 shadow-[0_0_15px_rgba(232,206,140,0.15)]"
@@ -666,21 +740,120 @@ function Schedule() {
                     </div>
                   </div>
 
+                  {/* Promo / Coupon Code Section */}
+                  <div className="rounded-2xl border border-[rgba(237,231,218,0.12)] bg-[#070B18]/50 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[0.82rem] font-semibold text-vellum flex items-center gap-1.5">
+                        <span>🎟️</span>
+                        <span>Have a Promo or Coupon Code?</span>
+                      </label>
+                      {appliedCoupon && (
+                        <span className="text-[0.7rem] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                          COUPON APPLIED
+                        </span>
+                      )}
+                    </div>
+
+                    {appliedCoupon ? (
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-emerald-300 text-[0.85rem]">
+                              {appliedCoupon.code}
+                            </span>
+                            <span className="text-emerald-400 font-semibold">
+                              (-${discount.toFixed(2)})
+                            </span>
+                          </div>
+                          {appliedCoupon.description && (
+                            <p className="text-[0.72rem] text-dim truncate mt-0.5">
+                              {appliedCoupon.description}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoupon}
+                          className="text-[0.76rem] text-red-400 hover:text-red-300 ml-3 font-semibold cursor-pointer shrink-0"
+                        >
+                          ✕ Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="e.g. WELCOME10, HEALING50"
+                            value={couponInput}
+                            onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleApplyCoupon();
+                              }
+                            }}
+                            className="flex-1 rounded-xl border border-[rgba(237,231,218,0.15)] bg-white/5 px-3.5 py-2 text-xs font-mono uppercase text-vellum placeholder-dim/40 focus:border-halo focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleApplyCoupon}
+                            disabled={couponLoading || !couponInput.trim()}
+                            className="rounded-xl border border-halo bg-halo/15 px-4 py-2 text-xs font-semibold text-halo hover:bg-halo hover:text-void transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                          >
+                            {couponLoading ? "Checking…" : "Apply Code"}
+                          </button>
+                        </div>
+                        {couponError && (
+                          <p className="text-[0.76rem] text-red-400 mt-2 flex items-center gap-1">
+                            <span>⚠️</span> {couponError}
+                          </p>
+                        )}
+                        {couponSuccess && (
+                          <p className="text-[0.76rem] text-emerald-400 mt-2 flex items-center gap-1">
+                            <span>✓</span> {couponSuccess}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Summary & Price Display */}
-                  <div className="rounded-2xl border border-[rgba(232,206,140,0.2)] bg-[#070B18]/70 p-4">
-                    <div className="flex items-center justify-between text-[0.88rem] text-dim mb-1">
+                  <div className="rounded-2xl border border-[rgba(232,206,140,0.2)] bg-[#070B18]/70 p-4 space-y-2">
+                    <div className="flex items-center justify-between text-[0.88rem] text-dim">
                       <span>Selected Meeting:</span>
                       <span className="text-vellum font-medium">{selectedPackage.name}</span>
                     </div>
-                    <div className="flex items-center justify-between text-[0.88rem] text-dim mb-2">
-                      <span>Duration & Sessions:</span>
-                      <span>{selectedPackage.duration}</span>
+                    <div className="flex items-center justify-between text-[0.88rem] text-dim">
+                      <span>Sessions Included:</span>
+                      <span>{selectedPackage.duration || `${selectedPackage.sessionsCount} Session${selectedPackage.sessionsCount > 1 ? "s" : ""}`}</span>
                     </div>
-                    <div className="flex items-center justify-between border-t border-white/10 pt-2 text-[1.05rem]">
-                      <span className="font-semibold text-vellum">Total Fee to Pay:</span>
-                      <span className="font-bold text-halo text-[1.25rem]">
+                    <div className="flex items-center justify-between text-[0.88rem] text-dim">
+                      <span>Standard Package Price:</span>
+                      <span className={appliedCoupon ? "line-through text-dim" : "text-vellum"}>
                         ${selectedPackage.price} {selectedPackage.currency || "USD"}
                       </span>
+                    </div>
+                    {appliedCoupon && (
+                      <div className="flex items-center justify-between text-[0.88rem] text-emerald-400">
+                        <span className="flex items-center gap-1">
+                          <span>Coupon Discount ({appliedCoupon.code}):</span>
+                        </span>
+                        <span className="font-semibold">-${discount.toFixed(2)} USD</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between border-t border-white/10 pt-2 text-[1.05rem]">
+                      <span className="font-semibold text-vellum">Total Fee to Pay:</span>
+                      <div className="text-right">
+                        <span className="font-bold text-halo text-[1.25rem]">
+                          ${finalPrice.toFixed(2)} {selectedPackage.currency || "USD"}
+                        </span>
+                        {discount > 0 && (
+                          <span className="block text-[0.72rem] text-emerald-400 font-medium">
+                            You save ${discount.toFixed(2)}!
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -708,7 +881,7 @@ function Schedule() {
                         </>
                       ) : (
                         <>
-                          <span>Pay ${selectedPackage.price} via Razorpay & Confirm</span>
+                          <span>Pay ${finalPrice.toFixed(2)} via Razorpay & Confirm</span>
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                           </svg>
@@ -718,7 +891,7 @@ function Schedule() {
                     <div className="mt-2.5 flex items-center justify-center gap-2 text-[0.74rem] text-dim">
                       <span>🔒 256-bit Encrypted Checkout</span>
                       <span>•</span>
-                      <span>Verified Razorpay Gateway (Key: rzp_test_TkLdd...)</span>
+                      <span>Verified Razorpay Gateway</span>
                     </div>
                   </div>
                 </form>

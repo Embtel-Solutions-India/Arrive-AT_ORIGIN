@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
+import { CurrencySelector } from "../currency/CurrencySelector";
 
 const navLinks = [
   { href: "/#threshold", label: "The meta-human" },
@@ -89,6 +90,10 @@ function SiteNav() {
             >
               <span>🛒 Shopping Cart {totalItems > 0 ? `(${totalItems})` : ""}</span>
             </button>
+            <div className="flex items-center justify-between gap-2 rounded-full border border-[rgba(237,231,218,0.2)] bg-white/5 px-3 py-2 text-[0.85rem] font-medium text-vellum">
+              <span className="text-xs text-dim">Currency</span>
+              <CurrencySelector />
+            </div>
             <Link
               to="/account"
               onClick={() => setOpen(false)}
@@ -99,7 +104,7 @@ function SiteNav() {
           </div>
         </nav>
 
-        {/* Action Group: Book a Session CTA, Cart, then Account */}
+        {/* Action Group: Book a Session CTA, Currency Switcher, Cart, then Account */}
         <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 flex-shrink-0">
           {/* 1. "Book a session" Button */}
           <Link
@@ -109,7 +114,10 @@ function SiteNav() {
             Book a session
           </Link>
 
-          {/* 2. Cart Button */}
+          {/* 2. Currency Selector */}
+          <CurrencySelector className="hidden xs:inline-block" />
+
+          {/* 3. Cart Button */}
           <button
             type="button"
             onClick={() => setCartOpen(true)}
@@ -127,7 +135,7 @@ function SiteNav() {
             )}
           </button>
 
-          {/* 3. Account Option */}
+          {/* 4. Account Option */}
           <Link
             to="/account"
             className={`flex items-center gap-1.5 rounded-full border px-2.5 sm:px-3 py-1.5 text-[0.82rem] transition-all flex-shrink-0 ${

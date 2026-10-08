@@ -25,7 +25,11 @@ export interface IBook extends Document {
   categoryName: string;
   tags: string[];
   price: number;
+  priceINR?: number;
+  priceUSD?: number;
   salePrice?: number;
+  salePriceINR?: number;
+  salePriceUSD?: number;
   currency: string;
   sku: string;
   stockQuantity: number;
@@ -81,8 +85,12 @@ const BookSchema = new Schema<IBook>(
     categoryName: { type: String, default: "Metaphysics", index: true },
     tags: [{ type: String, trim: true }],
     price: { type: Number, required: true, min: 0 },
+    priceINR: { type: Number, min: 0 },
+    priceUSD: { type: Number, min: 0 },
     salePrice: { type: Number, min: 0 },
-    currency: { type: String, default: "USD" },
+    salePriceINR: { type: Number, min: 0 },
+    salePriceUSD: { type: Number, min: 0 },
+    currency: { type: String, default: "INR" },
     sku: { type: String, required: true, unique: true, trim: true, index: true },
     stockQuantity: { type: Number, default: 50 },
     lowStockThreshold: { type: Number, default: 5 },

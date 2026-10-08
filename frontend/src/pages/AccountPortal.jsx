@@ -5,6 +5,7 @@ import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import Reveal from "../components/landing/Reveal";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
+import { currencyService } from "../services/currencyService";
 
 const shell = "mx-auto w-full max-w-[1140px] px-[clamp(20px,4vw,48px)]";
 const heading = "font-display font-light leading-[1.05] tracking-[-0.015em]";
@@ -797,7 +798,7 @@ function AccountPortal() {
                                 {ord.orderStatus.replace("_", " ")}
                               </span>
                               <span className="font-bold text-vellum text-sm">
-                                ${ord.total} {ord.currency}
+                                {currencyService.formatPrice(ord.total, ord.currency || "USD")}
                               </span>
                             </div>
                           </div>
@@ -826,7 +827,7 @@ function AccountPortal() {
                                   </div>
                                 </div>
                                 <span className="font-medium text-vellum">
-                                  ${item.price * item.quantity}
+                                  {currencyService.formatPrice(item.price * item.quantity, ord.currency || "USD")}
                                 </span>
                               </div>
                             ))}

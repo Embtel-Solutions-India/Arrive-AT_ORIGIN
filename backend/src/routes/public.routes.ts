@@ -4,6 +4,7 @@ import { publicController } from "../modules/public/public.controller.js";
 import { seoController } from "../modules/seo/seo.controller.js";
 import { consultationController } from "../modules/consultations/consultation.controller.js";
 import { customerAuthController } from "../modules/customerAuth/customerAuth.controller.js";
+import { couponController } from "../modules/coupons/coupon.controller.js";
 
 export const publicRouter = Router();
 
@@ -15,7 +16,9 @@ publicRouter.get("/blogs/:slug", asyncHandler(publicController.getBlogBySlug));
 publicRouter.get("/books", asyncHandler(publicController.getBooks));
 publicRouter.get("/books/:slug", asyncHandler(publicController.getBookBySlug));
 
-// Public Checkout
+// Public Checkout & Coupons & Geo
+publicRouter.get("/geo", asyncHandler(publicController.getGeoLocation));
+publicRouter.post("/coupons/validate", asyncHandler(couponController.validate));
 publicRouter.post("/orders/checkout", asyncHandler(publicController.checkout));
 publicRouter.post("/orders/razorpay/create", asyncHandler(publicController.createBookRazorpayOrder));
 

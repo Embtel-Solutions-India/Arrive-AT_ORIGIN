@@ -137,9 +137,15 @@ function Blog() {
             ))}
           </div>
 
-          {filteredPosts.length === 0 && (
-            <div className="py-16 text-center text-dim">
-              <p>No published articles found matching your criteria.</p>
+          {filteredPosts.length === 0 && !loading && (
+            <div className="py-24 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-halo text-2xl">
+                ✦
+              </div>
+              <h3 className="font-display text-2xl text-vellum mb-2">Publications & Articles Coming Soon</h3>
+              <p className="max-w-[50ch] mx-auto text-sm text-[#A9B0C2]">
+                Official writings, metaphysical essays, and concept clearing commentaries by Dr. Alka Chopra Madan will be published here soon.
+              </p>
             </div>
           )}
         </div>

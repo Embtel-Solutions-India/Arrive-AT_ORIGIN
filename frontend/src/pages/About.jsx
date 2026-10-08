@@ -26,7 +26,7 @@ function About() {
             Metaphysics asks what a human being fundamentally <em>is</em> — beneath biology, biography, and acquired mental congestion. The work offered here is subtraction rather than acquisition: removing borrowed concepts until what is authentic and grounded becomes legible again.
           </p>
           <p>
-            Through Concept Clearing, Induced Calmness, and 1-on-1 counsel, clients worldwide cultivate emotional resilience, inner silence, and clarity inside ordinary modern obligations.
+            Through Concept Clearing, Living from Origin, and 1-on-1 counsel, clients worldwide cultivate emotional resilience, inner silence, and clarity inside ordinary modern obligations.
           </p>
         </div>
 

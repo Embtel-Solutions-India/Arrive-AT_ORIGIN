@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import SocialIcon from "../components/SocialIcon";
 import ScrollProgress from "../components/landing/ScrollProgress";
@@ -7,6 +8,8 @@ import HeroCanvas from "../components/landing/HeroCanvas";
 import ThresholdCompare from "../components/landing/ThresholdCompare";
 import FrameworkTabs from "../components/landing/FrameworkTabs";
 import Reveal from "../components/landing/Reveal";
+import { useCart } from "../context/CartContext";
+import { useCurrency } from "../context/CurrencyContext";
 
 const shell = "mx-auto w-full max-w-[1240px] px-[clamp(20px,5vw,64px)]";
 const heading =
@@ -40,169 +43,255 @@ const practiceItems = [
   },
   {
     title: "Corporate mind-fitness",
-    text: "AAO and Induced Calmness for leaders and teams: attention, clarity, resilience and the human side of work.",
+    text: "AAO and Living from Origin for leaders and teams: attention, clarity, resilience and the human side of work.",
     cta: "Enquire",
   },
 ];
 
 const books = [
   {
+    tagline: "Earlier work",
+    title: "Keeping It Simple",
+    slug: "keeping-it-simple",
+    priceINR: 289.55,
+    priceUSD: 17.95,
+    href: "https://www.amazon.com/dp/B07VRKSC9P",
+    image: "/keeping-it-simple.png",
+    alt: "Keeping It Simple book cover",
+    text: "Soul, body and mind do not require life to be made more complicated than it already is.",
+  },
+  {
+    tagline: "Earlier work",
+    title: "Your Path to Peace",
+    slug: "your-path-to-peace",
+    priceINR: 386.39,
+    priceUSD: 19.95,
+    href: "https://www.amazon.com/dp/B0GJQV5M2F",
+    image: "/your-path-to-peace.png",
+    alt: "Your Path to Peace book cover",
+    text: "A journey beyond calmness — toward the peace that remains when what is unfinished is no longer veiled.",
+  },
+  {
+    tagline: "Earlier work",
+    title: "Life Force: Lost and Found",
+    slug: "life-force-lost-and-found",
+    priceINR: 289.55,
+    priceUSD: 17.95,
+    href: "https://www.amazon.com/Life-Force-Alka-Chopra-Madan-ebook/dp/B07VQDY6VP",
+    image: "/life-force-lost-and-found.png",
+    alt: "Life Force: Lost and Found book cover",
+    text: "Energy, wholeness, and reconnecting with the vitality of being alive.",
+  },
+  {
     tagline: "AAO series · Part One",
     title: "Arrive at Origin",
+    slug: "arrive-at-origin-part-one",
+    priceINR: 483.23,
+    priceUSD: 24.95,
     href: "https://www.amazon.com/dp/B0GX33FYHW",
     image: "/aao-part-one.png",
     alt: "Arrive at Origin, Part One book cover",
     text: "The central work. Origin as the position that remains when you stop moving away from yourself, and the method for returning to it.",
-    meta: "link to Amazon / KDP listing",
     series: true,
   },
   {
     tagline: "AAO series · Part Two",
     title: "Arrive at Origin II",
+    slug: "arrive-at-origin-part-two",
+    priceINR: 483.23,
+    priceUSD: 26.95,
     href: "https://www.amazon.com/dp/B0H1H83KNV",
     image: "/aao-part-two.png",
     alt: "Arrive at Origin, Part Two book cover",
     text: "The elaboration: Concept Clearing as gateway, the four movements in depth, and living from Origin inside ordinary obligation.",
-    meta: "confirm publication date and listing link",
     series: true,
   },
   {
     tagline: "Earlier work",
     title: "Your Path to Transformation",
+    slug: "your-path-to-transformation",
+    priceINR: 484.20,
+    priceUSD: 19.95,
     href: "https://www.amazon.com/dp/B0CR9H7YMH",
     image: "/your-path-to-transformation.png",
     alt: "Your Path to Transformation book cover",
     text: "Change, unpredictability, and the way we meet a life that does not consult us first.",
-    meta: "listing link",
   },
   {
     tagline: "Earlier work",
     title: "Your Path to Spirituality",
+    slug: "your-path-to-spirituality",
+    priceINR: 290.52,
+    priceUSD: 19.95,
     href: "https://www.amazon.com/dp/B0BBS9GRPJ",
     image: "/your-path-to-spirituality.png",
     alt: "Your Path to Spirituality book cover",
     text: "A return to what spirituality is underneath the labels it has collected.",
-    meta: "listing link",
   },
   {
     tagline: "Earlier work",
     title: "Your Path to Healing",
+    slug: "your-path-to-healing",
+    priceINR: 483.23,
+    priceUSD: 21.95,
     href: "https://www.amazon.com/dp/B0C386DNVQ",
     image: "/your-path-to-healing.png",
     alt: "Your Path to Healing book cover",
     text: "What healing means across living, loss and recovery — held as inquiry rather than instruction.",
-    meta: "listing link",
-  },
-  {
-    tagline: "Earlier work",
-    title: "Keeping It Simple",
-    href: "https://www.amazon.com/dp/B07VRKSC9P",
-    image: "/keeping-it-simple.png",
-    alt: "Keeping It Simple book cover",
-    text: "Soul, body and mind do not require life to be made more complicated than it already is.",
-    meta: "listing link",
-  },
-  {
-    tagline: "Earlier work",
-    title: "Your Path to Peace",
-    href: "https://www.amazon.com/dp/B0GJQV5M2F",
-    image: "/your-path-to-peace.png",
-    alt: "Your Path to Peace book cover",
-    text: "A journey beyond calmness — toward the peace that remains when what is unfinished is no longer veiled.",
-    meta: "listing link",
-  },
-  {
-    tagline: "Earlier work",
-    title: "Life Force: Lost and Found",
-    href: "https://www.amazon.com/Life-Force-Alka-Chopra-Madan-ebook/dp/B07VQDY6VP",
-    image: "/life-force-lost-and-found.png",
-    alt: "Life Force: Lost and Found book cover",
-    text: "Energy, wholeness, and reconnecting with the vitality of being alive.",
-    meta: "listing link",
   },
 ];
-
-const voices = [
-  {
-    quote: "The process seemed original, simple, effective.",
-    cite: "Soul Body Healing Center client",
-  },
-  {
-    quote: "Helped me to clearly and smoothly channelize my thought process.",
-    cite: "Soul Body Healing Center client",
-  },
-  {
-    quote: "Very helpful and extremely knowledgeable.",
-    cite: "Soul Body Healing Center client",
-  },
-];
-
-const ratings = [
-  { name: "Google", icon: "google", score: "5.0", count: 120, href: "https://g.page/r/CVDKnf9pk9KdEBM/review" },
-  {
-    name: "Yelp",
-    icon: "yelp",
-    score: "4.8",
-    count: 45,
-    href: "https://www.yelp.com/biz/soul-body-healing-center-fremont-2",
-  },
-];
-
-const placeholder = "text-[0.82em] font-medium tracking-[0.01em] text-[#E8963C] before:content-['[_'] after:content-['_]']";
 
 function BookCard({ book, hidden }) {
-  const Tag = book.href ? "a" : "article";
-  const linkProps = book.href
-    ? {
-        href: book.href,
-        target: "_blank",
-        rel: "noopener noreferrer",
-        "aria-label": `${book.title} — buy on Amazon`,
-        tabIndex: hidden ? -1 : undefined,
-      }
-    : {};
+  const { addToCart } = useCart();
+  const { formatPrice, getProductPrice, currency } = useCurrency();
+  const [added, setAdded] = useState(false);
+
+  const pricing = getProductPrice(book);
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart({
+      _id: book.slug,
+      id: book.slug,
+      title: book.title,
+      slug: book.slug,
+      price: pricing.effectivePrice,
+      priceUSD: book.priceUSD,
+      priceINR: book.priceINR,
+      currency,
+      format: "Paperback",
+      coverImage: book.image,
+    });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1600);
+  };
+
   return (
-    <Tag
-      {...linkProps}
+    <article
       aria-hidden={hidden || undefined}
-      className={`flex h-[530px] w-[224px] shrink-0 flex-col justify-between rounded-2xl border border-transparent p-4 text-vellum no-underline ${
-        book.href ? "transition-transform duration-200 hover:-translate-y-1" : ""
-      }`}
-      style={{ background: "linear-gradient(165deg, #0E1630, #2C2246)" }}
+      className="group relative flex h-[560px] w-[260px] sm:w-[270px] shrink-0 flex-col rounded-2xl border border-[rgba(237,231,218,0.14)] p-4 pb-5 text-vellum transition-all duration-300 hover:border-halo/70 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)] select-none"
+      style={{ background: "linear-gradient(165deg, #0E1630 0%, #1A1832 55%, #2A1F40 100%)" }}
     >
-      <div>
-        {book.image ? (
-          <img
-            src={book.image}
-            alt={hidden ? "" : book.alt}
-            loading="lazy"
-            className="mb-3 aspect-[2/3] w-full rounded-lg object-cover object-top shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
-          />
-        ) : (
-          <div className="mb-3 flex aspect-[2/3] w-full items-center justify-center rounded-lg border border-dashed border-[rgba(237,231,218,0.25)] text-[0.78rem] text-[#A9B0C2]">
-            Cover coming soon
-          </div>
-        )}
-        <span className="text-[0.68rem] tracking-[0.14em] text-halo">{book.tagline}</span>
-        <h3 className="mb-0 mt-2 line-clamp-2 min-h-[2.6em] font-display text-[1.15rem] font-light leading-[1.3]">
-          {book.title}
-        </h3>
-        {book.text && <p className="m-0 mt-2 line-clamp-3 text-[0.8rem] text-[#C6CBD8]">{book.text}</p>}
+      {/* Centered Gallery Book Cover */}
+      <div className="relative flex items-center justify-center w-full h-[220px] mb-3 flex-shrink-0">
+        <Link
+          to={`/books/${book.slug}`}
+          tabIndex={hidden ? -1 : undefined}
+          aria-label={`${book.title} — view publication details`}
+          className="relative block h-full aspect-[2/3] overflow-hidden rounded-lg shadow-[0_8px_20px_rgba(0,0,0,0.45)] group-hover:shadow-[0_14px_30px_rgba(0,0,0,0.65)] group-hover:scale-[1.03] transition-all duration-300"
+        >
+          {book.image ? (
+            <img
+              src={book.image}
+              alt={hidden ? "" : book.alt}
+              loading="lazy"
+              className="h-full w-full object-cover object-top"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-[rgba(237,231,218,0.25)] text-[0.78rem] text-[#A9B0C2]">
+              Cover coming soon
+            </div>
+          )}
+        </Link>
       </div>
-      <div className="mt-3 min-h-[3.4em] border-t border-[rgba(128,128,128,0.25)] pt-[10px] text-[0.78rem]">
-        {book.href ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-halo px-3 py-1.5 text-[0.78rem] font-bold text-void">
-            Buy on Amazon <span aria-hidden="true">→</span>
+
+      {/* Book Metadata: Tagline, Title, Excerpt */}
+      <div className="flex flex-col flex-1 min-h-0">
+        <span className="text-[0.66rem] tracking-[0.16em] text-halo uppercase block font-mono font-semibold">
+          {book.tagline}
+        </span>
+
+        {/* Title */}
+        <Link
+          to={`/books/${book.slug}`}
+          tabIndex={hidden ? -1 : undefined}
+          className="no-underline block mt-1"
+        >
+          <h3 className="m-0 line-clamp-2 min-h-[2.4em] font-display text-[1.06rem] font-light leading-[1.28] text-vellum group-hover:text-halo transition-colors">
+            {book.title}
+          </h3>
+        </Link>
+
+        {/* Excerpt */}
+        {book.text && (
+          <p className="m-0 mt-1 line-clamp-2 text-[0.76rem] text-[#C6CBD8] leading-relaxed">
+            {book.text}
+          </p>
+        )}
+      </div>
+
+      {/* Bottom Actions Cluster: Guaranteed clearance & fixed positions */}
+      <div className="mt-auto pt-3 border-t border-[rgba(237,231,218,0.12)] flex-shrink-0">
+        {/* Price & Website Details link */}
+        <div className="mb-2.5 flex items-center justify-between">
+          <span className="font-display text-[1.08rem] font-semibold text-halo tracking-tight">
+            {formatPrice(pricing.effectivePrice)}
           </span>
-        ) : (
-          <span className={placeholder}>{book.meta}</span>
-        )}
+          <Link
+            to={`/books/${book.slug}`}
+            tabIndex={hidden ? -1 : undefined}
+            className="text-[0.72rem] text-dim hover:text-halo transition-colors no-underline font-medium"
+          >
+            Details →
+          </Link>
+        </div>
+
+        {/* Action Buttons: Add to Cart & Buy on Amazon */}
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            tabIndex={hidden ? -1 : undefined}
+            onClick={handleAddToCart}
+            className="w-full h-9 rounded-full bg-halo px-3 text-[0.76rem] font-bold text-void transition-all duration-200 hover:bg-white hover:shadow-md active:scale-[0.98] cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm"
+          >
+            {added ? (
+              <>
+                <span className="text-emerald-800 font-bold">✓</span> Added to Cart
+              </>
+            ) : (
+              <>Add to Cart</>
+            )}
+          </button>
+
+          {book.href && (
+            <a
+              href={book.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              tabIndex={hidden ? -1 : undefined}
+              aria-label={`${book.title} — buy on Amazon`}
+              className="w-full h-8 rounded-full border border-[rgba(237,231,218,0.22)] bg-white/[0.05] px-3 text-[0.72rem] font-semibold text-vellum transition-all duration-200 hover:border-halo hover:bg-white/10 hover:text-white text-center no-underline flex items-center justify-center gap-1"
+            >
+              <span>Buy on Amazon</span>
+              <span aria-hidden="true" className="text-halo text-[0.8rem]">↗</span>
+            </a>
+          )}
+        </div>
       </div>
-    </Tag>
+    </article>
   );
 }
 
 function Home() {
+  const [isBooksPaused, setIsBooksPaused] = useState(false);
+
+  useEffect(() => {
+    const existing = document.querySelector('script[src="https://elfsightcdn.com/platform.js"]');
+    if (!existing) {
+      const script = document.createElement("script");
+      script.src = "https://elfsightcdn.com/platform.js";
+      script.async = true;
+      document.body.appendChild(script);
+    } else if (window.ElfsightApp) {
+      try {
+        window.ElfsightApp.initialize?.();
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, []);
+
   return (
     <div className="bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.62] font-normal selection:bg-gold selection:text-void">
       <ScrollProgress />
@@ -307,9 +396,6 @@ function Home() {
                   <b className="font-bold text-ink">Author</b> of the AAO — Arrive at Origin series
                 </li>
                 <li className="border-t border-[rgba(42,38,24,0.14)] py-3 text-[#4A4638]">
-                  <b className="font-bold text-ink">Founder</b>, University of Spiritual Sciences
-                </li>
-                <li className="border-t border-[rgba(42,38,24,0.14)] py-3 text-[#4A4638]">
                   <b className="font-bold text-ink">Founder</b>, Soul Body Healing Center, Fremont
                 </li>
               </ul>
@@ -369,7 +455,7 @@ function Home() {
               </h2>
               <p className="max-w-[56ch] text-vellum">
                 Each one was developed by Dr. Alka and each does a different job. Concept Clearing is the gateway.
-                AAO is the passage. Induced Calmness is the state you become able to hold once you have made it.
+                AAO is the passage. Living from Origin is the grounded state you carry into daily life.
               </p>
             </Reveal>
 
@@ -468,16 +554,33 @@ function Home() {
                   full. The AAO series is the spine; the earlier titles are the inquiry that led to it.
                 </p>
               </div>
-              <Link
-                to="/books"
-                className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-xs font-bold uppercase tracking-wider text-vellum hover:bg-gold hover:text-ink transition-colors no-underline"
-              >
-                Visit Book Store & Orders →
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsBooksPaused((prev) => !prev)}
+                  className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white/70 px-4 py-2.5 text-xs font-semibold text-ink hover:border-ink hover:bg-white transition-all cursor-pointer shadow-sm"
+                  title={isBooksPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
+                  aria-label={isBooksPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
+                >
+                  <span className="text-sm leading-none" aria-hidden="true">
+                    {isBooksPaused ? "▶" : "⏸"}
+                  </span>
+                  <span>{isBooksPaused ? "Resume Scroll" : "Pause Scroll"}</span>
+                </button>
+                <Link
+                  to="/books"
+                  className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-xs font-bold uppercase tracking-wider text-vellum hover:bg-gold hover:text-ink transition-colors no-underline shadow-sm"
+                >
+                  Visit Book Store & Orders →
+                </Link>
+              </div>
             </Reveal>
 
             <Reveal as="div" className="book-marquee -mx-[clamp(20px,5vw,64px)]">
-              <div className="book-track">
+              <div
+                className="book-track"
+                style={{ animationPlayState: isBooksPaused ? "paused" : undefined }}
+              >
                 {[...books, ...books].map((book, i) => (
                   <BookCard key={`${book.title}-${i}`} book={book} hidden={i >= books.length} />
                 ))}
@@ -493,95 +596,30 @@ function Home() {
                 <b className="block font-display text-[1.3rem] font-normal text-ink">ਪੰਜਾਬੀ</b> AAO in Punjabi — in
                 translation
               </span>
-              <span>
-                <b className={`block font-display text-[1.3rem] font-normal text-ink ${placeholder}`}>
-                  7 titles shown; profile records five books — confirm the canonical list before launch
-                </b>
-              </span>
             </Reveal>
           </div>
         </section>
 
-        {/* WIDER WORK */}
-        <section className="relative py-[clamp(72px,10vw,132px)]">
-          <div className={shell}>
-            <Reveal className="mb-[clamp(36px,5vw,64px)] max-w-[34ch]">
-              <h2 className={`${heading} mb-[0.34em] text-[clamp(2.2rem,4.6vw,3.9rem)]`}>
-                The work does not stop at the consulting room.
-              </h2>
-              <p className="max-w-[56ch] text-vellum">
-                The same metaphysics runs through teaching. It was built so the framework would outlast any one
-                practitioner, including me.
-              </p>
-            </Reveal>
-            <Reveal className="grid grid-cols-1 gap-[clamp(20px,3vw,32px)] md:grid-cols-2">
-              <article className="rounded-2xl border border-[rgba(237,231,218,0.16)] bg-[rgba(237,231,218,0.04)] p-[clamp(26px,3vw,40px)]">
-                <h3 className={`${heading} mb-[0.4em] text-[clamp(1.5rem,2.6vw,2rem)] text-vellum`}>
-                  University of Spiritual Sciences
-                </h3>
-                <p className="mb-[0.8em] text-[#A9B0C2]">
-                  Where the frameworks are taught rather than delivered — for practitioners, students and anyone who
-                  intends to carry this work into their own community.
-                </p>
-                <p className="mb-0 text-[#A9B0C2]">
-                  <a
-                    href="https://soulbodyhealingcenter.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-vellum underline underline-offset-4"
-                  >
-                    Visit University of Spiritual Sciences →
-                  </a>
-                </p>
-              </article>
-            </Reveal>
-          </div>
-        </section>
 
-        {/* VOICES */}
+
+        {/* VOICES / GOOGLE REVIEWS */}
         <section className="relative bg-vellum py-[clamp(72px,10vw,132px)] text-ink" id="voices">
           <div className={shell}>
-            <Reveal className="mb-[clamp(36px,5vw,64px)] max-w-[34ch]">
+            <Reveal className="mb-[clamp(36px,5vw,64px)] max-w-[42ch]">
               <h2 className={`${heading} mb-[0.34em] text-[clamp(2.2rem,4.6vw,3.9rem)] text-ink`}>
                 What people say afterward.
               </h2>
               <p className="max-w-[56ch] text-[#4A4638]">
-                Ratings and counts should be pulled live from each platform so this page never shows a stale number.
+                Real Google verified reviews from clients who have experienced Soul Body Healing Center counsel and metaphysical guidance.
               </p>
             </Reveal>
-            <Reveal className="mb-[clamp(28px,4vw,48px)] grid grid-cols-1 gap-[clamp(16px,2vw,24px)] sm:grid-cols-2 md:max-w-[720px]">
-              {ratings.map((r) => (
-                <a
-                  key={r.name}
-                  href={r.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`${r.name}: ${r.score} out of 5 from ${r.count} reviews`}
-                  className="rounded-2xl border border-[rgba(42,38,24,0.2)] bg-[rgba(255,255,255,0.4)] p-6 text-ink no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-ink"
-                >
-                  <div className="mb-3 flex items-center gap-2 text-[0.9rem] font-medium">
-                    <SocialIcon name={r.icon} />
-                    {r.name}
-                  </div>
-                  <div className="flex items-baseline gap-3">
-                    <span className={`${heading} text-[clamp(2.4rem,4vw,3.2rem)] font-normal`}>{r.score}</span>
-                    <span aria-hidden="true" className="text-[1.2rem] tracking-[0.1em] text-gold">
-                      ★★★★★
-                    </span>
-                  </div>
-                  <div className="mt-1 text-[0.84rem] text-dim-warm">{r.count} reviews</div>
-                </a>
-              ))}
-            </Reveal>
-            <Reveal className="grid grid-cols-1 gap-[clamp(20px,3vw,34px)] md:grid-cols-3">
-              {voices.map((v) => (
-                <div key={v.quote} className="border-t-2 border-gold pt-[22px]">
-                  <blockquote className="mb-4 font-display text-[clamp(1.25rem,2vw,1.6rem)] leading-[1.28] text-ink">
-                    {v.quote}
-                  </blockquote>
-                  <cite className="text-[0.84rem] text-dim-warm not-italic">{v.cite}</cite>
-                </div>
-              ))}
+
+            {/* Elfsight Google Reviews | Soul Body Healing Centre */}
+            <Reveal className="my-8 w-full min-h-[300px]">
+              <div
+                className="elfsight-app-3a7e5042-128d-438e-aa63-5a702876d9a9"
+                data-elfsight-app-lazy
+              />
             </Reveal>
             <Reveal className="mt-11 flex flex-wrap gap-3">
               {[

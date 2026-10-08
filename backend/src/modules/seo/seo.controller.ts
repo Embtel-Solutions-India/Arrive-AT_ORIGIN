@@ -18,7 +18,7 @@ export const seoController = {
       siteTitle: map.siteTitle || "Soul Body Healing Center | Arrive at Origin",
       siteDescription:
         map.siteDescription ||
-        "Metaphysics, grief counsel, spiritual direction, and Induced Calmness with Dr. Alka Chopra Madan.",
+        "Metaphysics, grief counsel, spiritual direction, and Living from Origin with Dr. Alka Chopra Madan.",
       canonicalDomain: map.canonicalDomain || env.APP_URL,
       ogImage: map.ogImage || "/dr-alka-chopra-madan.png",
       twitterHandle: map.twitterHandle || "@soulbodyorigin",

@@ -4,6 +4,7 @@ import MainLayout from "../layouts/MainLayout";
 import Home from "../pages/Home";
 import { CartProvider } from "../context/CartContext";
 import { CustomerAuthProvider } from "../context/CustomerAuthContext";
+import { CurrencyProvider } from "../context/CurrencyContext";
 import { CartDrawer } from "../components/cart/CartDrawer";
 
 // Lazy-loaded routes for code splitting
@@ -28,27 +29,29 @@ const PageLoader = () => (
 function AppRoutes() {
   return (
     <CustomerAuthProvider>
-      <CartProvider>
-        <CartDrawer />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/schedule" element={<Schedule />} />
-            <Route path="/account" element={<AccountPortal />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/books" element={<Books />} />
-            <Route path="/books/:slug" element={<BookDetail />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/order-success/:orderNumber" element={<OrderSuccess />} />
-            <Route path="/admin/*" element={<AdminApp />} />
-            <Route element={<MainLayout />}>
-              <Route path="/about" element={<About />} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </CartProvider>
+      <CurrencyProvider>
+        <CartProvider>
+          <CartDrawer />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/schedule" element={<Schedule />} />
+              <Route path="/account" element={<AccountPortal />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/books" element={<Books />} />
+              <Route path="/books/:slug" element={<BookDetail />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/order-success/:orderNumber" element={<OrderSuccess />} />
+              <Route path="/admin/*" element={<AdminApp />} />
+              <Route element={<MainLayout />}>
+                <Route path="/about" element={<About />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </CartProvider>
+      </CurrencyProvider>
     </CustomerAuthProvider>
   );
 }

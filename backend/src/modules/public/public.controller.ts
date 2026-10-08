@@ -11,6 +11,12 @@ import { env } from "../../config/env.js";
 import { generateCustomerToken } from "../customerAuth/customerAuth.controller.js";
 import { sendOrderConfirmationEmail } from "../../services/email.service.js";
 import { logger } from "../../utils/logger.js";
+import { Coupon } from "../../models/Coupon.js";
+import { calculateCouponDiscount } from "../coupons/coupon.controller.js";
+
+// Cache IP geolocation for 24 hours to avoid redundant lookups
+const ipGeoCache = new Map<string, { country: string; timestamp: number }>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export const publicController = {
   // ─── Public Blogs ───
@@ -113,6 +119,7 @@ export const publicController = {
       razorpayPaymentId,
       razorpayOrderId,
       razorpaySignature,
+      couponCode,
     } = req.body as {
       customerInfo: { name: string; email: string; phone?: string };
       items: Array<{ bookId: string; quantity: number; format?: string }>;
@@ -122,6 +129,8 @@ export const publicController = {
       razorpayPaymentId?: string;
       razorpayOrderId?: string;
       razorpaySignature?: string;
+      couponCode?: string;
+      currency?: string;
     };
 
     if (!customerInfo?.name || !customerInfo?.email) {
@@ -130,6 +139,8 @@ export const publicController = {
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw HttpError.badRequest("No items in cart");
     }
+
+    const orderCurrency: "USD" | "INR" = req.body.currency === "INR" ? "INR" : "USD";
 
     if (razorpayPaymentId && razorpayOrderId && razorpaySignature) {
       const isValid = razorpayService.verifyPaymentSignature({
@@ -140,19 +151,21 @@ export const publicController = {
       if (!isValid) throw HttpError.badRequest("Invalid Razorpay payment signature");
     }
 
-    // Verify books and calculate prices
+    // Verify books and calculate prices server-side based on currency
     const orderItems: IOrderItem[] = [];
     let subtotal = 0;
 
     for (const item of items) {
-      const book = await Book.findById(item.bookId);
+      const book = await (Book as any).findById(item.bookId);
       if (!book) throw HttpError.badRequest(`Book with ID ${item.bookId} not found`);
 
       if (book.stockQuantity < item.quantity) {
         throw HttpError.badRequest(`Only ${book.stockQuantity} copies of "${book.title}" are in stock`);
       }
 
-      const itemPrice = book.salePrice ?? book.price;
+      const itemPrice = orderCurrency === "INR"
+        ? (book.salePriceINR ?? book.priceINR ?? book.price)
+        : (book.salePriceUSD ?? book.priceUSD ?? book.price);
       const itemSubtotal = itemPrice * item.quantity;
       subtotal += itemSubtotal;
 
@@ -177,9 +190,25 @@ export const publicController = {
       await book.save();
     }
 
-    const shipping = subtotal > 50 ? 0 : 5;
-    const tax = Number((subtotal * 0.05).toFixed(2));
-    const total = Number((subtotal + shipping + tax).toFixed(2));
+    let discount = 0;
+    let appliedCouponCode = "";
+    if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+      try {
+        const discountResult = await calculateCouponDiscount(couponCode, "CHECKOUT", subtotal);
+        discount = discountResult.discountAmount;
+        appliedCouponCode = discountResult.code;
+        await Coupon.updateOne({ code: discountResult.code }, { $inc: { usedCount: 1 } });
+      } catch (err: any) {
+        throw HttpError.badRequest(err.message || "Invalid coupon code");
+      }
+    }
+
+    const shipping = orderCurrency === "INR"
+      ? (subtotal >= 400 ? 0 : 50)
+      : (subtotal >= 50 ? 0 : 5);
+    const taxableSubtotal = Math.max(0, subtotal - discount);
+    const tax = Number((taxableSubtotal * 0.05).toFixed(2));
+    const total = Math.max(0, Number((subtotal - discount + shipping + tax).toFixed(2)));
 
     // Upsert Customer
     let customer = await Customer.findOne({ email: customerInfo.email.toLowerCase() } as any);
@@ -219,14 +248,15 @@ export const publicController = {
       subtotal,
       shipping,
       tax,
-      discount: 0,
+      discount,
+      couponCode: appliedCouponCode,
       total,
-      currency: "USD",
+      currency: orderCurrency,
       paymentStatus: "PAID",
       orderStatus: "PAYMENT_CONFIRMED",
       shippingAddress: shippingAddress || {},
       billingAddress: billingAddress || shippingAddress || {},
-      notes: "Placed via online book store",
+      notes: appliedCouponCode ? `Placed via book store (Coupon: ${appliedCouponCode})` : "Placed via online book store",
     });
 
     // Create Payment Record
@@ -238,7 +268,7 @@ export const publicController = {
       transactionId,
       paymentGateway: isRazorpay ? "razorpay" : "simulated_gateway",
       amount: total,
-      currency: "USD",
+      currency: orderCurrency,
       status: "SUCCESSFUL",
       paymentMethod: isRazorpay ? "Razorpay" : paymentMethod || "Credit Card",
       gatewayResponse: isRazorpay
@@ -283,31 +313,51 @@ export const publicController = {
 
   // ─── Public Razorpay Book Order Creation ───
   async createBookRazorpayOrder(req: Request, res: Response) {
-    const { items, customerInfo } = req.body;
+    const { items, customerInfo, couponCode, currency } = req.body;
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw HttpError.badRequest("No items in cart");
     }
 
+    const requestedCurrency: "USD" | "INR" = currency === "INR" ? "INR" : "USD";
+
     let subtotal = 0;
     for (const item of items) {
-      const book = await Book.findById(item.bookId);
+      const book = await (Book as any).findById(item.bookId);
       if (!book) throw HttpError.badRequest("Book not found");
-      const itemPrice = book.salePrice ?? book.price;
+      const itemPrice = requestedCurrency === "INR"
+        ? (book.salePriceINR ?? book.priceINR ?? book.price)
+        : (book.salePriceUSD ?? book.priceUSD ?? book.price);
       subtotal += itemPrice * item.quantity;
     }
 
-    const shipping = subtotal > 50 ? 0 : 5;
-    const tax = Number((subtotal * 0.05).toFixed(2));
-    const total = Number((subtotal + shipping + tax).toFixed(2));
+    let discount = 0;
+    let appliedCouponCode = "";
+    if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+      try {
+        const discountResult = await calculateCouponDiscount(couponCode, "CHECKOUT", subtotal);
+        discount = discountResult.discountAmount;
+        appliedCouponCode = discountResult.code;
+      } catch (err: any) {
+        throw HttpError.badRequest(err.message || "Invalid coupon code");
+      }
+    }
+
+    const shipping = requestedCurrency === "INR"
+      ? (subtotal >= 400 ? 0 : 50)
+      : (subtotal >= 50 ? 0 : 5);
+    const taxableSubtotal = Math.max(0, subtotal - discount);
+    const tax = Number((taxableSubtotal * 0.05).toFixed(2));
+    const total = Math.max(0, Number((subtotal - discount + shipping + tax).toFixed(2)));
 
     const receipt = `BK-${Date.now().toString().slice(-8)}`;
     const rzpOrder = await razorpayService.createOrder({
       amount: total,
-      currency: "USD",
+      currency: requestedCurrency,
       receipt,
       notes: {
         customerEmail: customerInfo?.email || "",
         customerName: customerInfo?.name || "",
+        couponCode: appliedCouponCode,
         type: "book_checkout",
       },
     });
@@ -317,8 +367,91 @@ export const publicController = {
       amount: rzpOrder.amount,
       currency: rzpOrder.currency,
       keyId: env.RAZORPAY_KEY_ID,
+      subtotal,
+      discount,
+      couponCode: appliedCouponCode,
       total,
       receipt,
     });
+  },
+
+  // ─── IP-Based Geo Location & Currency Detection ───
+  async getGeoLocation(req: Request, res: Response) {
+    const testCountry = (req.query.country as string) || (req.query.testCountry as string);
+    if (testCountry) {
+      const country = testCountry.toUpperCase().trim();
+      const currency = country === "IN" ? "INR" : "USD";
+      return ok(res, { country, currency, source: "test_param" });
+    }
+
+    const cdnHeader =
+      (req.headers["cf-ipcountry"] as string) ||
+      (req.headers["x-country-code"] as string) ||
+      (req.headers["cloudfront-viewer-country"] as string) ||
+      (req.headers["x-vercel-ip-country"] as string);
+
+    if (cdnHeader && typeof cdnHeader === "string") {
+      const country = cdnHeader.toUpperCase().trim();
+      if (country.length === 2) {
+        const currency = country === "IN" ? "INR" : "USD";
+        return ok(res, { country, currency, source: "cdn_header" });
+      }
+    }
+
+    const xForwardedFor = req.headers["x-forwarded-for"];
+    const rawIp = typeof xForwardedFor === "string"
+      ? (xForwardedFor.split(",")[0] || "").trim()
+      : req.socket.remoteAddress || req.ip || "";
+    const cleanIp = rawIp.replace(/^.*:/, "");
+
+    const isPrivate =
+      !cleanIp ||
+      cleanIp === "127.0.0.1" ||
+      cleanIp === "localhost" ||
+      cleanIp === "::1" ||
+      cleanIp.startsWith("192.168.") ||
+      cleanIp.startsWith("10.") ||
+      cleanIp.startsWith("172.16.") ||
+      cleanIp.startsWith("172.31.");
+
+    if (isPrivate) {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      const isIndiaTz = tz.includes("Kolkata") || tz.includes("Calcutta") || tz.includes("IST");
+      const country = isIndiaTz ? "IN" : "US";
+      return ok(res, {
+        country,
+        currency: country === "IN" ? "INR" : "USD",
+        source: "local_network_timezone",
+      });
+    }
+
+    const cached = ipGeoCache.get(cleanIp);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      const currency = cached.country === "IN" ? "INR" : "USD";
+      return ok(res, { country: cached.country, currency, source: "cache" });
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+      const response = await fetch(`https://ipapi.co/${cleanIp}/json/`, {
+        signal: controller.signal,
+        headers: { "User-Agent": "soul-body-ecom/1.0" },
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data: any = await response.json();
+        const country = (data.country_code || data.country || "US").toUpperCase();
+        ipGeoCache.set(cleanIp, { country, timestamp: Date.now() });
+        const currency = country === "IN" ? "INR" : "USD";
+        return ok(res, { country, currency, source: "ipapi" });
+      }
+    } catch {
+      // Fallback
+    }
+
+    return ok(res, { country: "US", currency: "USD", source: "fallback" });
   },
 };

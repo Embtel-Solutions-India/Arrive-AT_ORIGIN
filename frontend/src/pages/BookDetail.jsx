@@ -5,16 +5,17 @@ import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import NotFound from "./NotFound";
 import { useCart } from "../context/CartContext";
+import { useCurrency } from "../context/CurrencyContext";
 import { apiUrl } from "../utils/api";
 
 const shell = "mx-auto w-full max-w-[1240px] px-[clamp(20px,5vw,64px)]";
 const heading = "font-display font-light leading-[1.08] tracking-[-0.015em]";
-const money = (n) => `$${(n || 0).toFixed(2)}`;
 
 function BookDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { formatPrice, getProductPrice } = useCurrency();
 
   const [book, setBook] = useState(null);
   const [related, setRelated] = useState([]);
@@ -54,7 +55,7 @@ function BookDetail() {
   if (!book) return <NotFound />;
 
   const isOutOfStock = book.stockQuantity <= 0;
-  const currentPrice = book.salePrice ?? book.price;
+  const pricing = getProductPrice(book);
 
   const handleBuyNow = () => {
     addToCart(book, quantity, selectedFormat);
@@ -109,13 +110,13 @@ function BookDetail() {
               {/* Price & Stock Badge */}
               <div className="flex flex-wrap items-baseline gap-4 border-y border-[rgba(237,231,218,0.12)] py-4">
                 <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-halo">{money(currentPrice)}</span>
-                  {book.salePrice && (
-                    <span className="text-lg text-dim line-through">{money(book.price)}</span>
+                  <span className="text-3xl font-bold text-halo">{formatPrice(pricing.effectivePrice)}</span>
+                  {pricing.isSale && (
+                    <span className="text-lg text-dim line-through">{formatPrice(pricing.price)}</span>
                   )}
-                  {book.salePrice && (
+                  {pricing.isSale && (
                     <span className="rounded-full bg-rose-500/20 border border-rose-500/40 px-2.5 py-0.5 text-xs font-bold text-rose-300">
-                      Save {money(book.price - book.salePrice)}
+                      Save {formatPrice(pricing.price - pricing.effectivePrice)}
                     </span>
                   )}
                 </div>
@@ -261,21 +262,24 @@ function BookDetail() {
             <div className="mt-24 border-t border-[rgba(237,231,218,0.12)] pt-12">
               <h3 className={`${heading} text-2xl text-vellum mb-6`}>More from Dr. Alka Chopra Madan</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                {related.map((rel) => (
-                  <Link
-                    key={rel.slug}
-                    to={`/books/${rel.slug}`}
-                    className="group rounded-2xl border border-[rgba(237,231,218,0.1)] bg-white/[0.02] p-4 transition-all hover:border-halo"
-                  >
-                    <img
-                      src={rel.coverImage || "/aao-part-one.png"}
-                      alt={rel.title}
-                      className="h-48 w-full object-cover rounded-xl mb-3 shadow"
-                    />
-                    <h4 className="font-medium text-sm text-vellum group-hover:text-halo truncate">{rel.title}</h4>
-                    <p className="text-xs text-halo font-semibold mt-1">{money(rel.salePrice ?? rel.price)}</p>
-                  </Link>
-                ))}
+                {related.map((rel) => {
+                  const relPricing = getProductPrice(rel);
+                  return (
+                    <Link
+                      key={rel.slug}
+                      to={`/books/${rel.slug}`}
+                      className="group rounded-2xl border border-[rgba(237,231,218,0.1)] bg-white/[0.02] p-4 transition-all hover:border-halo"
+                    >
+                      <img
+                        src={rel.coverImage || "/aao-part-one.png"}
+                        alt={rel.title}
+                        className="h-48 w-full object-cover rounded-xl mb-3 shadow"
+                      />
+                      <h4 className="font-medium text-sm text-vellum group-hover:text-halo truncate">{rel.title}</h4>
+                      <p className="text-xs text-halo font-semibold mt-1">{formatPrice(relPricing.effectivePrice)}</p>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           )}

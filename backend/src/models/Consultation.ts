@@ -9,6 +9,9 @@ export interface IConsultation extends Document {
   meetingType: string;
   sessionsCount: number;
   price: number;
+  originalPrice?: number;
+  discount?: number;
+  couponCode?: string;
   currency: string;
   appointmentDate: string;
   appointmentTime: string;
@@ -35,6 +38,9 @@ const ConsultationSchema = new Schema<IConsultation>(
     meetingType: { type: String, required: true },
     sessionsCount: { type: Number, default: 1 },
     price: { type: Number, required: true, min: 0 },
+    originalPrice: { type: Number, default: 0 },
+    discount: { type: Number, default: 0 },
+    couponCode: { type: String, default: "" },
     currency: { type: String, default: "USD" },
     appointmentDate: { type: String, required: true },
     appointmentTime: { type: String, required: true },

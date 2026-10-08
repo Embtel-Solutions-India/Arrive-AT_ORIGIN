@@ -14,3 +14,4 @@ export * from "./Consultation.js";
 export * from "./AuditLog.js";
 export * from "./AdminSession.js";
 export * from "./BackupRecord.js";
+export * from "./Coupon.js";

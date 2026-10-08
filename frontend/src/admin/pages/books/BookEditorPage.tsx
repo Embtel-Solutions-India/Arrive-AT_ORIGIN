@@ -35,8 +35,13 @@ export function BookEditorPage() {
   const [amazonUrl, setAmazonUrl] = useState("");
 
   // Pricing & Inventory
-  const [price, setPrice] = useState<number>(24.95);
+  const [price, setPrice] = useState<number>(483.23);
+  const [priceINR, setPriceINR] = useState<string>("");
+  const [priceUSD, setPriceUSD] = useState<string>("");
   const [salePrice, setSalePrice] = useState<string>("");
+  const [salePriceINR, setSalePriceINR] = useState<string>("");
+  const [salePriceUSD, setSalePriceUSD] = useState<string>("");
+  const [currency, setCurrency] = useState<string>("INR");
   const [sku, setSku] = useState("");
   const [stockQuantity, setStockQuantity] = useState<number>(50);
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(5);
@@ -88,7 +93,36 @@ export function BookEditorPage() {
       setCoverImage(b.coverImage || "/aao-part-one.png");
       setAmazonUrl(b.amazonUrl || "");
       setPrice(b.price || 0);
+      setPriceINR(
+        b.priceINR !== undefined && b.priceINR !== null
+          ? String(b.priceINR)
+          : b.currency === "INR" || !b.currency
+          ? String(b.price || "")
+          : ""
+      );
+      setPriceUSD(
+        b.priceUSD !== undefined && b.priceUSD !== null
+          ? String(b.priceUSD)
+          : b.currency === "USD"
+          ? String(b.price || "")
+          : ""
+      );
       setSalePrice(b.salePrice ? String(b.salePrice) : "");
+      setSalePriceINR(
+        b.salePriceINR !== undefined && b.salePriceINR !== null
+          ? String(b.salePriceINR)
+          : b.currency === "INR" && b.salePrice
+          ? String(b.salePrice)
+          : ""
+      );
+      setSalePriceUSD(
+        b.salePriceUSD !== undefined && b.salePriceUSD !== null
+          ? String(b.salePriceUSD)
+          : b.currency === "USD" && b.salePrice
+          ? String(b.salePrice)
+          : ""
+      );
+      setCurrency(b.currency || "INR");
       setSku(b.sku || "");
       setStockQuantity(b.stockQuantity ?? 50);
       setLowStockThreshold(b.lowStockThreshold ?? 5);
@@ -105,6 +139,12 @@ export function BookEditorPage() {
 
   const saveMutation = useMutation({
     mutationFn: (targetStatus?: "DRAFT" | "PUBLISHED" | "OUT_OF_STOCK") => {
+      const finalPrice = Number(
+        currency === "USD"
+          ? (priceUSD !== "" ? priceUSD : price)
+          : (priceINR !== "" ? priceINR : price)
+      );
+
       const payload = {
         title,
         slug: slug || slugify(title),
@@ -118,8 +158,13 @@ export function BookEditorPage() {
         shortDescription,
         coverImage,
         amazonUrl,
-        price: Number(price),
-        salePrice: salePrice ? Number(salePrice) : undefined,
+        price: finalPrice,
+        priceINR: priceINR !== "" ? Number(priceINR) : (currency === "INR" ? finalPrice : undefined),
+        priceUSD: priceUSD !== "" ? Number(priceUSD) : (currency === "USD" ? finalPrice : undefined),
+        salePrice: salePriceINR ? Number(salePriceINR) : (salePriceUSD ? Number(salePriceUSD) : (salePrice ? Number(salePrice) : undefined)),
+        salePriceINR: salePriceINR !== "" ? Number(salePriceINR) : undefined,
+        salePriceUSD: salePriceUSD !== "" ? Number(salePriceUSD) : undefined,
+        currency: currency || "INR",
         sku: sku || `BK-${Date.now().toString().slice(-6)}`,
         stockQuantity: Number(stockQuantity),
         lowStockThreshold: Number(lowStockThreshold),
@@ -249,20 +294,27 @@ export function BookEditorPage() {
           <Card title="Pricing & Formats">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Field
-                label="Retail Price ($) *"
+                label="Retail Price (INR ₹) *"
                 type="number"
                 step="0.01"
-                value={price}
-                onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                placeholder="e.g. 483.23"
+                value={priceINR}
+                onChange={(e) => {
+                  setPriceINR(e.target.value);
+                  if (currency === "INR") setPrice(parseFloat(e.target.value) || 0);
+                }}
               />
 
               <Field
-                label="Sale Price ($ Optional)"
+                label="Retail Price (USD $) *"
                 type="number"
                 step="0.01"
-                placeholder="Leave blank if not on sale"
-                value={salePrice}
-                onChange={(e) => setSalePrice(e.target.value)}
+                placeholder="e.g. 24.95"
+                value={priceUSD}
+                onChange={(e) => {
+                  setPriceUSD(e.target.value);
+                  if (currency === "USD") setPrice(parseFloat(e.target.value) || 0);
+                }}
               />
 
               <Select
@@ -274,6 +326,35 @@ export function BookEditorPage() {
                 <option value="Hardcover" className="bg-[#14161f]">Hardcover</option>
                 <option value="E-book" className="bg-[#14161f]">E-book (Digital)</option>
                 <option value="Other" className="bg-[#14161f]">Other</option>
+              </Select>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 pt-3 border-t border-[var(--admin-border)]/40">
+              <Field
+                label="Sale Price (INR ₹ Optional)"
+                type="number"
+                step="0.01"
+                placeholder="Leave blank if not on sale"
+                value={salePriceINR}
+                onChange={(e) => setSalePriceINR(e.target.value)}
+              />
+
+              <Field
+                label="Sale Price (USD $ Optional)"
+                type="number"
+                step="0.01"
+                placeholder="Leave blank if not on sale"
+                value={salePriceUSD}
+                onChange={(e) => setSalePriceUSD(e.target.value)}
+              />
+
+              <Select
+                label="Default Currency"
+                value={currency}
+                onChange={(e: any) => setCurrency(e.target.value)}
+              >
+                <option value="INR" className="bg-[#14161f]">INR (₹ Indian Rupee)</option>
+                <option value="USD" className="bg-[#14161f]">USD ($ US Dollar)</option>
               </Select>
             </div>
           </Card>

@@ -2,6 +2,7 @@ import { useState, lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./auth/AuthContext";
+import { AdminThemeProvider } from "./layout/AdminThemeContext";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { AdminLayout } from "./layout/AdminLayout";
 import { ForgotPasswordPage, LoginPage, ResetPasswordPage } from "./pages/AuthPages";
@@ -21,6 +22,7 @@ const OrderDetailPage = lazy(() => import("./pages/orders/OrderDetailPage").then
 const CustomersListPage = lazy(() => import("./pages/customers/CustomersListPage").then(m => ({ default: m.CustomersListPage })));
 const CustomerDetailPage = lazy(() => import("./pages/customers/CustomerDetailPage").then(m => ({ default: m.CustomerDetailPage })));
 const PaymentsPage = lazy(() => import("./pages/payments/PaymentsPage").then(m => ({ default: m.PaymentsPage })));
+const CouponsPage = lazy(() => import("./pages/coupons/CouponsPage").then(m => ({ default: m.CouponsPage })));
 const AuthorsPage = lazy(() => import("./pages/authors/AuthorsPage").then(m => ({ default: m.AuthorsPage })));
 const MediaLibraryPage = lazy(() => import("./pages/media/MediaLibraryPage").then(m => ({ default: m.MediaLibraryPage })));
 const SeoSettingsPage = lazy(() => import("./pages/seo/SeoSettingsPage").then(m => ({ default: m.SeoSettingsPage })));
@@ -41,7 +43,8 @@ export default function AdminApp() {
   return (
     <QueryClientProvider client={client}>
       <AuthProvider>
-        <Suspense fallback={<AdminLoader />}>
+        <AdminThemeProvider>
+          <Suspense fallback={<AdminLoader />}>
           <Routes>
             <Route path="login" element={<LoginPage />} />
             <Route path="forgot-password" element={<ForgotPasswordPage />} />
@@ -74,8 +77,9 @@ export default function AdminApp() {
                 <Route path="customers" element={<CustomersListPage />} />
                 <Route path="customers/:id" element={<CustomerDetailPage />} />
 
-                {/* Payments */}
+                {/* Payments & Coupons */}
                 <Route path="payments" element={<PaymentsPage />} />
+                <Route path="coupons" element={<CouponsPage />} />
 
                 {/* Authors */}
                 <Route path="authors" element={<AuthorsPage />} />
@@ -95,7 +99,8 @@ export default function AdminApp() {
             </Route>
           </Routes>
         </Suspense>
-      </AuthProvider>
+      </AdminThemeProvider>
+    </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -1,13 +1,26 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
-
-const money = (n: number) => `$${(n || 0).toFixed(2)}`;
+import { useCurrency } from "../../context/CurrencyContext";
 
 export function CartDrawer() {
-  const { items, removeFromCart, updateQuantity, cartOpen, setCartOpen, subtotal, totalItems } = useCart();
+  const {
+    items,
+    removeFromCart,
+    updateQuantity,
+    cartOpen,
+    setCartOpen,
+    subtotal,
+    totalItems,
+    getItemPrice,
+  } = useCart();
+  const { formatPrice, shippingRules } = useCurrency();
   const navigate = useNavigate();
 
   if (!cartOpen) return null;
+
+  const isFreeShipping = subtotal >= shippingRules.freeThreshold;
+  const shippingCost = isFreeShipping ? 0 : shippingRules.fee;
+  const estimatedTotal = subtotal + shippingCost;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -27,7 +40,7 @@ export function CartDrawer() {
             <button
               type="button"
               onClick={() => setCartOpen(false)}
-              className="rounded-lg p-1.5 text-[#A9B0C2] hover:bg-white/10 hover:text-white"
+              className="rounded-lg p-1.5 text-[#A9B0C2] hover:bg-white/10 hover:text-white cursor-pointer"
             >
               ✕
             </button>
@@ -48,57 +61,62 @@ export function CartDrawer() {
                     setCartOpen(false);
                     navigate("/books");
                   }}
-                  className="mt-5 rounded-full bg-[#E0C9A6] px-5 py-2.5 text-xs font-bold text-[#0B0D13] hover:bg-white transition-colors"
+                  className="mt-5 rounded-full bg-[#E0C9A6] px-5 py-2.5 text-xs font-bold text-[#0B0D13] hover:bg-white transition-colors cursor-pointer"
                 >
                   Browse Book Store
                 </button>
               </div>
             ) : (
-              items.map((item, idx) => (
-                <div
-                  key={`${item.bookId}-${item.format}-${idx}`}
-                  className="flex gap-4 rounded-xl border border-[rgba(237,231,218,0.08)] bg-white/[0.02] p-3.5"
-                >
-                  <img
-                    src={item.coverImage}
-                    alt={item.title}
-                    className="h-20 w-14 rounded object-cover border border-white/10 shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-sm text-[#EDE7DA] truncate">{item.title}</h3>
-                    <p className="text-xs text-[#C5A880] mt-0.5">{item.format}</p>
-                    <p className="text-sm font-semibold text-white mt-1">{money(item.price)}</p>
+              items.map((item, idx) => {
+                const itemPrice = getItemPrice(item);
+                return (
+                  <div
+                    key={`${item.bookId}-${item.format}-${idx}`}
+                    className="flex gap-4 rounded-xl border border-[rgba(237,231,218,0.08)] bg-white/[0.02] p-3.5"
+                  >
+                    <img
+                      src={item.coverImage}
+                      alt={item.title}
+                      className="h-20 w-14 rounded object-cover border border-white/10 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-sm text-[#EDE7DA] truncate">{item.title}</h3>
+                      <p className="text-xs text-[#C5A880] mt-0.5">{item.format}</p>
+                      <p className="text-sm font-semibold text-white mt-1">
+                        {formatPrice(itemPrice)}
+                      </p>
 
-                    <div className="mt-2.5 flex items-center justify-between">
-                      <div className="flex items-center rounded-lg border border-[rgba(237,231,218,0.2)] bg-black/40">
+                      <div className="mt-2.5 flex items-center justify-between">
+                        <div className="flex items-center rounded-lg border border-[rgba(237,231,218,0.2)] bg-black/40">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.bookId, item.format, item.quantity - 1)}
+                            className="px-2 py-0.5 text-xs text-[#A9B0C2] hover:text-white cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <span className="px-2 text-xs font-semibold text-white">{item.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.bookId, item.format, item.quantity + 1)}
+                            className="px-2 py-0.5 text-xs text-[#A9B0C2] hover:text-white cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+
                         <button
                           type="button"
-                          onClick={() => updateQuantity(item.bookId, item.format, item.quantity - 1)}
-                          className="px-2 py-0.5 text-xs text-[#A9B0C2] hover:text-white"
+                          onClick={() => removeFromCart(item.bookId, item.format)}
+                          className="text-xs text-[#A9B0C2] hover:text-rose-400 cursor-pointer"
                         >
-                          -
-                        </button>
-                        <span className="px-2 text-xs font-semibold text-white">{item.quantity}</span>
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.bookId, item.format, item.quantity + 1)}
-                          className="px-2 py-0.5 text-xs text-[#A9B0C2] hover:text-white"
-                        >
-                          +
+                          Remove
                         </button>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => removeFromCart(item.bookId, item.format)}
-                        className="text-xs text-[#A9B0C2] hover:text-rose-400"
-                      >
-                        Remove
-                      </button>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -108,18 +126,20 @@ export function CartDrawer() {
               <div className="space-y-1.5 text-xs text-[#A9B0C2]">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span className="font-semibold text-white">{money(subtotal)}</span>
+                  <span className="font-semibold text-white">{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span>{subtotal >= 50 ? "FREE (Orders over $50)" : "$5.00"}</span>
+                  <span>
+                    {isFreeShipping ? shippingRules.freeText : formatPrice(shippingRules.fee)}
+                  </span>
                 </div>
               </div>
 
               <div className="flex justify-between border-t border-[rgba(237,231,218,0.1)] pt-2 text-base font-bold text-white">
                 <span>Estimated Total</span>
                 <span className="text-[#E0C9A6]">
-                  {money(subtotal + (subtotal >= 50 ? 0 : 5))}
+                  {formatPrice(estimatedTotal)}
                 </span>
               </div>
 
@@ -129,7 +149,7 @@ export function CartDrawer() {
                   setCartOpen(false);
                   navigate("/checkout");
                 }}
-                className="w-full rounded-full bg-[#E0C9A6] py-3 text-center text-sm font-bold text-[#0B0D13] hover:bg-white transition-all duration-150"
+                className="w-full rounded-full bg-[#E0C9A6] py-3 text-center text-sm font-bold text-[#0B0D13] hover:bg-white transition-all duration-150 cursor-pointer"
               >
                 Proceed to Checkout →
               </button>
