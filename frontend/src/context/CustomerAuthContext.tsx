@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { apiUrl } from "../utils/api";
 
 interface CustomerProfile {
   id: string;
@@ -101,7 +102,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const fetchPortalData = async (activeToken: string) => {
     try {
       setLoading(true);
-      const res = await fetch("/api/public/customer/portal", {
+      const res = await fetch(apiUrl("/public/customer/portal"), {
         headers: { Authorization: `Bearer ${activeToken}` },
       });
       const json = await res.json();
@@ -128,7 +129,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password?: string, name?: string) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/public/customer/login", {
+      const res = await fetch(apiUrl("/public/customer/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, name }),
@@ -155,7 +156,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const signup = async (data: { name: string; email: string; password: string; phone?: string }) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/public/customer/signup", {
+      const res = await fetch(apiUrl("/public/customer/signup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -182,7 +183,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const forgotPassword = async (email: string): Promise<string> => {
     setLoading(true);
     try {
-      const res = await fetch("/api/public/customer/forgot-password", {
+      const res = await fetch(apiUrl("/public/customer/forgot-password"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -200,7 +201,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = async (resetToken: string, newPassword: string): Promise<void> => {
     setLoading(true);
     try {
-      const res = await fetch("/api/public/customer/reset-password", {
+      const res = await fetch(apiUrl("/public/customer/reset-password"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: resetToken, password: newPassword }),

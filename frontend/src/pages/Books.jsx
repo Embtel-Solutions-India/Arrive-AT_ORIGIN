@@ -4,6 +4,7 @@ import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import { useCart } from "../context/CartContext";
+import { apiUrl } from "../utils/api";
 
 const shell = "mx-auto w-full max-w-[1240px] px-[clamp(20px,5vw,64px)]";
 const heading = "font-display font-light leading-[1.02] tracking-[-0.015em]";
@@ -17,7 +18,7 @@ function Books() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetch(`/api/public/books${selectedFormat !== "all" ? `?format=${selectedFormat}` : ""}`)
+    fetch(apiUrl(`/public/books${selectedFormat !== "all" ? `?format=${selectedFormat}` : ""}`))
       .then((res) => res.json())
       .then((json) => {
         if (json.success && json.data?.books) {

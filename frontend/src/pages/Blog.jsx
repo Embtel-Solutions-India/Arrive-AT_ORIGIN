@@ -4,6 +4,7 @@ import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import { blogPosts as fallbackPosts, formatPostDate } from "../data/blogPosts";
+import { apiUrl } from "../utils/api";
 
 const shell = "mx-auto w-full max-w-[1240px] px-[clamp(20px,5vw,64px)]";
 const heading = "font-display font-light leading-[1.02] tracking-[-0.015em]";
@@ -19,7 +20,7 @@ function Blog() {
     window.scrollTo(0, 0);
 
     // Fetch dynamic published posts from MongoDB API
-    fetch(`/api/public/blogs${selectedCat !== "All" ? `?category=${encodeURIComponent(selectedCat)}` : ""}`)
+    fetch(apiUrl(`/public/blogs${selectedCat !== "All" ? `?category=${encodeURIComponent(selectedCat)}` : ""}`))
       .then((res) => res.json())
       .then((json) => {
         if (json.success && json.data?.blogs?.length > 0) {

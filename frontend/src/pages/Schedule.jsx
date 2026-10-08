@@ -5,6 +5,7 @@ import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import Reveal from "../components/landing/Reveal";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
+import { apiUrl } from "../utils/api";
 
 const shell = "mx-auto w-full max-w-[1240px] px-[clamp(20px,5vw,64px)]";
 const heading = "font-display font-light leading-[1.02] tracking-[-0.015em]";
@@ -142,7 +143,7 @@ function Schedule() {
     window.scrollTo(0, 0);
 
     // Fetch dynamic packages from backend API
-    fetch("/api/public/consultations/packages")
+    fetch(apiUrl("/public/consultations/packages"))
       .then((res) => res.json())
       .then((json) => {
         if (json.success && json.data?.packages?.length) {
@@ -176,7 +177,7 @@ function Schedule() {
 
     try {
       // 1. Initialize booking & create Razorpay order on backend
-      const res = await fetch("/api/public/consultations/book", {
+      const res = await fetch(apiUrl("/public/consultations/book"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -229,7 +230,7 @@ function Schedule() {
           try {
             setLoading(true);
             // 4. Verify payment signature on backend
-            const verifyRes = await fetch("/api/public/consultations/verify-payment", {
+            const verifyRes = await fetch(apiUrl("/public/consultations/verify-payment"), {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({

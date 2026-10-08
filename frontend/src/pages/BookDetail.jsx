@@ -5,6 +5,7 @@ import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import NotFound from "./NotFound";
 import { useCart } from "../context/CartContext";
+import { apiUrl } from "../utils/api";
 
 const shell = "mx-auto w-full max-w-[1240px] px-[clamp(20px,5vw,64px)]";
 const heading = "font-display font-light leading-[1.08] tracking-[-0.015em]";
@@ -25,7 +26,7 @@ function BookDetail() {
     window.scrollTo(0, 0);
     setLoading(true);
 
-    fetch(`/api/public/books/${slug}`)
+    fetch(apiUrl(`/public/books/${slug}`))
       .then((res) => res.json())
       .then((json) => {
         if (json.success && json.data?.book) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../../lib/api";
+import { api, BASE } from "../../lib/api";
 import { Button, Card, Field, PageHeader, Textarea } from "../../components/ui";
 
 export function SeoSettingsPage() {
@@ -159,23 +159,23 @@ export function SeoSettingsPage() {
               <div className="rounded-xl border border-[var(--admin-border)] p-3 bg-[var(--admin-background)]">
                 <span className="text-[var(--admin-text-muted)] block mb-1">Live XML Sitemap:</span>
                 <a
-                  href="/api/sitemap.xml"
+                  href={`${BASE}/sitemap.xml`}
                   target="_blank"
                   rel="noreferrer"
                   className="font-mono text-[var(--admin-accent)] hover:underline block truncate"
                 >
-                  /api/sitemap.xml ↗
+                  {`${BASE}/sitemap.xml`} ↗
                 </a>
               </div>
               <div className="rounded-xl border border-[var(--admin-border)] p-3 bg-[var(--admin-background)]">
                 <span className="text-[var(--admin-text-muted)] block mb-1">Live Robots.txt:</span>
                 <a
-                  href="/api/robots.txt"
+                  href={`${BASE}/robots.txt`}
                   target="_blank"
                   rel="noreferrer"
                   className="font-mono text-[var(--admin-accent)] hover:underline block truncate"
                 >
-                  /api/robots.txt ↗
+                  {`${BASE}/robots.txt`} ↗
                 </a>
               </div>
             </div>

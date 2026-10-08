@@ -1,4 +1,6 @@
-const BASE = import.meta.env.VITE_API_URL ?? "/api";
+import { API_BASE as BASE } from "../../utils/api";
+
+export { BASE };
 
 export class ApiError extends Error {
   constructor(

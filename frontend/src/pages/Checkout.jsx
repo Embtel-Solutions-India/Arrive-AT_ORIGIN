@@ -5,6 +5,7 @@ import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import { useCart } from "../context/CartContext";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
+import { apiUrl } from "../utils/api";
 
 const shell = "mx-auto w-full max-w-[1100px] px-[clamp(20px,5vw,64px)]";
 const heading = "font-display font-light leading-[1.05] tracking-[-0.015em]";
@@ -50,7 +51,7 @@ function Checkout() {
     try {
       if (paymentMethod === "Razorpay") {
         // 1. Create Razorpay order on backend
-        const rzpRes = await fetch("/api/public/orders/razorpay/create", {
+        const rzpRes = await fetch(apiUrl("/public/orders/razorpay/create"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -88,7 +89,7 @@ function Checkout() {
           handler: async function (response) {
             try {
               setLoading(true);
-              const res = await fetch("/api/public/orders/checkout", {
+              const res = await fetch(apiUrl("/public/orders/checkout"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -135,7 +136,7 @@ function Checkout() {
       }
 
       // Default simulated flow
-      const res = await fetch("/api/public/orders/checkout", {
+      const res = await fetch(apiUrl("/public/orders/checkout"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -5,6 +5,7 @@ import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import NotFound from "./NotFound";
 import { blogPosts as fallbackPosts, formatPostDate } from "../data/blogPosts";
+import { apiUrl } from "../utils/api";
 
 const shell = "mx-auto w-full max-w-[800px] px-[clamp(20px,5vw,64px)]";
 const heading = "font-display font-light leading-[1.08] tracking-[-0.015em]";
@@ -20,7 +21,7 @@ function BlogPost() {
     window.scrollTo(0, 0);
     setLoading(true);
 
-    fetch(`/api/public/blogs/${slug}`)
+    fetch(apiUrl(`/public/blogs/${slug}`))
       .then((res) => res.json())
       .then((json) => {
         if (json.success && json.data?.blog) {
