@@ -152,8 +152,8 @@ export function BlogListPage() {
 
       {/* Filter and Search Bar */}
       <Card>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-1 flex-wrap items-center gap-3 min-w-[280px]">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-between gap-4">
+          <div className="flex flex-1 flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full sm:w-auto min-w-0">
             <input
               type="text"
               placeholder="Search posts by title, author, keyword…"
@@ -162,7 +162,7 @@ export function BlogListPage() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="min-h-[40px] flex-1 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] placeholder:text-[var(--admin-text-muted)] focus:border-[var(--admin-accent)] focus:outline-none"
+              className="min-h-[40px] flex-1 w-full sm:w-auto min-w-0 sm:min-w-[220px] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] placeholder:text-[var(--admin-text-muted)] focus:border-[var(--admin-accent)] focus:outline-none"
             />
             <select
               value={status}

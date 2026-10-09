@@ -2,15 +2,20 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export type CouponDiscountType = "PERCENTAGE" | "FIXED";
 export type CouponApplicableScope = "ALL" | "CHECKOUT" | "CONSULTATION";
+export type CouponCurrency = "ALL" | "INR" | "USD";
 
 export interface ICoupon extends Document {
   code: string;
   description: string;
+  currency: CouponCurrency;
   discountType: CouponDiscountType;
   discountValue: number;
+  discountValueINR?: number | null;
   applicableTo: CouponApplicableScope;
   minOrderAmount: number;
-  maxDiscountAmount?: number;
+  minOrderAmountINR?: number | null;
+  maxDiscountAmount?: number | null;
+  maxDiscountAmountINR?: number | null;
   startDate?: Date;
   endDate?: Date;
   usageLimit?: number | null;
@@ -35,6 +40,13 @@ const CouponSchema = new Schema<ICoupon>(
       default: "",
       trim: true,
     },
+    currency: {
+      type: String,
+      enum: ["ALL", "INR", "USD"],
+      default: "ALL",
+      required: true,
+      index: true,
+    },
     discountType: {
       type: String,
       enum: ["PERCENTAGE", "FIXED"],
@@ -45,6 +57,10 @@ const CouponSchema = new Schema<ICoupon>(
       type: Number,
       required: true,
       min: 0,
+    },
+    discountValueINR: {
+      type: Number,
+      default: null,
     },
     applicableTo: {
       type: String,
@@ -58,7 +74,15 @@ const CouponSchema = new Schema<ICoupon>(
       default: 0,
       min: 0,
     },
+    minOrderAmountINR: {
+      type: Number,
+      default: null,
+    },
     maxDiscountAmount: {
+      type: Number,
+      default: null,
+    },
+    maxDiscountAmountINR: {
       type: Number,
       default: null,
     },

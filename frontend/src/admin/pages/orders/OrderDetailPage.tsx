@@ -58,8 +58,8 @@ export function OrderDetailPage() {
           <Link to="/admin/orders" className="text-xs text-[var(--admin-accent)] hover:underline mb-1 inline-block">
             ← Back to All Orders
           </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="font-display text-[1.8rem] font-light text-[var(--admin-text-primary)]">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <h1 className="font-display text-[1.4rem] sm:text-[1.8rem] font-light text-[var(--admin-text-primary)]">
               Order {ord.orderNumber}
             </h1>
             <Badge tone={ord.paymentStatus === "PAID" ? "good" : "warn"}>{ord.paymentStatus}</Badge>

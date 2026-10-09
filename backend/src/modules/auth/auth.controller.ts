@@ -47,7 +47,11 @@ export const authController = {
   },
 
   async forgotPassword(req: Request, res: Response) {
-    await authService.forgotPassword(req.body.email);
+    const origin =
+      (req.headers.origin as string) ||
+      (req.headers.referer ? new URL(req.headers.referer).origin : "") ||
+      undefined;
+    await authService.forgotPassword(req.body.email, origin);
     ok(res, null, "If that email is registered, a reset link has been sent");
   },
 

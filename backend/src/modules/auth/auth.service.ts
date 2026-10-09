@@ -104,7 +104,7 @@ export const authService = {
     return toPublicUser(user);
   },
 
-  async forgotPassword(email: string) {
+  async forgotPassword(email: string, appUrl?: string) {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return; // Silent return for security
 
@@ -114,7 +114,7 @@ export const authService = {
     await user.save();
 
     // Send password reset email via Resend
-    sendPasswordResetEmail(user.email, user.name, resetToken).catch((err) =>
+    sendPasswordResetEmail(user.email, user.name, resetToken, appUrl).catch((err) =>
       logger.error({ err: err?.message }, "Failed to send password reset email")
     );
   },

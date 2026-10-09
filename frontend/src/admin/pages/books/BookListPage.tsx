@@ -130,7 +130,7 @@ export function BookListPage() {
 
       {/* Filter and Search Bar */}
       <Card>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
           <input
             type="text"
             placeholder="Search by title, author, SKU, or ISBN…"
@@ -139,34 +139,36 @@ export function BookListPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="min-h-[40px] flex-1 min-w-[240px] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] placeholder:text-[var(--admin-text-muted)] focus:outline-none focus:border-[var(--admin-accent)]"
+            className="min-h-[40px] flex-1 w-full sm:w-auto min-w-0 sm:min-w-[220px] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] placeholder:text-[var(--admin-text-muted)] focus:outline-none focus:border-[var(--admin-accent)]"
           />
-          <select
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-            className="min-h-[40px] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] focus:outline-none"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="DRAFT">Draft</option>
-            <option value="OUT_OF_STOCK">Out of Stock</option>
-          </select>
-          <select
-            value={stock}
-            onChange={(e) => {
-              setStock(e.target.value);
-              setPage(1);
-            }}
-            className="min-h-[40px] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] focus:outline-none"
-          >
-            <option value="ALL">All Stock Levels</option>
-            <option value="in_stock">In Stock (&gt; 0)</option>
-            <option value="low_stock">Low Stock (≤ threshold)</option>
-            <option value="out_of_stock">Out of Stock (0)</option>
-          </select>
+          <div className="grid grid-cols-1 sm:flex items-center gap-2.5 sm:gap-3">
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              className="min-h-[40px] w-full sm:w-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] focus:outline-none"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="PUBLISHED">Published</option>
+              <option value="DRAFT">Draft</option>
+              <option value="OUT_OF_STOCK">Out of Stock</option>
+            </select>
+            <select
+              value={stock}
+              onChange={(e) => {
+                setStock(e.target.value);
+                setPage(1);
+              }}
+              className="min-h-[40px] w-full sm:w-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] focus:outline-none"
+            >
+              <option value="ALL">All Stock Levels</option>
+              <option value="in_stock">In Stock (&gt; 0)</option>
+              <option value="low_stock">Low Stock (≤ threshold)</option>
+              <option value="out_of_stock">Out of Stock (0)</option>
+            </select>
+          </div>
         </div>
       </Card>
 

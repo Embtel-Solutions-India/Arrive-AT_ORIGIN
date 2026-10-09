@@ -13,11 +13,11 @@ export function Card({
   className?: string;
 }) {
   return (
-    <section className={`rounded-[var(--admin-radius)] border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 sm:p-6 shadow-sm min-w-0 max-w-full ${className}`}>
+    <section className={`rounded-[var(--admin-radius)] border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3.5 sm:p-6 shadow-sm min-w-0 max-w-full ${className}`}>
       {(title || action) && (
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--admin-border)]/50 pb-4">
-          {title && <h2 className="font-display text-[1.15rem] sm:text-[1.2rem] font-medium text-[var(--admin-text-primary)]">{title}</h2>}
-          {action && <div className="flex items-center gap-2">{action}</div>}
+        <div className="mb-4 sm:mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--admin-border)]/50 pb-3 sm:pb-4">
+          {title && <h2 className="font-display text-[1.1rem] sm:text-[1.2rem] font-medium text-[var(--admin-text-primary)]">{title}</h2>}
+          {action && <div className="flex items-center gap-2 flex-wrap">{action}</div>}
         </div>
       )}
       {children}
@@ -210,15 +210,15 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative z-10 w-full ${maxWidth} rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 sm:p-6 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4">
+      <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
+      <div className={`relative z-10 w-full max-w-[95vw] ${maxWidth} rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3.5 sm:p-6 shadow-2xl overflow-hidden max-h-[92dvh] flex flex-col`}>
         <div className="mb-4 flex items-center justify-between border-b border-[var(--admin-border)]/50 pb-3">
-          <h2 className="font-display text-[1.25rem] text-[var(--admin-text-primary)]">{title}</h2>
+          <h2 className="font-display text-[1.15rem] sm:text-[1.25rem] text-[var(--admin-text-primary)]">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-[var(--admin-text-muted)] hover:bg-[rgba(237,231,218,0.1)] hover:text-white"
+            className="rounded-lg p-1.5 text-[var(--admin-text-muted)] hover:bg-[rgba(237,231,218,0.1)] hover:text-white cursor-pointer"
           >
             ✕
           </button>
@@ -241,7 +241,7 @@ export function Pagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="mt-6 flex items-center justify-between border-t border-[var(--admin-border)] pt-4 text-[0.85rem] text-[var(--admin-text-secondary)]">
+    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--admin-border)] pt-4 text-[0.85rem] text-[var(--admin-text-secondary)]">
       <span>
         Page <strong className="text-[var(--admin-text-primary)]">{page}</strong> of{" "}
         <strong className="text-[var(--admin-text-primary)]">{totalPages}</strong>

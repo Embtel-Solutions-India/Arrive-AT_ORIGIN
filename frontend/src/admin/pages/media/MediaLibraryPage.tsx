@@ -349,10 +349,11 @@ export function MediaLibraryPage() {
             </div>
 
             {/* Actions: Delete, Download Image, Save Changes */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--admin-border)]/50 pt-4">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 border-t border-[var(--admin-border)]/50 pt-4">
               <Button
                 variant="danger"
                 size="sm"
+                className="w-full sm:w-auto"
                 disabled={deleteMutation.isPending}
                 onClick={() => {
                   if (confirm("Delete this image? It will be permanently removed from AWS S3 and database.")) {
@@ -363,10 +364,11 @@ export function MediaLibraryPage() {
                 Delete File
               </Button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={downloading}
                   onClick={() => handleDownload(selectedItem)}
                 >
@@ -376,6 +378,7 @@ export function MediaLibraryPage() {
                 <Button
                   variant="primary"
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={updateMutation.isPending}
                   onClick={handleSaveDetails}
                 >

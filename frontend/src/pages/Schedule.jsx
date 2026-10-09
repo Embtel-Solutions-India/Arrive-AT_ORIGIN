@@ -205,6 +205,7 @@ function Schedule() {
           code,
           context: "CONSULTATION",
           amount: selectedPackage.price,
+          currency: selectedPackage.currency || "USD",
         }),
       });
 
@@ -214,7 +215,8 @@ function Schedule() {
       }
 
       setAppliedCoupon(json.data);
-      setCouponSuccess(`Coupon ${json.data.code} applied! -$${Number(json.data.discountAmount).toFixed(2)} off`);
+      const symbol = (selectedPackage.currency === "INR" || json.data.currency === "INR") ? "₹" : "$";
+      setCouponSuccess(`Coupon ${json.data.code} applied! -${symbol}${Number(json.data.discountAmount).toFixed(2)} off`);
       setCouponInput("");
     } catch (err) {
       setCouponError(err.message || "Failed to validate coupon");
@@ -631,7 +633,7 @@ function Schedule() {
                     <label className="block text-[0.82rem] font-semibold text-vellum mb-2">
                       2. Session Format:
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => setMeetingMode("ONLINE_ZOOM")}

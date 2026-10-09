@@ -1,12 +1,11 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useCustomerAuth } from "../../context/CustomerAuthContext";
 import { CurrencySelector } from "../currency/CurrencySelector";
 
 const navLinks = [
   { href: "/#threshold", label: "The meta-human" },
-  { href: "/#metaphysics", label: "Metaphysics" },
   { href: "/#frameworks", label: "Frameworks" },
   { href: "/#practice", label: "Practice" },
   { to: "/books", label: "Book Store" },
@@ -18,6 +17,21 @@ function SiteNav() {
   const [open, setOpen] = useState(false);
   const { totalItems, setCartOpen } = useCart();
   const { customer, isAuthenticated } = useCustomerAuth();
+  const location = useLocation();
+
+  // Automatically close mobile menu on route changes
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname, location.search, location.hash]);
+
+  // Dismiss on Escape key
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[rgba(237,231,218,0.08)] bg-void/85 backdrop-blur-[14px] backdrop-saturate-[1.2]">

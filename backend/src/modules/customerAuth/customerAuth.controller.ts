@@ -316,7 +316,12 @@ export const customerAuthController = {
       customer.resetPasswordExpires = new Date(Date.now() + 3600_000); // 1 hour
       await customer.save();
 
-      sendCustomerPasswordResetEmail(customer.email, customer.name, resetToken).catch((err) =>
+      const origin =
+        (req.headers.origin as string) ||
+        (req.headers.referer ? new URL(req.headers.referer).origin : "") ||
+        env.APP_URL;
+
+      sendCustomerPasswordResetEmail(customer.email, customer.name, resetToken, origin).catch((err) =>
         logger.error({ err: err?.message }, "Failed to send customer password reset email")
       );
     }

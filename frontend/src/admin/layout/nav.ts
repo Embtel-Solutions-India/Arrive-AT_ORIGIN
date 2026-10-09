@@ -6,16 +6,21 @@ export interface NavItem {
 }
 
 export interface NavGroup {
+  id: string;
   label?: string;
+  icon?: string;
   items: NavItem[];
 }
 
 export const adminNav: NavGroup[] = [
   {
+    id: "dashboard",
     items: [{ label: "Dashboard", to: "/admin/dashboard" }],
   },
   {
+    id: "blog",
     label: "Blog CMS",
+    icon: "✍️",
     items: [
       { label: "All Posts", to: "/admin/blog", permission: "BLOG_READ" },
       { label: "Add New Post", to: "/admin/blog/new", permission: "BLOG_WRITE" },
@@ -24,7 +29,9 @@ export const adminNav: NavGroup[] = [
     ],
   },
   {
+    id: "books",
     label: "Book Store",
+    icon: "📚",
     items: [
       { label: "All Books", to: "/admin/books", permission: "PRODUCT_READ" },
       { label: "Add New Book", to: "/admin/books/new", permission: "PRODUCT_WRITE" },
@@ -34,7 +41,9 @@ export const adminNav: NavGroup[] = [
     ],
   },
   {
+    id: "orders",
     label: "Orders & Sales",
+    icon: "🛍️",
     items: [
       { label: "All Orders", to: "/admin/orders", permission: "ORDER_READ" },
       { label: "Customers", to: "/admin/customers", permission: "CUSTOMER_READ" },
@@ -43,7 +52,9 @@ export const adminNav: NavGroup[] = [
     ],
   },
   {
+    id: "system",
     label: "Assets & System",
+    icon: "⚙️",
     items: [
       { label: "Media Library", to: "/admin/media", permission: "MEDIA_READ" },
       { label: "SEO Management", to: "/admin/seo", permission: "SETTINGS_MANAGE" },

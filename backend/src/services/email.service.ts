@@ -127,8 +127,13 @@ function wrapEmailShell(title: string, badgeText: string, contentHtml: string): 
 /**
  * 1. ✦ New User Welcome Email
  */
-export async function sendWelcomeEmail(email: string, name: string): Promise<void> {
-  const portalUrl = `${env.APP_URL}/account`;
+export async function sendWelcomeEmail(
+  email: string,
+  name: string,
+  appUrl?: string
+): Promise<void> {
+  const baseUrl = (appUrl || env.APP_URL || "https://arriveatorigin.com").replace(/\/$/, "");
+  const portalUrl = `${baseUrl}/account`;
 
   const content = `
     <p style="margin-top: 0; font-size: 16px; color: #EDE7DA;">
@@ -198,9 +203,11 @@ export async function sendWelcomeEmail(email: string, name: string): Promise<voi
 export async function sendCustomerPasswordResetEmail(
   email: string,
   name: string,
-  resetToken: string
+  resetToken: string,
+  appUrl?: string
 ): Promise<void> {
-  const resetUrl = `${env.APP_URL}/account?mode=reset&token=${resetToken}`;
+  const baseUrl = (appUrl || env.APP_URL || "https://arriveatorigin.com").replace(/\/$/, "");
+  const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
   const content = `
     <p style="margin-top: 0; font-size: 16px; color: #EDE7DA;">
@@ -213,7 +220,7 @@ export async function sendCustomerPasswordResetEmail(
       Click the golden button below to choose your new password:
     </p>
 
-    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 28px 0 24px;">
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 28px 0 20px;">
       <tr>
         <td align="center">
           <a href="${resetUrl}" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 15px; padding: 14px 36px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 15px rgba(232, 206, 140, 0.3);">
@@ -222,6 +229,11 @@ export async function sendCustomerPasswordResetEmail(
         </td>
       </tr>
     </table>
+
+    <p style="font-size: 12px; color: #8A93A8; text-align: center; margin: 0 0 20px; word-break: break-all;">
+      Or copy and paste this link into your browser:<br>
+      <a href="${resetUrl}" style="color: #E8CE8C; text-decoration: underline;">${resetUrl}</a>
+    </p>
 
     <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background: rgba(7, 11, 24, 0.5); border: 1px solid rgba(232, 206, 140, 0.12); border-radius: 10px; margin: 20px 0;">
       <tr>
@@ -245,7 +257,11 @@ export async function sendCustomerPasswordResetEmail(
 /**
  * 3. ✦ Consultation Booking Confirmation Email
  */
-export async function sendConsultationConfirmationEmail(booking: IConsultation): Promise<void> {
+export async function sendConsultationConfirmationEmail(
+  booking: IConsultation,
+  appUrl?: string
+): Promise<void> {
+  const baseUrl = (appUrl || env.APP_URL || "https://arriveatorigin.com").replace(/\/$/, "");
   const isZoom = booking.meetingMode === "ONLINE_ZOOM";
   const formatText = isZoom
     ? "Online Video Meeting (Zoom / Google Meet)"
@@ -309,7 +325,7 @@ export async function sendConsultationConfirmationEmail(booking: IConsultation):
     <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 26px 0 16px;">
       <tr>
         <td align="center">
-          <a href="${env.APP_URL}/account" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 14px; padding: 13px 30px; border-radius: 9999px; text-decoration: none;">
+          <a href="${baseUrl}/account" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 14px; padding: 13px 30px; border-radius: 9999px; text-decoration: none;">
             View Appointment in My Account →
           </a>
         </td>
@@ -329,7 +345,11 @@ export async function sendConsultationConfirmationEmail(booking: IConsultation):
 /**
  * 4. 📦 Book Store Order Confirmation Email
  */
-export async function sendOrderConfirmationEmail(order: IOrder): Promise<void> {
+export async function sendOrderConfirmationEmail(
+  order: IOrder,
+  appUrl?: string
+): Promise<void> {
+  const baseUrl = (appUrl || env.APP_URL || "https://arriveatorigin.com").replace(/\/$/, "");
   const itemsRows = order.items
     .map(
       (it) => `
@@ -398,7 +418,7 @@ export async function sendOrderConfirmationEmail(order: IOrder): Promise<void> {
     <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 26px 0 16px;">
       <tr>
         <td align="center">
-          <a href="${env.APP_URL}/account" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 14px; padding: 13px 30px; border-radius: 9999px; text-decoration: none;">
+          <a href="${baseUrl}/account" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 14px; padding: 13px 30px; border-radius: 9999px; text-decoration: none;">
             Track Order in My Account →
           </a>
         </td>
@@ -421,9 +441,11 @@ export async function sendOrderConfirmationEmail(order: IOrder): Promise<void> {
 export async function sendPasswordResetEmail(
   email: string,
   name: string,
-  resetToken: string
+  resetToken: string,
+  appUrl?: string
 ): Promise<void> {
-  const resetUrl = `${env.APP_URL}/admin/reset-password?token=${resetToken}`;
+  const baseUrl = (appUrl || env.APP_URL || "https://arriveatorigin.com").replace(/\/$/, "");
+  const resetUrl = `${baseUrl}/admin/reset-password?token=${resetToken}`;
 
   const content = `
     <p style="margin-top: 0; font-size: 16px; color: #EDE7DA;">
@@ -433,7 +455,7 @@ export async function sendPasswordResetEmail(
       A password reset request was initiated for your <strong>Administrative Access</strong> to Arrive at Origin.
     </p>
 
-    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 28px 0 24px;">
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 28px 0 20px;">
       <tr>
         <td align="center">
           <a href="${resetUrl}" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 15px; padding: 14px 36px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 15px rgba(232, 206, 140, 0.3);">
@@ -442,6 +464,11 @@ export async function sendPasswordResetEmail(
         </td>
       </tr>
     </table>
+
+    <p style="font-size: 12px; color: #8A93A8; text-align: center; margin: 0 0 20px; word-break: break-all;">
+      Or copy and paste this link into your browser:<br>
+      <a href="${resetUrl}" style="color: #E8CE8C; text-decoration: underline;">${resetUrl}</a>
+    </p>
 
     <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background: rgba(7, 11, 24, 0.5); border: 1px solid rgba(232, 206, 140, 0.12); border-radius: 10px; margin: 20px 0;">
       <tr>

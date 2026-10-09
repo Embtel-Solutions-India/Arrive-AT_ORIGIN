@@ -63,7 +63,7 @@ export function CustomersListPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-[var(--admin-border)]/50 text-[0.75rem] text-[var(--admin-text-muted)] uppercase">
+                <tr className="border-b border-[var(--admin-border)]/50 text-[0.75rem] text-[var(--admin-text-muted)] uppercase whitespace-nowrap">
                   <th className="pb-3 font-semibold">Customer</th>
                   <th className="pb-3 font-semibold">Phone</th>
                   <th className="pb-3 font-semibold">Total Orders</th>
@@ -76,20 +76,20 @@ export function CustomersListPage() {
               <tbody className="divide-y divide-[var(--admin-border)]/30">
                 {data.customers.map((c) => (
                   <tr key={c._id} className="hover:bg-[rgba(237,231,218,0.03)]">
-                    <td className="py-3.5">
+                    <td className="py-3.5 whitespace-nowrap">
                       <div className="font-medium text-[var(--admin-text-primary)]">{c.name}</div>
                       <div className="text-xs text-[var(--admin-text-muted)]">{c.email}</div>
                     </td>
-                    <td className="py-3.5 text-xs text-[var(--admin-text-secondary)]">{c.phone || "—"}</td>
-                    <td className="py-3.5 font-semibold text-[var(--admin-text-primary)]">{c.totalOrders}</td>
-                    <td className="py-3.5 font-semibold text-[var(--admin-accent)]">{money(c.totalSpent)}</td>
-                    <td className="py-3.5 text-xs text-[var(--admin-text-muted)]">
+                    <td className="py-3.5 text-xs text-[var(--admin-text-secondary)] whitespace-nowrap">{c.phone || "—"}</td>
+                    <td className="py-3.5 font-semibold text-[var(--admin-text-primary)] whitespace-nowrap">{c.totalOrders}</td>
+                    <td className="py-3.5 font-semibold text-[var(--admin-accent)] whitespace-nowrap">{money(c.totalSpent)}</td>
+                    <td className="py-3.5 text-xs text-[var(--admin-text-muted)] whitespace-nowrap">
                       {c.lastOrderDate ? new Date(c.lastOrderDate).toLocaleDateString() : "—"}
                     </td>
-                    <td className="py-3.5 text-xs text-[var(--admin-text-muted)]">
+                    <td className="py-3.5 text-xs text-[var(--admin-text-muted)] whitespace-nowrap">
                       {new Date(c.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="py-3.5 text-right">
+                    <td className="py-3.5 text-right whitespace-nowrap">
                       <Link to={`/admin/customers/${c._id}`}>
                         <Button size="sm" variant="ghost">View Profile</Button>
                       </Link>

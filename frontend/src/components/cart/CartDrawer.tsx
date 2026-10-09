@@ -31,7 +31,7 @@ export function CartDrawer() {
       />
 
       <div className="fixed inset-y-0 right-0 flex max-w-full pl-0 sm:pl-10">
-        <div className="w-screen max-w-md bg-[#0F121C] text-[#EDE7DA] border-l border-[rgba(237,231,218,0.12)] shadow-2xl flex flex-col">
+        <div className="w-full max-w-md bg-[#0F121C] text-[#EDE7DA] border-l border-[rgba(237,231,218,0.12)] shadow-2xl flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[rgba(237,231,218,0.1)] p-5">
             <h2 className="font-display text-xl font-light">

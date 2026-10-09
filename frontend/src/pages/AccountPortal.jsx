@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
@@ -13,17 +13,19 @@ const heading = "font-display font-light leading-[1.05] tracking-[-0.015em]";
 function AccountPortal() {
   const { customer, isAuthenticated, portalData, loading, login, signup, forgotPassword, resetPassword, logout } = useCustomerAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const resetToken = searchParams.get("token") || "";
   const urlMode = searchParams.get("mode");
+  const isResetFlow = urlMode === "reset" && !!resetToken;
 
   const [activeTab, setActiveTab] = useState("sessions"); // "sessions" | "orders" | "profile"
-  const [authMode, setAuthMode] = useState(urlMode === "reset" && resetToken ? "reset" : "login"); // "login" | "signup" | "forgot" | "reset"
+  const [authMode, setAuthMode] = useState(isResetFlow ? "reset" : "login"); // "login" | "signup" | "forgot" | "reset"
 
   useEffect(() => {
     if (urlMode === "reset" && resetToken) {
-      setAuthMode("reset");
+      navigate(`/reset-password?token=${encodeURIComponent(resetToken)}`, { replace: true });
     }
-  }, [urlMode, resetToken]);
+  }, [urlMode, resetToken, navigate]);
 
   // Login form state
   const [emailInput, setEmailInput] = useState("");
@@ -154,7 +156,7 @@ function AccountPortal() {
 
       <main className="py-[clamp(48px,6vw,96px)]">
         <div className={shell}>
-          {!isAuthenticated ? (
+          {(!isAuthenticated || isResetFlow) ? (
             /* ========================================================= */
             /* Unauthenticated View: 2 Options (Log In vs Sign Up)       */
             /* ========================================================= */

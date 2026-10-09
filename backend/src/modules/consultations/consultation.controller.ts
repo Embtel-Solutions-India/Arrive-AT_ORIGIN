@@ -144,7 +144,12 @@ export const consultationController = {
 
     if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
       try {
-        const discountResult = await calculateCouponDiscount(couponCode, "CONSULTATION", selectedPackage.price);
+        const discountResult = await calculateCouponDiscount(
+          couponCode,
+          "CONSULTATION",
+          selectedPackage.price,
+          selectedPackage.currency
+        );
         discount = discountResult.discountAmount;
         appliedCouponCode = discountResult.code;
         finalPrice = discountResult.newAmount;

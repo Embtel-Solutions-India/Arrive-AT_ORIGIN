@@ -207,7 +207,7 @@ export function BookEditorPage() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isEditing && (
             <a href={`/books/${slug}`} target="_blank" rel="noreferrer">
               <Button size="sm" variant="outline">
@@ -479,12 +479,12 @@ export function BookEditorPage() {
                 placeholder="/aao-part-one.png"
               />
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="flex-1 text-xs"
+                    className="w-full sm:flex-1 text-xs"
                     onClick={() => setMediaPickerOpen(true)}
                   >
                     Choose from Library
@@ -493,7 +493,7 @@ export function BookEditorPage() {
                     type="button"
                     variant="primary"
                     size="sm"
-                    className="text-xs"
+                    className="w-full sm:w-auto text-xs"
                     onClick={() => setMediaPickerOpen(true)}
                   >
                     ⬆️ Upload Image

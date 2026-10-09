@@ -48,6 +48,7 @@ function Checkout() {
           code,
           context: "CHECKOUT",
           amount: subtotal,
+          currency,
         }),
       });
 
@@ -332,7 +333,7 @@ function Checkout() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#C6CBD8] mb-1">City *</label>
                       <input
@@ -357,7 +358,7 @@ function Checkout() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#C6CBD8] mb-1">Postal Code *</label>
                       <input
@@ -499,7 +500,7 @@ function Checkout() {
                     <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-xs">
                       <div className="min-w-0">
                         <span className="font-mono font-bold text-emerald-300 mr-2">{appliedCoupon.code}</span>
-                        <span className="text-dim">(-{money(discount)})</span>
+                        <span className="text-dim">(-{formatPrice(discount)})</span>
                         {appliedCoupon.description && (
                           <p className="text-[0.7rem] text-dim truncate mt-0.5">{appliedCoupon.description}</p>
                         )}

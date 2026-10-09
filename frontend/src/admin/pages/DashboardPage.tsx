@@ -121,7 +121,7 @@ export function DashboardPage() {
         title="Dashboard"
         description="Real-time MongoDB overview of publications, inventory, store sales, and customer activity."
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Link to="/admin/books/new">
               <Button size="sm" variant="outline">
                 + Add Book
@@ -357,15 +357,15 @@ function StatCard({
 
   return (
     <div
-      className={`rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4.5 transition-all ${
+      className={`rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 sm:p-4.5 transition-all min-w-0 ${
         highlight ? highlightStyles[highlight] : ""
       }`}
     >
-      <div className="truncate text-[0.78rem] font-medium text-[var(--admin-text-muted)]">{label}</div>
-      <div className="mt-1.5 font-display text-[1.65rem] font-light text-[var(--admin-text-primary)] leading-tight">
+      <div className="truncate text-[0.72rem] sm:text-[0.78rem] font-medium text-[var(--admin-text-muted)]">{label}</div>
+      <div className="mt-1 font-display text-[1.3rem] sm:text-[1.65rem] font-light text-[var(--admin-text-primary)] leading-tight truncate">
         {value}
       </div>
-      {sub && <div className="mt-1 truncate text-[0.72rem] text-[var(--admin-text-secondary)]">{sub}</div>}
+      {sub && <div className="mt-0.5 truncate text-[0.68rem] sm:text-[0.72rem] text-[var(--admin-text-secondary)]">{sub}</div>}
     </div>
   );
 }

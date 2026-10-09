@@ -76,29 +76,29 @@ export function UsersPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-[var(--admin-border)]/50 text-[0.75rem] text-[var(--admin-text-muted)] uppercase">
-                  <th className="pb-3 font-semibold">User</th>
-                  <th className="pb-3 font-semibold">Role</th>
-                  <th className="pb-3 font-semibold">Account Status</th>
-                  <th className="pb-3 font-semibold">Last Login</th>
-                  <th className="pb-3 font-semibold text-right">Actions</th>
+                  <th className="pb-3 font-semibold whitespace-nowrap">User</th>
+                  <th className="pb-3 font-semibold whitespace-nowrap">Role</th>
+                  <th className="pb-3 font-semibold whitespace-nowrap">Account Status</th>
+                  <th className="pb-3 font-semibold whitespace-nowrap">Last Login</th>
+                  <th className="pb-3 font-semibold text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--admin-border)]/30">
                 {data.users.map((u) => (
                   <tr key={u._id} className="hover:bg-[rgba(237,231,218,0.03)]">
-                    <td className="py-3.5">
+                    <td className="py-3.5 min-w-[160px]">
                       <div className="font-medium text-[var(--admin-text-primary)]">{u.name}</div>
-                      <div className="text-xs text-[var(--admin-text-muted)]">{u.email}</div>
+                      <div className="text-xs text-[var(--admin-text-muted)] truncate max-w-[200px]">{u.email}</div>
                     </td>
-                    <td className="py-3.5">
+                    <td className="py-3.5 whitespace-nowrap">
                       <Badge tone={u.role === "SUPER_ADMIN" ? "good" : "info"}>
                         {u.role.replace(/_/g, " ")}
                       </Badge>
                     </td>
-                    <td className="py-3.5">
+                    <td className="py-3.5 whitespace-nowrap">
                       <Badge tone={u.status === "ACTIVE" ? "good" : "bad"}>{u.status}</Badge>
                     </td>
-                    <td className="py-3.5 text-xs text-[var(--admin-text-muted)]">
+                    <td className="py-3.5 text-xs text-[var(--admin-text-muted)] whitespace-nowrap">
                       {u.lastLogin ? new Date(u.lastLogin).toLocaleString() : "Never"}
                     </td>
                     <td className="py-3.5 text-right whitespace-nowrap">
@@ -157,7 +157,7 @@ export function UsersPage() {
             <option value="ORDER_MANAGER" className="bg-[#14161f]">Order Manager (Orders & Customers Only)</option>
           </Select>
 
-          <div className="flex justify-end gap-2 pt-3">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-3">
             <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>

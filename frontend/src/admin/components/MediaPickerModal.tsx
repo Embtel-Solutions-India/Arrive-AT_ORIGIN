@@ -176,7 +176,7 @@ export function MediaPickerModal({
 
   return (
     <Modal open={open} onClose={onClose} title={title} maxWidth="max-w-5xl">
-      <div className="flex flex-col h-[75vh] max-h-[750px] min-h-[500px]">
+      <div className="flex flex-col h-[80dvh] max-h-[750px] min-h-[380px] sm:min-h-[500px]">
         {/* Top Controls: Tabs & Upload Action */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[var(--admin-border)]/60 flex-shrink-0">
           <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--admin-background)] border border-[var(--admin-border)]">
@@ -209,7 +209,7 @@ export function MediaPickerModal({
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {activeTab === "library" && (
               <>
                 <input
@@ -217,7 +217,7 @@ export function MediaPickerModal({
                   placeholder="Search media files..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 py-1.5 text-xs text-[var(--admin-text-primary)] placeholder:text-[var(--admin-text-muted)] focus:outline-none focus:border-[var(--admin-accent)] w-48 sm:w-60"
+                  className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 py-1.5 text-xs text-[var(--admin-text-primary)] placeholder:text-[var(--admin-text-muted)] focus:outline-none focus:border-[var(--admin-accent)] flex-1 sm:w-60"
                 />
                 <input
                   ref={fileInputRef}
@@ -234,7 +234,7 @@ export function MediaPickerModal({
                   disabled={uploadMutation.isPending}
                   className="text-xs"
                 >
-                  {uploadMutation.isPending ? "Uploading…" : "+ Upload from Browser"}
+                  {uploadMutation.isPending ? "Uploading…" : "+ Upload"}
                 </Button>
               </>
             )}
@@ -554,13 +554,13 @@ export function MediaPickerModal({
         )}
 
         {/* Modal Bottom Bar */}
-        <div className="flex items-center justify-between pt-3 border-t border-[var(--admin-border)]/60 mt-3 flex-shrink-0 text-xs">
-          <span className="text-[var(--admin-text-muted)]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-[var(--admin-border)]/60 mt-3 flex-shrink-0 text-xs">
+          <span className="text-[var(--admin-text-muted)] truncate">
             {selectedItem
               ? `Selected: ${selectedItem.originalName}`
               : "Tip: Click an asset to edit metadata or double-click to insert immediately."}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             <Button size="sm" variant="secondary" onClick={onClose}>
               Cancel
             </Button>

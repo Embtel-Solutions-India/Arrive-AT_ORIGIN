@@ -194,10 +194,10 @@ export const publicController = {
     let appliedCouponCode = "";
     if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
       try {
-        const discountResult = await calculateCouponDiscount(couponCode, "CHECKOUT", subtotal);
+        const discountResult = await calculateCouponDiscount(couponCode, "CHECKOUT", subtotal, orderCurrency);
         discount = discountResult.discountAmount;
         appliedCouponCode = discountResult.code;
-        await Coupon.updateOne({ code: discountResult.code }, { $inc: { usedCount: 1 } });
+        await (Coupon as any).updateOne({ code: discountResult.code }, { $inc: { usedCount: 1 } });
       } catch (err: any) {
         throw HttpError.badRequest(err.message || "Invalid coupon code");
       }
@@ -334,7 +334,7 @@ export const publicController = {
     let appliedCouponCode = "";
     if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
       try {
-        const discountResult = await calculateCouponDiscount(couponCode, "CHECKOUT", subtotal);
+        const discountResult = await calculateCouponDiscount(couponCode, "CHECKOUT", subtotal, requestedCurrency);
         discount = discountResult.discountAmount;
         appliedCouponCode = discountResult.code;
       } catch (err: any) {

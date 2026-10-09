@@ -158,7 +158,7 @@ async function sendAll() {
 
   // 2. Client Forgot Password Email
   console.log('\n[2/6] Sending Client Forgot Password Email...');
-  const resetUrl = `${APP_URL}/account?mode=reset&token=sample_client_token_482910`;
+  const resetUrl = `${APP_URL}/reset-password?token=sample_client_token_482910`;
   const clientForgotContent = `
     <p style="margin-top: 0; font-size: 16px; color: #EDE7DA;">
       Hello <strong style="color: #E8CE8C;">${TARGET_NAME}</strong>,

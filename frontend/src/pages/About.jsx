@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 function About() {
   return (
-    <div className="py-8 max-w-4xl mx-auto space-y-12">
+    <div className="py-8 px-4 sm:px-6 max-w-4xl mx-auto space-y-12">
       {/* Intro Header */}
       <div className="border-b border-[rgba(237,231,218,0.12)] pb-8">
         <span className="text-xs font-semibold tracking-widest text-halo uppercase mb-2 block">

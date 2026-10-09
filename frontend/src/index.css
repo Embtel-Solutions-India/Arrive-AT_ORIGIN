@@ -19,12 +19,15 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    overflow-x: clip;
   }
   body {
     background: var(--color-void);
     color: var(--color-vellum);
     font-family: var(--font-text);
     -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+    min-width: 0;
   }
   img {
     max-width: 100%;

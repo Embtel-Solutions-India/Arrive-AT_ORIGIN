@@ -1,18 +1,21 @@
 import type { Request, Response } from "express";
-import { Coupon, type CouponApplicableScope, type CouponDiscountType } from "../../models/Coupon.js";
+import { Coupon, type CouponApplicableScope, type CouponDiscountType, type CouponCurrency } from "../../models/Coupon.js";
 import { ok } from "../../utils/response.js";
 import { HttpError } from "../../utils/httpError.js";
 
 export interface CouponValidationResult {
   valid: boolean;
   code: string;
+  currency: string;
   discountType: CouponDiscountType;
   discountValue: number;
+  discountValueINR?: number | null;
   discountAmount: number;
   newAmount: number;
   applicableTo: CouponApplicableScope;
   description: string;
   minOrderAmount: number;
+  minOrderAmountINR?: number | null;
 }
 
 /**
@@ -21,7 +24,8 @@ export interface CouponValidationResult {
 export async function calculateCouponDiscount(
   rawCode: string,
   context: "CHECKOUT" | "CONSULTATION",
-  amount: number
+  amount: number,
+  currency?: string
 ): Promise<CouponValidationResult> {
   const code = (rawCode || "").trim().toUpperCase();
   if (!code) {
@@ -54,21 +58,46 @@ export async function calculateCouponDiscount(
     throw HttpError.badRequest(`Coupon "${code}" is only valid for ${target}`);
   }
 
-  if (coupon.minOrderAmount && amount < coupon.minOrderAmount) {
+  // Normalize requested currency & validate currency compatibility
+  const reqCurrency = currency?.toUpperCase();
+  const couponCurrency: CouponCurrency = coupon.currency || "ALL";
+
+  if (couponCurrency !== "ALL" && reqCurrency && reqCurrency !== couponCurrency) {
+    const expected = couponCurrency === "INR" ? "INR (₹)" : "USD ($)";
+    throw HttpError.badRequest(`Coupon "${code}" is only valid for purchases in ${expected}`);
+  }
+
+  const isINR = reqCurrency === "INR" || (couponCurrency === "INR" && !reqCurrency);
+  const currencySymbol = isINR ? "₹" : "$";
+
+  // Determine effective minimum order threshold
+  let minOrder = coupon.minOrderAmount || 0;
+  if (isINR && couponCurrency === "ALL" && typeof coupon.minOrderAmountINR === "number" && coupon.minOrderAmountINR > 0) {
+    minOrder = coupon.minOrderAmountINR;
+  }
+
+  if (minOrder > 0 && amount < minOrder) {
     throw HttpError.badRequest(
-      `Coupon "${code}" requires a minimum order amount of $${coupon.minOrderAmount.toFixed(2)}`
+      `Coupon "${code}" requires a minimum order amount of ${currencySymbol}${minOrder.toFixed(2)}`
     );
   }
 
   let discountAmount = 0;
   if (coupon.discountType === "PERCENTAGE") {
     discountAmount = (amount * coupon.discountValue) / 100;
-    if (coupon.maxDiscountAmount && discountAmount > coupon.maxDiscountAmount) {
-      discountAmount = coupon.maxDiscountAmount;
+    const maxCap = (isINR && couponCurrency === "ALL" && typeof coupon.maxDiscountAmountINR === "number" && coupon.maxDiscountAmountINR > 0)
+      ? coupon.maxDiscountAmountINR
+      : coupon.maxDiscountAmount;
+    if (maxCap && discountAmount > maxCap) {
+      discountAmount = maxCap;
     }
   } else {
     // FIXED
-    discountAmount = Math.min(coupon.discountValue, amount);
+    let fixedVal = coupon.discountValue;
+    if (isINR && couponCurrency === "ALL" && typeof coupon.discountValueINR === "number" && coupon.discountValueINR > 0) {
+      fixedVal = coupon.discountValueINR;
+    }
+    discountAmount = Math.min(fixedVal, amount);
   }
 
   // Round to 2 decimal places
@@ -78,20 +107,23 @@ export async function calculateCouponDiscount(
   return {
     valid: true,
     code: coupon.code,
+    currency: couponCurrency,
     discountType: coupon.discountType,
     discountValue: coupon.discountValue,
+    discountValueINR: coupon.discountValueINR,
     discountAmount,
     newAmount,
     applicableTo: coupon.applicableTo,
     description: coupon.description,
     minOrderAmount: coupon.minOrderAmount,
+    minOrderAmountINR: coupon.minOrderAmountINR,
   };
 }
 
 export const couponController = {
   // ─── Public Validation ───
   async validate(req: Request, res: Response) {
-    const { code, context = "CHECKOUT", amount } = req.body;
+    const { code, context = "CHECKOUT", amount, currency } = req.body;
     if (typeof amount !== "number" || amount < 0) {
       throw HttpError.badRequest("Valid purchase amount is required to calculate discount");
     }
@@ -99,16 +131,17 @@ export const couponController = {
       throw HttpError.badRequest("Context must be either 'CHECKOUT' or 'CONSULTATION'");
     }
 
-    const result = await calculateCouponDiscount(code, context, amount);
+    const result = await calculateCouponDiscount(code, context, amount, currency);
     ok(res, result, `Coupon ${result.code} applied successfully!`);
   },
 
   // ─── Admin: List All Coupons ───
   async getCoupons(req: Request, res: Response) {
-    const { search, scope, status } = req.query as {
+    const { search, scope, status, currency } = req.query as {
       search?: string;
       scope?: string;
       status?: string;
+      currency?: string;
     };
 
     const filter: Record<string, any> = {};
@@ -122,6 +155,10 @@ export const couponController = {
 
     if (scope && scope !== "ALL_FILTER") {
       filter.applicableTo = scope;
+    }
+
+    if (currency && currency !== "ALL_FILTER") {
+      filter.currency = currency;
     }
 
     if (status === "active") {
@@ -151,11 +188,15 @@ export const couponController = {
     const {
       code,
       description,
+      currency = "INR",
       discountType = "PERCENTAGE",
       discountValue,
+      discountValueINR,
       applicableTo = "ALL",
       minOrderAmount = 0,
+      minOrderAmountINR,
       maxDiscountAmount,
+      maxDiscountAmountINR,
       startDate,
       endDate,
       usageLimit,
@@ -183,11 +224,15 @@ export const couponController = {
     const coupon = await (Coupon as any).create({
       code: cleanCode,
       description: description?.trim() || "",
+      currency: ["INR", "USD", "ALL"].includes(currency) ? currency : "INR",
       discountType,
-      discountValue,
+      discountValue: Number(discountValue) || 0,
+      discountValueINR: discountValueINR !== undefined && discountValueINR !== null && discountValueINR !== "" ? Number(discountValueINR) : null,
       applicableTo,
       minOrderAmount: Math.max(0, Number(minOrderAmount) || 0),
-      maxDiscountAmount: maxDiscountAmount ? Number(maxDiscountAmount) : null,
+      minOrderAmountINR: minOrderAmountINR !== undefined && minOrderAmountINR !== null && minOrderAmountINR !== "" ? Math.max(0, Number(minOrderAmountINR) || 0) : null,
+      maxDiscountAmount: maxDiscountAmount !== undefined && maxDiscountAmount !== null && maxDiscountAmount !== "" ? Number(maxDiscountAmount) : null,
+      maxDiscountAmountINR: maxDiscountAmountINR !== undefined && maxDiscountAmountINR !== null && maxDiscountAmountINR !== "" ? Number(maxDiscountAmountINR) : null,
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
       usageLimit: usageLimit ? Number(usageLimit) : null,
@@ -215,11 +260,15 @@ export const couponController = {
     const {
       code,
       description,
+      currency,
       discountType,
       discountValue,
+      discountValueINR,
       applicableTo,
       minOrderAmount,
+      minOrderAmountINR,
       maxDiscountAmount,
+      maxDiscountAmountINR,
       startDate,
       endDate,
       usageLimit,
@@ -238,6 +287,9 @@ export const couponController = {
     }
 
     if (description !== undefined) coupon.description = description.trim();
+    if (currency !== undefined && ["INR", "USD", "ALL"].includes(currency)) {
+      coupon.currency = currency;
+    }
     if (discountType !== undefined) coupon.discountType = discountType;
     if (discountValue !== undefined) {
       if (discountValue <= 0) throw HttpError.badRequest("Discount value must be greater than 0");
@@ -246,14 +298,23 @@ export const couponController = {
       }
       coupon.discountValue = discountValue;
     }
+    if (discountValueINR !== undefined) {
+      coupon.discountValueINR = discountValueINR !== "" && discountValueINR !== null ? Number(discountValueINR) : null;
+    }
     if (applicableTo !== undefined) coupon.applicableTo = applicableTo;
     if (minOrderAmount !== undefined) coupon.minOrderAmount = Math.max(0, Number(minOrderAmount) || 0);
+    if (minOrderAmountINR !== undefined) {
+      coupon.minOrderAmountINR = minOrderAmountINR !== "" && minOrderAmountINR !== null ? Math.max(0, Number(minOrderAmountINR) || 0) : null;
+    }
     if (maxDiscountAmount !== undefined) {
-      coupon.maxDiscountAmount = maxDiscountAmount ? Number(maxDiscountAmount) : null;
+      coupon.maxDiscountAmount = maxDiscountAmount !== "" && maxDiscountAmount !== null ? Number(maxDiscountAmount) : null;
+    }
+    if (maxDiscountAmountINR !== undefined) {
+      coupon.maxDiscountAmountINR = maxDiscountAmountINR !== "" && maxDiscountAmountINR !== null ? Number(maxDiscountAmountINR) : null;
     }
     if (startDate !== undefined) coupon.startDate = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) coupon.endDate = endDate ? new Date(endDate) : null;
-    if (usageLimit !== undefined) coupon.usageLimit = usageLimit ? Number(usageLimit) : null;
+    if (usageLimit !== undefined) coupon.usageLimit = usageLimit !== "" && usageLimit !== null ? Number(usageLimit) : null;
     if (isActive !== undefined) coupon.isActive = Boolean(isActive);
 
     await coupon.save();

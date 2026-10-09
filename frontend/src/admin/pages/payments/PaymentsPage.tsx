@@ -45,7 +45,7 @@ export function PaymentsPage() {
       />
 
       <Card>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <input
             type="text"
             placeholder="Search by transaction ID or order number…"
@@ -54,7 +54,7 @@ export function PaymentsPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="min-h-[40px] flex-1 min-w-[240px] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] placeholder:text-[var(--admin-text-muted)] focus:outline-none focus:border-[var(--admin-accent)]"
+            className="min-h-[40px] w-full sm:flex-1 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] placeholder:text-[var(--admin-text-muted)] focus:outline-none focus:border-[var(--admin-accent)]"
           />
           <select
             value={status}
@@ -62,7 +62,7 @@ export function PaymentsPage() {
               setStatus(e.target.value);
               setPage(1);
             }}
-            className="min-h-[40px] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] focus:outline-none"
+            className="min-h-[40px] w-full sm:w-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 text-sm text-[var(--admin-text-primary)] focus:outline-none"
           >
             <option value="ALL">All Statuses</option>
             <option value="SUCCESSFUL">Successful</option>
@@ -83,22 +83,22 @@ export function PaymentsPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-[var(--admin-border)]/50 text-[0.75rem] text-[var(--admin-text-muted)] uppercase">
-                  <th className="pb-3 font-semibold">Transaction ID</th>
-                  <th className="pb-3 font-semibold">Order</th>
-                  <th className="pb-3 font-semibold">Customer</th>
-                  <th className="pb-3 font-semibold">Amount</th>
-                  <th className="pb-3 font-semibold">Gateway / Method</th>
-                  <th className="pb-3 font-semibold">Status</th>
-                  <th className="pb-3 font-semibold text-right">Date</th>
+                  <th className="pb-3 font-semibold whitespace-nowrap">Transaction ID</th>
+                  <th className="pb-3 font-semibold whitespace-nowrap">Order</th>
+                  <th className="pb-3 font-semibold whitespace-nowrap">Customer</th>
+                  <th className="pb-3 font-semibold whitespace-nowrap">Amount</th>
+                  <th className="pb-3 font-semibold whitespace-nowrap">Gateway / Method</th>
+                  <th className="pb-3 font-semibold whitespace-nowrap">Status</th>
+                  <th className="pb-3 font-semibold text-right whitespace-nowrap">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--admin-border)]/30">
                 {data.payments.map((p) => (
                   <tr key={p._id} className="hover:bg-[rgba(237,231,218,0.03)]">
-                    <td className="py-3.5 font-mono text-xs text-[var(--admin-text-primary)]">
+                    <td className="py-3.5 font-mono text-xs text-[var(--admin-text-primary)] whitespace-nowrap">
                       {p.transactionId}
                     </td>
-                    <td className="py-3.5 font-mono text-xs">
+                    <td className="py-3.5 font-mono text-xs whitespace-nowrap">
                       {p.order?._id ? (
                         <Link to={`/admin/orders/${p.order._id}`} className="text-[var(--admin-accent)] hover:underline">
                           {p.order.orderNumber || p.orderNumber}
@@ -107,21 +107,21 @@ export function PaymentsPage() {
                         p.orderNumber || "—"
                       )}
                     </td>
-                    <td className="py-3.5 text-xs text-[var(--admin-text-secondary)]">
+                    <td className="py-3.5 text-xs text-[var(--admin-text-secondary)] whitespace-nowrap">
                       {p.order?.customerInfo?.name || "Customer"}
                     </td>
-                    <td className="py-3.5 font-semibold text-[var(--admin-text-primary)]">
+                    <td className="py-3.5 font-semibold text-[var(--admin-text-primary)] whitespace-nowrap">
                       {money(p.amount)} {p.currency}
                     </td>
-                    <td className="py-3.5 text-xs text-[var(--admin-text-muted)]">
+                    <td className="py-3.5 text-xs text-[var(--admin-text-muted)] whitespace-nowrap">
                       <span className="capitalize">{p.paymentGateway}</span> · {p.paymentMethod}
                     </td>
-                    <td className="py-3.5">
+                    <td className="py-3.5 whitespace-nowrap">
                       <Badge tone={p.status === "SUCCESSFUL" ? "good" : p.status === "PENDING" ? "warn" : "bad"}>
                         {p.status}
                       </Badge>
                     </td>
-                    <td className="py-3.5 text-right text-xs text-[var(--admin-text-muted)]">
+                    <td className="py-3.5 text-right text-xs text-[var(--admin-text-muted)] whitespace-nowrap">
                       {new Date(p.createdAt).toLocaleString()}
                     </td>
                   </tr>

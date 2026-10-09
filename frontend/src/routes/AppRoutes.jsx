@@ -18,6 +18,7 @@ const OrderSuccess = lazy(() => import("../pages/OrderSuccess"));
 const About = lazy(() => import("../pages/About"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 const AccountPortal = lazy(() => import("../pages/AccountPortal"));
+const ResetPassword = lazy(() => import("../pages/ResetPassword"));
 const AdminApp = lazy(() => import("../admin/AdminApp"));
 
 const PageLoader = () => (
@@ -37,6 +38,7 @@ function AppRoutes() {
               <Route path="/" element={<Home />} />
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/account" element={<AccountPortal />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/books" element={<Books />} />
