@@ -22,7 +22,7 @@ import { sendEmail } from "../../services/email.service.js";
 import { logger } from "../../utils/logger.js";
 
 // Helper to get or initialize a grouped setting
-async function getGroupSetting<T>(group: string, defaultVal: T): Promise<T> {
+export async function getGroupSetting<T>(group: string, defaultVal: T): Promise<T> {
   const doc = await (Setting as any).findOne({ key: `settings_${group}` });
   if (!doc) {
     await (Setting as any).create({
@@ -36,7 +36,7 @@ async function getGroupSetting<T>(group: string, defaultVal: T): Promise<T> {
   return { ...defaultVal, ...doc.value };
 }
 
-async function saveGroupSetting(group: string, value: any): Promise<void> {
+export async function saveGroupSetting(group: string, value: any): Promise<void> {
   await (Setting as any).findOneAndUpdate(
     { key: `settings_${group}` },
     { key: `settings_${group}`, group, value },
@@ -212,6 +212,23 @@ const DEFAULT_INTEGRATIONS = {
   whatsApp: { enabled: false, phoneNumber: "", apiKey: "" },
 };
 
+export const DEFAULT_SHIPPING = {
+  enableShipping: true,
+  standardShippingFeeUSD: 0,
+  standardShippingFeeINR: 0,
+  enableFreeDelivery: true,
+  freeDeliveryThresholdUSD: 50,
+  freeDeliveryThresholdINR: 400,
+  estimatedDeliveryDays: "3–5 Business Days",
+  deliveryNotes: "Orders are safely packed and dispatched within 24-48 hours.",
+  enableSalesTax: false,
+  salesTaxPercentage: 0,
+  taxCalculationMode: "exclusive", // "exclusive" | "inclusive"
+  restrictedPincodes: "",
+  allowInternationalShipping: true,
+  internationalShippingFeeUSD: 15,
+};
+
 export const settingsController = {
   // ─── 1. Get All Settings (with masked secrets) ───
   async getAllSettings(_req: Request, res: Response) {
@@ -222,6 +239,7 @@ export const settingsController = {
     const notifications = await getGroupSetting("notifications", DEFAULT_NOTIFICATIONS);
     const booking = await getGroupSetting("booking", DEFAULT_BOOKING);
     const store = await getGroupSetting("store", DEFAULT_STORE);
+    const shipping = await getGroupSetting("shipping", DEFAULT_SHIPPING);
     const system = await getGroupSetting("system", DEFAULT_SYSTEM);
     const backups = await getGroupSetting("backups", DEFAULT_BACKUPS);
     const integrations = await getGroupSetting("integrations", DEFAULT_INTEGRATIONS);
@@ -272,6 +290,7 @@ export const settingsController = {
         notifications,
         booking,
         store,
+        shipping,
         system,
         backups,
         integrations: safeIntegrations,

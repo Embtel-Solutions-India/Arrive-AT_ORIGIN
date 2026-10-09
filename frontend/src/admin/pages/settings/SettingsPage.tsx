@@ -14,6 +14,7 @@ import { BackupsTab } from "./tabs/BackupsTab";
 import { AuditLogsTab } from "./tabs/AuditLogsTab";
 import { IntegrationsTab } from "./tabs/IntegrationsTab";
 import { CouponsTab } from "./tabs/CouponsTab";
+import { ShippingTab } from "./tabs/ShippingTab";
 
 export type SettingsTabId =
   | "account"
@@ -21,6 +22,7 @@ export type SettingsTabId =
   | "security"
   | "sessions"
   | "payments"
+  | "shipping"
   | "coupons"
   | "email"
   | "notifications"
@@ -102,6 +104,13 @@ const SETTINGS_NAV: NavItem[] = [
     description: "Control e-commerce storefront switches, order numbering, and fulfillment rules.",
   },
   {
+    id: "shipping",
+    label: "Shipping & Delivery",
+    icon: "🚚",
+    badge: "Fulfillment",
+    description: "Configure delivery charges, free shipping criteria, estimated transit times, and sales tax.",
+  },
+  {
     id: "system",
     label: "System",
     icon: "⚙️",
@@ -149,6 +158,8 @@ export function SettingsPage() {
         return <SessionsTab />;
       case "payments":
         return <PaymentsTab />;
+      case "shipping":
+        return <ShippingTab />;
       case "coupons":
         return <CouponsTab />;
       case "email":

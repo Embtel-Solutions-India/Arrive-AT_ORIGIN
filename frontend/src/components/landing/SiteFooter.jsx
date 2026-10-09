@@ -118,15 +118,15 @@ function SiteFooter() {
             </ul>
           </div>
 
-          {/* Column 4: Client Services & Portal */}
+          {/* Column 4: User Services & Account */}
           <div className="space-y-3">
             <h3 className="font-display text-sm font-semibold text-vellum tracking-wide uppercase text-[0.78rem] text-halo">
-              Client Portal
+              User Account
             </h3>
             <ul className="space-y-2 text-xs sm:text-[0.84rem]">
               <li>
                 <Link to="/account" className="hover:text-vellum transition-colors no-underline block py-0.5">
-                  My Client Account
+                  My User Account
                 </Link>
               </li>
               <li>

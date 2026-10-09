@@ -42,15 +42,15 @@ function OrderSuccess() {
           </div>
 
           <p className="text-sm text-[#A9B0C2] mb-8 leading-relaxed max-w-md mx-auto">
-            Your client account has been automatically created. You can track this order, view receipts, and manage all your sessions directly in your Account Portal.
+            Your user account has been automatically created. You can track this order, view receipts, and manage all your sessions directly in your User Account.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
-              to="/account"
+              to={`/account?tab=orders&order=${encodeURIComponent(orderNumber || "")}`}
               className="rounded-full bg-halo px-6 py-3 text-xs font-bold text-void hover:bg-white transition-all transform hover:scale-[1.02] shadow-[0_0_20px_rgba(201,168,106,0.3)] no-underline"
             >
-              View in My Account & Orders →
+              Track in User Account →
             </Link>
             <Link
               to="/books"

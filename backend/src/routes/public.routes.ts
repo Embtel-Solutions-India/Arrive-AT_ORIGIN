@@ -35,6 +35,7 @@ publicRouter.post("/customer/reset-password", asyncHandler(customerAuthControlle
 publicRouter.get("/customer/portal", asyncHandler(customerAuthController.getPortal));
 publicRouter.put("/customer/profile", asyncHandler(customerAuthController.updateProfile));
 
-// Public SEO
+// Public SEO & Shipping Settings
 publicRouter.get("/seo/settings", asyncHandler(seoController.getSettings));
+publicRouter.get("/settings/shipping", asyncHandler(publicController.getShippingSettings));
 

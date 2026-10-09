@@ -90,7 +90,7 @@ const BookSchema = new Schema<IBook>(
     salePrice: { type: Number, min: 0 },
     salePriceINR: { type: Number, min: 0 },
     salePriceUSD: { type: Number, min: 0 },
-    currency: { type: String, default: "INR" },
+    currency: { type: String, default: "USD" },
     sku: { type: String, required: true, unique: true, trim: true, index: true },
     stockQuantity: { type: Number, default: 50 },
     lowStockThreshold: { type: Number, default: 5 },

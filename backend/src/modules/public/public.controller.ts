@@ -13,10 +13,46 @@ import { sendOrderConfirmationEmail } from "../../services/email.service.js";
 import { logger } from "../../utils/logger.js";
 import { Coupon } from "../../models/Coupon.js";
 import { calculateCouponDiscount } from "../coupons/coupon.controller.js";
+import { getGroupSetting, DEFAULT_SHIPPING } from "../settings/settings.controller.js";
 
 // Cache IP geolocation for 24 hours to avoid redundant lookups
 const ipGeoCache = new Map<string, { country: string; timestamp: number }>();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+export const USD_TO_INR_RATE = 96.79;
+
+export function resolveBookPrice(book: any, targetCurrency: "USD" | "INR"): number {
+  if (targetCurrency === "INR") {
+    if (typeof book.salePriceINR === "number" && book.salePriceINR > 0) return book.salePriceINR;
+    if (typeof book.priceINR === "number" && book.priceINR > 0) return book.priceINR;
+    if (typeof book.salePriceUSD === "number" && book.salePriceUSD > 0) {
+      return Number((book.salePriceUSD * USD_TO_INR_RATE).toFixed(2));
+    }
+    if (typeof book.priceUSD === "number" && book.priceUSD > 0) {
+      return Number((book.priceUSD * USD_TO_INR_RATE).toFixed(2));
+    }
+    if (typeof book.price === "number" && book.price >= 50) return book.price;
+    if (typeof book.price === "number" && book.price > 0) {
+      return Number((book.price * USD_TO_INR_RATE).toFixed(2));
+    }
+    return 483.23;
+  } else {
+    // USD
+    if (typeof book.salePriceUSD === "number" && book.salePriceUSD > 0) return book.salePriceUSD;
+    if (typeof book.priceUSD === "number" && book.priceUSD > 0) return book.priceUSD;
+    if (typeof book.salePriceINR === "number" && book.salePriceINR > 0) {
+      return Number((book.salePriceINR / USD_TO_INR_RATE).toFixed(2));
+    }
+    if (typeof book.priceINR === "number" && book.priceINR > 0) {
+      return Number((book.priceINR / USD_TO_INR_RATE).toFixed(2));
+    }
+    if (typeof book.price === "number" && book.price > 0 && book.price < 50) return book.price;
+    if (typeof book.price === "number" && book.price >= 50) {
+      return Number((book.price / USD_TO_INR_RATE).toFixed(2));
+    }
+    return 4.99;
+  }
+}
 
 export const publicController = {
   // ─── Public Blogs ───
@@ -163,9 +199,7 @@ export const publicController = {
         throw HttpError.badRequest(`Only ${book.stockQuantity} copies of "${book.title}" are in stock`);
       }
 
-      const itemPrice = orderCurrency === "INR"
-        ? (book.salePriceINR ?? book.priceINR ?? book.price)
-        : (book.salePriceUSD ?? book.priceUSD ?? book.price);
+      const itemPrice = resolveBookPrice(book, orderCurrency);
       const itemSubtotal = itemPrice * item.quantity;
       subtotal += itemSubtotal;
 
@@ -203,11 +237,19 @@ export const publicController = {
       }
     }
 
-    const shipping = orderCurrency === "INR"
-      ? (subtotal >= 400 ? 0 : 50)
-      : (subtotal >= 50 ? 0 : 5);
+    const shippingSettings = await getGroupSetting("shipping", DEFAULT_SHIPPING);
+    let shipping = 0;
+    if (shippingSettings.enableShipping) {
+      const isFree = shippingSettings.enableFreeDelivery && (
+        orderCurrency === "INR"
+          ? subtotal >= (shippingSettings.freeDeliveryThresholdINR || 0)
+          : subtotal >= (shippingSettings.freeDeliveryThresholdUSD || 0)
+      );
+      shipping = isFree ? 0 : (orderCurrency === "INR" ? (shippingSettings.standardShippingFeeINR || 0) : (shippingSettings.standardShippingFeeUSD || 0));
+    }
     const taxableSubtotal = Math.max(0, subtotal - discount);
-    const tax = Number((taxableSubtotal * 0.05).toFixed(2));
+    const taxRate = shippingSettings.enableSalesTax ? (shippingSettings.salesTaxPercentage || 0) / 100 : 0;
+    const tax = Number((taxableSubtotal * taxRate).toFixed(2));
     const total = Math.max(0, Number((subtotal - discount + shipping + tax).toFixed(2)));
 
     // Upsert Customer
@@ -283,12 +325,16 @@ export const publicController = {
     order.payment = payment._id as any;
     await order.save();
 
-    // Send order confirmation receipt via Resend
-    sendOrderConfirmationEmail(order).catch((err) =>
+    const customerToken = generateCustomerToken(customer);
+    const origin =
+      (req.headers.origin as string) ||
+      (req.headers.referer ? new URL(req.headers.referer).origin : "") ||
+      undefined;
+
+    // Send order confirmation receipt via Resend with deep-link & token
+    sendOrderConfirmationEmail(order, origin, customerToken).catch((err) =>
       logger.error({ err: err?.message }, "Failed to send order confirmation email")
     );
-
-    const customerToken = generateCustomerToken(customer);
 
     ok(
       res,
@@ -324,9 +370,7 @@ export const publicController = {
     for (const item of items) {
       const book = await (Book as any).findById(item.bookId);
       if (!book) throw HttpError.badRequest("Book not found");
-      const itemPrice = requestedCurrency === "INR"
-        ? (book.salePriceINR ?? book.priceINR ?? book.price)
-        : (book.salePriceUSD ?? book.priceUSD ?? book.price);
+      const itemPrice = resolveBookPrice(book, requestedCurrency);
       subtotal += itemPrice * item.quantity;
     }
 
@@ -342,11 +386,19 @@ export const publicController = {
       }
     }
 
-    const shipping = requestedCurrency === "INR"
-      ? (subtotal >= 400 ? 0 : 50)
-      : (subtotal >= 50 ? 0 : 5);
+    const shippingSettings = await getGroupSetting("shipping", DEFAULT_SHIPPING);
+    let shipping = 0;
+    if (shippingSettings.enableShipping) {
+      const isFree = shippingSettings.enableFreeDelivery && (
+        requestedCurrency === "INR"
+          ? subtotal >= (shippingSettings.freeDeliveryThresholdINR || 0)
+          : subtotal >= (shippingSettings.freeDeliveryThresholdUSD || 0)
+      );
+      shipping = isFree ? 0 : (requestedCurrency === "INR" ? (shippingSettings.standardShippingFeeINR || 0) : (shippingSettings.standardShippingFeeUSD || 0));
+    }
     const taxableSubtotal = Math.max(0, subtotal - discount);
-    const tax = Number((taxableSubtotal * 0.05).toFixed(2));
+    const taxRate = shippingSettings.enableSalesTax ? (shippingSettings.salesTaxPercentage || 0) / 100 : 0;
+    const tax = Number((taxableSubtotal * taxRate).toFixed(2));
     const total = Math.max(0, Number((subtotal - discount + shipping + tax).toFixed(2)));
 
     const receipt = `BK-${Date.now().toString().slice(-8)}`;
@@ -453,5 +505,11 @@ export const publicController = {
     }
 
     return ok(res, { country: "US", currency: "USD", source: "fallback" });
+  },
+
+  // ─── Public Shipping Settings ───
+  async getShippingSettings(_req: Request, res: Response) {
+    const shipping = await getGroupSetting("shipping", DEFAULT_SHIPPING);
+    ok(res, { shipping });
   },
 };

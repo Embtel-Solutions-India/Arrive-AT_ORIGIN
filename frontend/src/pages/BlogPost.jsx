@@ -127,9 +127,9 @@ function BlogPost() {
             </div>
           )}
 
-          {/* Article Body */}
+          {/* Article Body - Preserves full rich HTML, inline styling, images, alignment, tables */}
           <div
-            className="prose prose-invert max-w-none space-y-6 text-[#D7D9E0] text-[1.05rem] leading-[1.8] [&_h2]:font-display [&_h2]:text-[1.8rem] [&_h2]:font-light [&_h2]:text-vellum [&_h2]:mt-10 [&_h2]:mb-4 [&_h3]:font-display [&_h3]:text-[1.4rem] [&_h3]:text-vellum [&_blockquote]:border-l-2 [&_blockquote]:border-gold [&_blockquote]:pl-5 [&_blockquote]:italic [&_blockquote]:text-[#E0C9A6] [&_blockquote]:my-8 [&_a]:text-halo [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_hr]:border-[rgba(237,231,218,0.15)] [&_hr]:my-10"
+            className="prose prose-invert max-w-none space-y-6 text-[#D7D9E0] text-[1.05rem] leading-[1.8] [&_h1]:font-display [&_h1]:text-[2.2rem] [&_h1]:font-light [&_h1]:text-vellum [&_h1]:mt-10 [&_h1]:mb-4 [&_h2]:font-display [&_h2]:text-[1.8rem] [&_h2]:font-light [&_h2]:text-vellum [&_h2]:mt-10 [&_h2]:mb-4 [&_h3]:font-display [&_h3]:text-[1.4rem] [&_h3]:text-vellum [&_blockquote]:border-l-2 [&_blockquote]:border-gold [&_blockquote]:pl-5 [&_blockquote]:italic [&_blockquote]:text-[#E0C9A6] [&_blockquote]:my-8 [&_a]:text-halo [&_a]:underline [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_hr]:border-[rgba(237,231,218,0.15)] [&_hr]:my-10 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:my-6 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-white/20 [&_th]:p-3 [&_td]:border [&_td]:border-white/10 [&_td]:p-3"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 

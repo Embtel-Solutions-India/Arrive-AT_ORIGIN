@@ -86,7 +86,24 @@ const STORAGE_TOKEN_KEY = "soulbody_client_token";
 const STORAGE_USER_KEY = "soulbody_client_user";
 
 export function CustomerAuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(STORAGE_TOKEN_KEY));
+  const [token, setToken] = useState<string | null>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const isResetPath = window.location.pathname.includes("reset-password");
+        const params = new URLSearchParams(window.location.search);
+        const isResetMode = params.get("mode") === "reset";
+        const urlToken = params.get("token") || params.get("customerToken");
+        if (urlToken && !isResetPath && !isResetMode) {
+          localStorage.setItem(STORAGE_TOKEN_KEY, urlToken);
+          return urlToken;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return localStorage.getItem(STORAGE_TOKEN_KEY);
+  });
+
   const [customer, setCustomer] = useState<CustomerProfile | null>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_USER_KEY);
@@ -112,6 +129,13 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
           setCustomer(json.data.customer);
           localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(json.data.customer));
         }
+      } else if (res.status === 401 || res.status === 403) {
+        // Clear invalid or expired credentials
+        setToken(null);
+        setCustomer(null);
+        setPortalData(null);
+        localStorage.removeItem(STORAGE_TOKEN_KEY);
+        localStorage.removeItem(STORAGE_USER_KEY);
       }
     } catch {
       // Ignore background refresh errors
@@ -125,6 +149,18 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       fetchPortalData(token);
     }
   }, [token]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isResetPath = window.location.pathname.includes("reset-password");
+    const params = new URLSearchParams(window.location.search);
+    const isResetMode = params.get("mode") === "reset";
+    const urlToken = params.get("token") || params.get("customerToken");
+    if (urlToken && !isResetPath && !isResetMode && urlToken !== token) {
+      setToken(urlToken);
+      localStorage.setItem(STORAGE_TOKEN_KEY, urlToken);
+    }
+  }, []);
 
   const login = async (email: string, password?: string, name?: string) => {
     setLoading(true);

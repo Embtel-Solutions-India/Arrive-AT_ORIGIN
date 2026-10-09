@@ -339,8 +339,14 @@ export const consultationController = {
     consultation.customer = customer._id as any;
     await consultation.save();
 
-    // Send confirmation email via Resend
-    sendConsultationConfirmationEmail(consultation).catch((err) =>
+    const customerToken = generateCustomerToken(customer);
+    const origin =
+      (req.headers.origin as string) ||
+      (req.headers.referer ? new URL(req.headers.referer).origin : "") ||
+      undefined;
+
+    // Send confirmation email via Resend with deep-link & token
+    sendConsultationConfirmationEmail(consultation, origin, customerToken).catch((err) =>
       logger.error({ err: err?.message }, "Failed to send consultation confirmation email")
     );
 
@@ -348,8 +354,6 @@ export const consultationController = {
       { bookingNumber: consultation.bookingNumber, paymentId: razorpay_payment_id },
       "Consultation booking confirmed and paid"
     );
-
-    const customerToken = generateCustomerToken(customer);
 
     ok(res, {
       booking: consultation,

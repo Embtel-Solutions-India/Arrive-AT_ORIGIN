@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { Button, Card, Field, Modal, PageHeader, Select, Textarea } from "../../components/ui";
 import { MediaPickerModal } from "../../components/MediaPickerModal";
+import { RichBlogContentEditor } from "./components/RichBlogContentEditor";
 
 function slugify(text: string): string {
   return text
@@ -53,6 +54,7 @@ export function BlogEditorPage() {
   const [activeTab, setActiveTab] = useState<"editor" | "seo">("editor");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const [mediaPickerTarget, setMediaPickerTarget] = useState<"featured" | "content">("featured");
 
   // Load existing post if editing
   const { data: blogData, isLoading } = useQuery({
@@ -130,23 +132,6 @@ export function BlogEditorPage() {
 
   const handleRemoveTag = (tagToRemove: string) => {
     setTags(tags.filter((t) => t !== tagToRemove));
-  };
-
-  // Content formatting toolbar
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const insertFormatting = (prefix: string, suffix: string = "", placeholder: string = "") => {
-    const el = textareaRef.current;
-    if (!el) return;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    const selected = content.substring(start, end) || placeholder;
-    const replacement = `${prefix}${selected}${suffix}`;
-    const newContent = content.substring(0, start) + replacement + content.substring(end);
-    setContent(newContent);
-    setTimeout(() => {
-      el.focus();
-      el.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
-    }, 50);
   };
 
   // Save Mutation
@@ -306,161 +291,15 @@ export function BlogEditorPage() {
               />
             </Card>
 
-            {/* Rich Content Editor */}
-            <Card title="Post Content (Rich Text / HTML / Markdown)">
-              {/* Formatting Toolbar */}
-              <div className="mb-3 flex flex-wrap gap-1.5 rounded-xl border border-[var(--admin-border)]/60 bg-[var(--admin-background)] p-1.5 text-xs">
-                <button
-                  type="button"
-                  title="Heading 1"
-                  onClick={() => insertFormatting("<h1>", "</h1>", "Heading 1")}
-                  className="rounded px-2 py-1 font-bold hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  H1
-                </button>
-                <button
-                  type="button"
-                  title="Heading 2"
-                  onClick={() => insertFormatting("<h2>", "</h2>", "Heading 2")}
-                  className="rounded px-2 py-1 font-bold hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  H2
-                </button>
-                <button
-                  type="button"
-                  title="Heading 3"
-                  onClick={() => insertFormatting("<h3>", "</h3>", "Heading 3")}
-                  className="rounded px-2 py-1 font-bold hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  H3
-                </button>
-                <span className="w-px bg-[var(--admin-border)] my-1" />
-                <button
-                  type="button"
-                  title="Bold"
-                  onClick={() => insertFormatting("<strong>", "</strong>", "bold text")}
-                  className="rounded px-2 py-1 font-bold hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  B
-                </button>
-                <button
-                  type="button"
-                  title="Italic"
-                  onClick={() => insertFormatting("<em>", "</em>", "italic text")}
-                  className="rounded px-2 py-1 italic hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  I
-                </button>
-                <button
-                  type="button"
-                  title="Underline"
-                  onClick={() => insertFormatting("<u>", "</u>", "underlined text")}
-                  className="rounded px-2 py-1 underline hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  U
-                </button>
-                <button
-                  type="button"
-                  title="Strikethrough"
-                  onClick={() => insertFormatting("<s>", "</s>", "strike")}
-                  className="rounded px-2 py-1 line-through hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  S
-                </button>
-                <span className="w-px bg-[var(--admin-border)] my-1" />
-                <button
-                  type="button"
-                  title="Blockquote"
-                  onClick={() => insertFormatting("<blockquote>“", "”</blockquote>", "Thought-provoking quote")}
-                  className="rounded px-2 py-1 hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  “ Quote
-                </button>
-                <button
-                  type="button"
-                  title="Bullet List"
-                  onClick={() =>
-                    insertFormatting("<ul>\n  <li>", "</li>\n  <li>Second item</li>\n</ul>", "First item")
-                  }
-                  className="rounded px-2 py-1 hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  • List
-                </button>
-                <button
-                  type="button"
-                  title="Numbered List"
-                  onClick={() =>
-                    insertFormatting("<ol>\n  <li>", "</li>\n  <li>Second step</li>\n</ol>", "First step")
-                  }
-                  className="rounded px-2 py-1 hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  1. List
-                </button>
-                <button
-                  type="button"
-                  title="Code Block"
-                  onClick={() => insertFormatting("<pre><code>", "</code></pre>", "// code snippet")}
-                  className="rounded px-2 py-1 font-mono hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  &lt;/&gt;
-                </button>
-                <button
-                  type="button"
-                  title="Horizontal Rule"
-                  onClick={() => insertFormatting("\n<hr />\n")}
-                  className="rounded px-2 py-1 hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  ― Divider
-                </button>
-                <span className="w-px bg-[var(--admin-border)] my-1" />
-                <button
-                  type="button"
-                  title="Insert Link"
-                  onClick={() => {
-                    const url = prompt("Enter URL:", "https://");
-                    if (url) insertFormatting(`<a href="${url}">`, "</a>", "link text");
-                  }}
-                  className="rounded px-2 py-1 text-[var(--admin-accent)] hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  🔗 Link
-                </button>
-                <button
-                  type="button"
-                  title="Insert Image"
-                  onClick={() => {
-                    const imgUrl = prompt("Enter Image URL or pick from media library:", "/dr-alka-chopra-madan.png");
-                    if (imgUrl) insertFormatting(`<img src="${imgUrl}" alt="`, '" class="my-6 rounded-2xl w-full" />', "Image description");
-                  }}
-                  className="rounded px-2 py-1 text-[var(--admin-accent)] hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  🖼 Image
-                </button>
-                <button
-                  type="button"
-                  title="YouTube Embed"
-                  onClick={() => {
-                    const ytId = prompt("Enter YouTube Video ID (e.g. dQw4w9WgXcQ):");
-                    if (ytId) {
-                      insertFormatting(
-                        `\n<div class="aspect-video my-6 overflow-hidden rounded-2xl"><iframe class="w-full h-full" src="https://www.youtube.com/embed/${ytId}" allowfullscreen></iframe></div>\n`
-                      );
-                    }
-                  }}
-                  className="rounded px-2 py-1 text-rose-400 hover:bg-[rgba(237,231,218,0.1)]"
-                >
-                  ▶ YouTube
-                </button>
-              </div>
-
-              <textarea
-                ref={textareaRef}
-                rows={16}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Write your article in rich HTML or standard prose here…"
-                className="w-full rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] p-4 font-mono text-[0.875rem] text-[var(--admin-text-primary)] focus:border-[var(--admin-accent)] focus:outline-none"
-              />
-            </Card>
+            {/* Rich Content Editor with Image layout (Word docx import, Visual, HTML, Preview) */}
+            <RichBlogContentEditor
+              content={content}
+              onChange={setContent}
+              onOpenMediaPicker={() => {
+                setMediaPickerTarget("content");
+                setMediaPickerOpen(true);
+              }}
+            />
           </div>
 
           {/* Right sidebar options (1 col) - Sticky when scrolling article */}
@@ -763,9 +602,16 @@ export function BlogEditorPage() {
       <MediaPickerModal
         open={mediaPickerOpen}
         onClose={() => setMediaPickerOpen(false)}
-        title="Select Image from Media Library"
-        currentValue={featuredImage}
-        onSelect={(url) => setFeaturedImage(url)}
+        title={mediaPickerTarget === "featured" ? "Select Featured Image" : "Insert Image into Blog Content"}
+        currentValue={mediaPickerTarget === "featured" ? featuredImage : ""}
+        onSelect={(url) => {
+          if (mediaPickerTarget === "featured") {
+            setFeaturedImage(url);
+          } else {
+            setContent((prev) => `${prev}\n<p><img src="${url}" alt="Blog post visual" style="max-width:100%; border-radius:12px; margin:16px 0;" /></p>`);
+          }
+          setMediaPickerOpen(false);
+        }}
       />
     </div>
   );

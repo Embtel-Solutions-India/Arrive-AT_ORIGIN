@@ -61,8 +61,20 @@ export async function sendEmail(msg: EmailMessage): Promise<{ id?: string; succe
   }
 }
 
+// ─── Base URL Resolver ───
+export function resolveBaseUrl(appUrl?: string): string {
+  if (appUrl && typeof appUrl === "string" && appUrl.trim()) {
+    return appUrl.trim().replace(/\/$/, "");
+  }
+  if (env.APP_URL && typeof env.APP_URL === "string" && env.APP_URL.trim()) {
+    return env.APP_URL.trim().replace(/\/$/, "");
+  }
+  return env.NODE_ENV === "production" ? "https://arriveatorigin.com" : "http://localhost:5173";
+}
+
 // ─── Shared Email Shell ───
-function wrapEmailShell(title: string, badgeText: string, contentHtml: string): string {
+function wrapEmailShell(title: string, badgeText: string, contentHtml: string, baseUrl?: string): string {
+  const websiteUrl = baseUrl || resolveBaseUrl();
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -110,7 +122,7 @@ function wrapEmailShell(title: string, badgeText: string, contentHtml: string): 
                 Living from Wholeness
               </p>
               <p style="margin: 0; font-size: 11px; color: #5A6275;">
-                Need assistance? Reply directly to this email or visit <a href="${env.APP_URL}" style="color: #E8CE8C; text-decoration: none;">arriveatorigin.com</a>
+                Need assistance? Reply directly to this email or visit <a href="${websiteUrl}" style="color: #E8CE8C; text-decoration: none;">arriveatorigin.com</a>
               </p>
             </td>
           </tr>
@@ -130,10 +142,13 @@ function wrapEmailShell(title: string, badgeText: string, contentHtml: string): 
 export async function sendWelcomeEmail(
   email: string,
   name: string,
-  appUrl?: string
+  appUrl?: string,
+  token?: string
 ): Promise<void> {
-  const baseUrl = (appUrl || env.APP_URL || "https://arriveatorigin.com").replace(/\/$/, "");
-  const portalUrl = `${baseUrl}/account`;
+  const baseUrl = resolveBaseUrl(appUrl);
+  const portalUrl = token
+    ? `${baseUrl}/account?token=${encodeURIComponent(token)}`
+    : `${baseUrl}/account?email=${encodeURIComponent(email)}`;
 
   const content = `
     <p style="margin-top: 0; font-size: 16px; color: #EDE7DA;">
@@ -173,22 +188,27 @@ export async function sendWelcomeEmail(
       </tr>
     </table>
 
-    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 28px 0 20px;">
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 28px 0 16px;">
       <tr>
         <td align="center">
           <a href="${portalUrl}" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 15px; padding: 14px 34px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 15px rgba(232, 206, 140, 0.3);">
-            Go to My Account →
+            Go to User Account →
           </a>
         </td>
       </tr>
     </table>
+
+    <p style="font-size: 12px; color: #8A93A8; text-align: center; margin: 0 0 20px; word-break: break-all;">
+      Or access directly via browser:<br>
+      <a href="${portalUrl}" style="color: #E8CE8C; text-decoration: underline;">${portalUrl}</a>
+    </p>
 
     <p style="font-size: 14px; color: #A0A8BA; margin-bottom: 0;">
       If you ever have any questions about scheduling or your orders, our team is always here for you. Simply reply to this email.
     </p>
   `;
 
-  const html = wrapEmailShell("Welcome to Arrive at Origin", "✦ Account Activated", content);
+  const html = wrapEmailShell("Welcome to Arrive at Origin", "✦ Account Activated", content, baseUrl);
 
   await sendEmail({
     to: email,
@@ -206,8 +226,8 @@ export async function sendCustomerPasswordResetEmail(
   resetToken: string,
   appUrl?: string
 ): Promise<void> {
-  const baseUrl = (appUrl || env.APP_URL || "https://arriveatorigin.com").replace(/\/$/, "");
-  const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+  const baseUrl = resolveBaseUrl(appUrl);
+  const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
 
   const content = `
     <p style="margin-top: 0; font-size: 16px; color: #EDE7DA;">
@@ -245,7 +265,7 @@ export async function sendCustomerPasswordResetEmail(
     </table>
   `;
 
-  const html = wrapEmailShell("Password Reset", "🔐 Account Security", content);
+  const html = wrapEmailShell("Password Reset", "🔐 Account Security", content, baseUrl);
 
   await sendEmail({
     to: email,
@@ -259,9 +279,13 @@ export async function sendCustomerPasswordResetEmail(
  */
 export async function sendConsultationConfirmationEmail(
   booking: IConsultation,
-  appUrl?: string
+  appUrl?: string,
+  token?: string
 ): Promise<void> {
-  const baseUrl = (appUrl || env.APP_URL || "https://arriveatorigin.com").replace(/\/$/, "");
+  const baseUrl = resolveBaseUrl(appUrl);
+  const portalUrl = `${baseUrl}/account?tab=sessions&booking=${encodeURIComponent(booking.bookingNumber)}${
+    token ? `&token=${encodeURIComponent(token)}` : `&email=${encodeURIComponent(booking.clientEmail)}`
+  }`;
   const isZoom = booking.meetingMode === "ONLINE_ZOOM";
   const formatText = isZoom
     ? "Online Video Meeting (Zoom / Google Meet)"
@@ -325,15 +349,20 @@ export async function sendConsultationConfirmationEmail(
     <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 26px 0 16px;">
       <tr>
         <td align="center">
-          <a href="${baseUrl}/account" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 14px; padding: 13px 30px; border-radius: 9999px; text-decoration: none;">
-            View Appointment in My Account →
+          <a href="${portalUrl}" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 14px; padding: 13px 30px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 15px rgba(232, 206, 140, 0.3);">
+            View Appointment in User Account →
           </a>
         </td>
       </tr>
     </table>
+
+    <p style="font-size: 12px; color: #8A93A8; text-align: center; margin: 0 0 16px; word-break: break-all;">
+      Direct Appointment Link:<br>
+      <a href="${portalUrl}" style="color: #E8CE8C; text-decoration: underline;">${portalUrl}</a>
+    </p>
   `;
 
-  const html = wrapEmailShell("Consultation Confirmed", "✓ Scheduled & Confirmed", content);
+  const html = wrapEmailShell("Consultation Confirmed", "✓ Scheduled & Confirmed", content, baseUrl);
 
   await sendEmail({
     to: booking.clientEmail,
@@ -347,9 +376,14 @@ export async function sendConsultationConfirmationEmail(
  */
 export async function sendOrderConfirmationEmail(
   order: IOrder,
-  appUrl?: string
+  appUrl?: string,
+  token?: string
 ): Promise<void> {
-  const baseUrl = (appUrl || env.APP_URL || "https://arriveatorigin.com").replace(/\/$/, "");
+  const baseUrl = resolveBaseUrl(appUrl);
+  const portalUrl = `${baseUrl}/account?tab=orders&order=${encodeURIComponent(order.orderNumber)}${
+    token ? `&token=${encodeURIComponent(token)}` : `&email=${encodeURIComponent(order.customerInfo.email)}`
+  }`;
+
   const itemsRows = order.items
     .map(
       (it) => `
@@ -418,15 +452,20 @@ export async function sendOrderConfirmationEmail(
     <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 26px 0 16px;">
       <tr>
         <td align="center">
-          <a href="${baseUrl}/account" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 14px; padding: 13px 30px; border-radius: 9999px; text-decoration: none;">
-            Track Order in My Account →
+          <a href="${portalUrl}" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 14px; padding: 13px 30px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 15px rgba(232, 206, 140, 0.3);">
+            Track Order in User Account →
           </a>
         </td>
       </tr>
     </table>
+
+    <p style="font-size: 12px; color: #8A93A8; text-align: center; margin: 0 0 16px; word-break: break-all;">
+      Direct Order Tracking Link:<br>
+      <a href="${portalUrl}" style="color: #E8CE8C; text-decoration: underline;">${portalUrl}</a>
+    </p>
   `;
 
-  const html = wrapEmailShell("Order Receipt", `📦 Order #${order.orderNumber}`, content);
+  const html = wrapEmailShell("Order Receipt", `📦 Order #${order.orderNumber}`, content, baseUrl);
 
   await sendEmail({
     to: order.customerInfo.email,
@@ -444,8 +483,8 @@ export async function sendPasswordResetEmail(
   resetToken: string,
   appUrl?: string
 ): Promise<void> {
-  const baseUrl = (appUrl || env.APP_URL || "https://arriveatorigin.com").replace(/\/$/, "");
-  const resetUrl = `${baseUrl}/admin/reset-password?token=${resetToken}`;
+  const baseUrl = resolveBaseUrl(appUrl);
+  const resetUrl = `${baseUrl}/admin/reset-password?token=${encodeURIComponent(resetToken)}`;
 
   const content = `
     <p style="margin-top: 0; font-size: 16px; color: #EDE7DA;">
@@ -480,7 +519,7 @@ export async function sendPasswordResetEmail(
     </table>
   `;
 
-  const html = wrapEmailShell("Admin Password Reset", "🔐 Admin Portal Security", content);
+  const html = wrapEmailShell("Admin Password Reset", "🔐 Admin Portal Security", content, baseUrl);
 
   await sendEmail({
     to: email,

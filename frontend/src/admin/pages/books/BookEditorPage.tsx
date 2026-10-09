@@ -35,13 +35,13 @@ export function BookEditorPage() {
   const [amazonUrl, setAmazonUrl] = useState("");
 
   // Pricing & Inventory
-  const [price, setPrice] = useState<number>(483.23);
+  const [price, setPrice] = useState<number>(4.99);
   const [priceINR, setPriceINR] = useState<string>("");
   const [priceUSD, setPriceUSD] = useState<string>("");
   const [salePrice, setSalePrice] = useState<string>("");
   const [salePriceINR, setSalePriceINR] = useState<string>("");
   const [salePriceUSD, setSalePriceUSD] = useState<string>("");
-  const [currency, setCurrency] = useState<string>("INR");
+  const [currency, setCurrency] = useState<string>("USD");
   const [sku, setSku] = useState("");
   const [stockQuantity, setStockQuantity] = useState<number>(50);
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(5);
@@ -309,7 +309,7 @@ export function BookEditorPage() {
                 label="Retail Price (USD $) *"
                 type="number"
                 step="0.01"
-                placeholder="e.g. 24.95"
+                placeholder="e.g. 4.99"
                 value={priceUSD}
                 onChange={(e) => {
                   setPriceUSD(e.target.value);

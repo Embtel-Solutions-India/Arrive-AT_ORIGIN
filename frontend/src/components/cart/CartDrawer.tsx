@@ -18,8 +18,11 @@ export function CartDrawer() {
 
   if (!cartOpen) return null;
 
-  const isFreeShipping = subtotal >= shippingRules.freeThreshold;
-  const shippingCost = isFreeShipping ? 0 : shippingRules.fee;
+  const isFreeShipping =
+    !shippingRules?.fee ||
+    shippingRules.fee === 0 ||
+    (shippingRules.freeThreshold > 0 && subtotal >= shippingRules.freeThreshold);
+  const shippingCost = isFreeShipping ? 0 : (shippingRules?.fee || 0);
   const estimatedTotal = subtotal + shippingCost;
 
   return (
@@ -130,8 +133,8 @@ export function CartDrawer() {
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span>
-                    {isFreeShipping ? shippingRules.freeText : formatPrice(shippingRules.fee)}
+                  <span className={shippingCost === 0 ? "text-emerald-400 font-semibold" : ""}>
+                    {shippingCost === 0 ? "FREE" : formatPrice(shippingCost)}
                   </span>
                 </div>
               </div>

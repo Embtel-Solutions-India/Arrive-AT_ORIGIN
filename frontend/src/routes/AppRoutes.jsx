@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import Home from "../pages/Home";
 import { CartProvider } from "../context/CartContext";
@@ -38,6 +38,9 @@ function AppRoutes() {
               <Route path="/" element={<Home />} />
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/account" element={<AccountPortal />} />
+              <Route path="/client-portal" element={<Navigate to="/account" replace />} />
+              <Route path="/my-account" element={<Navigate to="/account" replace />} />
+              <Route path="/portal" element={<Navigate to="/account" replace />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />

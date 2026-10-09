@@ -18,6 +18,18 @@ export interface ProductPriceResult {
 const STORAGE_KEY_MANUAL = "sb_currency_manual";
 const SESSION_KEY_GEO = "sb_geo_detected";
 
+export const USD_TO_INR_RATE = 96.79;
+
+export function convertInrToUsd(priceInr: number): number {
+  if (!priceInr || typeof priceInr !== "number" || priceInr <= 0) return 0;
+  return Number((priceInr / USD_TO_INR_RATE).toFixed(2));
+}
+
+export function convertUsdToInr(priceUsd: number): number {
+  if (!priceUsd || typeof priceUsd !== "number" || priceUsd <= 0) return 0;
+  return Number((priceUsd * USD_TO_INR_RATE).toFixed(2));
+}
+
 export const currencyService = {
   /**
    * Retrieves the user's manual currency preference from localStorage.
@@ -145,9 +157,14 @@ export const currencyService = {
     }).format(num);
   },
 
+  USD_TO_INR_RATE,
+  convertInrToUsd,
+  convertUsdToInr,
+
   /**
    * Resolves discrete prices from a book/product object for the chosen currency.
-   * Never applies exchange rates; always uses discrete priceUSD and priceINR.
+   * Seamlessly converts between INR and USD using the official rate (1 USD = 96.79 INR)
+   * whenever discrete prices are not pre-calculated.
    */
   getProductPrice(product: any, currency: CurrencyCode): ProductPriceResult {
     if (!product) {
@@ -158,27 +175,41 @@ export const currencyService = {
     let salePrice: number | undefined;
 
     if (currency === "INR") {
-      price =
-        typeof product.priceINR === "number" && product.priceINR > 0
-          ? product.priceINR
-          : typeof product.price === "number" && product.price > 100
-          ? product.price
-          : 483.23;
+      if (typeof product.priceINR === "number" && product.priceINR > 0) {
+        price = product.priceINR;
+      } else if (typeof product.price === "number" && product.price >= 100) {
+        price = product.price;
+      } else if (typeof product.priceUSD === "number" && product.priceUSD > 0) {
+        price = convertUsdToInr(product.priceUSD);
+      } else if (typeof product.price === "number" && product.price > 0) {
+        price = convertUsdToInr(product.price);
+      } else {
+        price = 483.23;
+      }
 
       if (typeof product.salePriceINR === "number" && product.salePriceINR > 0) {
         salePrice = product.salePriceINR;
+      } else if (typeof product.salePriceUSD === "number" && product.salePriceUSD > 0) {
+        salePrice = convertUsdToInr(product.salePriceUSD);
       }
     } else {
       // USD
-      price =
-        typeof product.priceUSD === "number" && product.priceUSD > 0
-          ? product.priceUSD
-          : typeof product.price === "number" && product.price < 100
-          ? product.price
-          : 24.95;
+      if (typeof product.priceUSD === "number" && product.priceUSD > 0) {
+        price = product.priceUSD;
+      } else if (typeof product.priceINR === "number" && product.priceINR > 0) {
+        price = convertInrToUsd(product.priceINR);
+      } else if (typeof product.price === "number" && product.price > 0 && product.price < 50) {
+        price = product.price;
+      } else if (typeof product.price === "number" && product.price >= 50) {
+        price = convertInrToUsd(product.price);
+      } else {
+        price = 4.99;
+      }
 
       if (typeof product.salePriceUSD === "number" && product.salePriceUSD > 0) {
         salePrice = product.salePriceUSD;
+      } else if (typeof product.salePriceINR === "number" && product.salePriceINR > 0) {
+        salePrice = convertInrToUsd(product.salePriceINR);
       }
     }
 
@@ -195,21 +226,44 @@ export const currencyService = {
 
   /**
    * Currency specific shipping configuration.
-   * USD: $5.00 shipping, Free over $50.00
-   * INR: ₹50.00 shipping, Free over ₹400.00
+   * Default is Free Delivery ($0.00 / ₹0) and dynamic integration with admin shipping settings.
    */
-  getShippingRules(currency: CurrencyCode) {
+  getShippingRules(currency: CurrencyCode, customRules?: any) {
+    if (customRules) {
+      const isINR = currency === "INR";
+      const fee = customRules.enableShipping
+        ? (isINR ? customRules.standardShippingFeeINR : customRules.standardShippingFeeUSD) || 0
+        : 0;
+      const freeThreshold = customRules.enableFreeDelivery
+        ? (isINR ? customRules.freeDeliveryThresholdINR : customRules.freeDeliveryThresholdUSD) || 0
+        : 0;
+      return {
+        fee,
+        freeThreshold,
+        freeText: "FREE Delivery",
+        enableSalesTax: Boolean(customRules.enableSalesTax),
+        salesTaxPercentage: Number(customRules.salesTaxPercentage) || 0,
+        estimatedDeliveryDays: customRules.estimatedDeliveryDays || "3–5 Business Days",
+      };
+    }
+
     if (currency === "INR") {
       return {
-        fee: 50,
-        freeThreshold: 400,
-        freeText: "FREE (Orders over ₹400)",
+        fee: 0,
+        freeThreshold: 0,
+        freeText: "FREE Delivery",
+        enableSalesTax: false,
+        salesTaxPercentage: 0,
+        estimatedDeliveryDays: "3–5 Business Days",
       };
     }
     return {
-      fee: 5,
-      freeThreshold: 50,
-      freeText: "FREE (Orders over $50)",
+      fee: 0,
+      freeThreshold: 0,
+      freeText: "FREE Delivery",
+      enableSalesTax: false,
+      salesTaxPercentage: 0,
+      estimatedDeliveryDays: "3–5 Business Days",
     };
   },
 };

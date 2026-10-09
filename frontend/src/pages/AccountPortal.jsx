@@ -18,7 +18,19 @@ function AccountPortal() {
   const urlMode = searchParams.get("mode");
   const isResetFlow = urlMode === "reset" && !!resetToken;
 
-  const [activeTab, setActiveTab] = useState("sessions"); // "sessions" | "orders" | "profile"
+  const urlTab = searchParams.get("tab");
+  const urlOrder = searchParams.get("order") || "";
+  const urlBooking = searchParams.get("booking") || "";
+  const urlEmail = searchParams.get("email") || "";
+
+  const initialTab =
+    urlTab === "orders" || !!urlOrder
+      ? "orders"
+      : urlTab === "sessions" || !!urlBooking
+      ? "sessions"
+      : "sessions";
+
+  const [activeTab, setActiveTab] = useState(initialTab); // "sessions" | "orders" | "profile"
   const [authMode, setAuthMode] = useState(isResetFlow ? "reset" : "login"); // "login" | "signup" | "forgot" | "reset"
 
   useEffect(() => {
@@ -27,9 +39,23 @@ function AccountPortal() {
     }
   }, [urlMode, resetToken, navigate]);
 
+  useEffect(() => {
+    if (urlTab === "orders" || urlOrder) {
+      setActiveTab("orders");
+    } else if (urlTab === "sessions" || urlBooking) {
+      setActiveTab("sessions");
+    }
+  }, [urlTab, urlOrder, urlBooking]);
+
   // Login form state
-  const [emailInput, setEmailInput] = useState("");
+  const [emailInput, setEmailInput] = useState(urlEmail || "");
   const [passwordInput, setPasswordInput] = useState("");
+
+  useEffect(() => {
+    if (urlEmail && !emailInput) {
+      setEmailInput(urlEmail);
+    }
+  }, [urlEmail]);
 
   // Forgot password state
   const [forgotEmail, setForgotEmail] = useState("");
@@ -149,6 +175,24 @@ function AccountPortal() {
   const orders = portalData?.orders || [];
   const stats = portalData?.stats || { sessionsCount: 0, ordersCount: 0, totalSpent: 0 };
 
+  useEffect(() => {
+    if (urlOrder && orders.length > 0) {
+      setTimeout(() => {
+        const el = document.getElementById(`order-${urlOrder}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 200);
+    } else if (urlBooking && sessions.length > 0) {
+      setTimeout(() => {
+        const el = document.getElementById(`booking-${urlBooking}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 200);
+    }
+  }, [urlOrder, urlBooking, orders.length, sessions.length, activeTab]);
+
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.62] selection:bg-gold selection:text-void">
       <ScrollProgress />
@@ -169,7 +213,7 @@ function AccountPortal() {
                 </div>
 
                 <span className="text-[0.72rem] font-bold tracking-widest text-halo uppercase">
-                  Client & Member Portal
+                  User Account
                 </span>
 
                 {/* Tab Switcher - only when in login or signup mode */}
@@ -211,6 +255,27 @@ function AccountPortal() {
                 {authMode === "login" ? (
                   /* Option 1: Log In */
                   <>
+                    {urlOrder && (
+                      <div className="mb-5 rounded-2xl border border-[rgba(232,206,140,0.3)] bg-[rgba(232,206,140,0.08)] p-4 text-left">
+                        <div className="flex items-center gap-1.5 text-halo text-xs font-bold uppercase tracking-wider mb-1">
+                          <span>📦 Tracking Order #{urlOrder}</span>
+                        </div>
+                        <p className="text-xs text-vellum/90">
+                          Sign in below to view your real-time fulfillment status, tracking link, and receipt.
+                        </p>
+                      </div>
+                    )}
+                    {urlBooking && !urlOrder && (
+                      <div className="mb-5 rounded-2xl border border-[rgba(232,206,140,0.3)] bg-[rgba(232,206,140,0.08)] p-4 text-left">
+                        <div className="flex items-center gap-1.5 text-halo text-xs font-bold uppercase tracking-wider mb-1">
+                          <span>✦ Appointment #{urlBooking}</span>
+                        </div>
+                        <p className="text-xs text-vellum/90">
+                          Sign in below to view your scheduled consultation date, time, and session access link.
+                        </p>
+                      </div>
+                    )}
+
                     <h1 className={`${heading} text-2xl sm:text-3xl text-vellum mb-2`}>
                       Welcome Back
                     </h1>
@@ -700,14 +765,26 @@ function AccountPortal() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {sessions.map((sess) => (
+                      {sessions.map((sess) => {
+                        const isTarget = !!urlBooking && (sess.bookingNumber === urlBooking || sess._id === urlBooking);
+                        return (
                         <div
                           key={sess._id}
-                          className="rounded-2xl border border-[rgba(232,206,140,0.18)] bg-[#0E1630]/80 p-5 backdrop-blur-md shadow-md flex flex-col justify-between"
+                          id={`booking-${sess.bookingNumber}`}
+                          className={`rounded-2xl p-5 backdrop-blur-md shadow-md flex flex-col justify-between transition-all ${
+                            isTarget
+                              ? "border-2 border-halo bg-[#0E1630] ring-4 ring-halo/20 shadow-[0_0_25px_rgba(232,206,140,0.3)]"
+                              : "border border-[rgba(232,206,140,0.18)] bg-[#0E1630]/80"
+                          }`}
                         >
                           <div>
                             <div className="flex items-start justify-between gap-3 mb-3">
                               <div>
+                                {isTarget && (
+                                  <span className="inline-block rounded-full bg-halo text-void px-2.5 py-0.5 font-bold text-[0.68rem] uppercase tracking-wider mb-1">
+                                    🎯 Selected Booking
+                                  </span>
+                                )}
                                 <span className="text-[0.7rem] font-bold text-halo uppercase tracking-wider block">
                                   {sess.packageName}
                                 </span>
@@ -755,7 +832,8 @@ function AccountPortal() {
                             <span className="text-halo">Confirmed Session</span>
                           </div>
                         </div>
-                      ))}
+                      );
+                    })}
                     </div>
                   )}
                 </div>
@@ -782,18 +860,32 @@ function AccountPortal() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {orders.map((ord) => (
+                      {orders.map((ord) => {
+                        const isTarget = !!urlOrder && (ord.orderNumber === urlOrder || ord._id === urlOrder);
+                        return (
                         <div
                           key={ord._id}
-                          className="rounded-2xl border border-[rgba(237,231,218,0.14)] bg-[#0E1630]/80 p-5 backdrop-blur-md"
+                          id={`order-${ord.orderNumber}`}
+                          className={`rounded-2xl p-5 backdrop-blur-md transition-all ${
+                            isTarget
+                              ? "border-2 border-halo bg-[#0E1630] ring-4 ring-halo/20 shadow-[0_0_30px_rgba(232,206,140,0.25)]"
+                              : "border border-[rgba(237,231,218,0.14)] bg-[#0E1630]/80"
+                          }`}
                         >
                           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3 mb-3 text-xs">
-                            <div>
-                              <span className="text-dim">Order # </span>
-                              <span className="font-mono font-bold text-halo">{ord.orderNumber}</span>
-                              <span className="text-dim ml-2">
-                                • {new Date(ord.createdAt).toLocaleDateString()}
-                              </span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {isTarget && (
+                                <span className="rounded-full bg-halo text-void px-2.5 py-0.5 font-bold text-[0.7rem] uppercase tracking-wider animate-pulse">
+                                  🎯 Tracked Order
+                                </span>
+                              )}
+                              <div>
+                                <span className="text-dim">Order # </span>
+                                <span className="font-mono font-bold text-halo">{ord.orderNumber}</span>
+                                <span className="text-dim ml-2">
+                                  • {new Date(ord.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-2.5 py-0.5 font-bold text-[0.72rem]">
@@ -835,7 +927,8 @@ function AccountPortal() {
                             ))}
                           </div>
                         </div>
-                      ))}
+                      );
+                    })}
                     </div>
                   )}
                 </div>

@@ -160,12 +160,16 @@ export const customerAuthController = {
         logger.info({ email: cleanEmail, name: customer.name }, "New customer signed up");
       }
 
-      // Send Welcome email
-      sendWelcomeEmail(customer.email, customer.name).catch((err) =>
+      const token = generateCustomerToken(customer);
+      const origin =
+        (req.headers.origin as string) ||
+        (req.headers.referer ? new URL(req.headers.referer).origin : "") ||
+        undefined;
+
+      // Send Welcome email with tokenized link
+      sendWelcomeEmail(customer.email, customer.name, origin, token).catch((err) =>
         logger.error({ err: err?.message }, "Failed to send welcome email")
       );
-
-      const token = generateCustomerToken(customer);
 
       ok(res, {
         token,

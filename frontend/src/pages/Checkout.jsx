@@ -25,10 +25,14 @@ function Checkout() {
   const [couponSuccess, setCouponSuccess] = useState("");
 
   const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const isFreeShipping = subtotal >= shippingRules.freeThreshold;
-  const shipping = isFreeShipping ? 0 : shippingRules.fee;
+  const isFreeShipping =
+    !shippingRules?.fee ||
+    shippingRules.fee === 0 ||
+    (shippingRules.freeThreshold > 0 && subtotal >= shippingRules.freeThreshold);
+  const shipping = isFreeShipping ? 0 : (shippingRules?.fee || 0);
   const taxableSubtotal = Math.max(0, subtotal - discount);
-  const tax = Number((taxableSubtotal * 0.05).toFixed(2));
+  const taxRate = shippingRules?.enableSalesTax ? (shippingRules.salesTaxPercentage || 0) / 100 : 0;
+  const tax = Number((taxableSubtotal * taxRate).toFixed(2));
   const total = Number((taxableSubtotal + shipping + tax).toFixed(2));
 
   const handleApplyCoupon = async (e) => {
@@ -563,12 +567,21 @@ function Checkout() {
                   )}
                   <div className="flex justify-between">
                     <span>Shipping</span>
-                    <span>{shipping === 0 ? "FREE" : formatPrice(shipping)}</span>
+                    <span className={shipping === 0 ? "text-emerald-400 font-semibold" : ""}>
+                      {shipping === 0 ? "FREE" : formatPrice(shipping)}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Estimated Sales Tax (5%)</span>
-                    <span>{formatPrice(tax)}</span>
-                  </div>
+                  {shippingRules?.enableSalesTax && tax > 0 && (
+                    <div className="flex justify-between">
+                      <span>Estimated Sales Tax ({shippingRules.salesTaxPercentage || 0}%)</span>
+                      <span>{formatPrice(tax)}</span>
+                    </div>
+                  )}
+                  {shippingRules?.estimatedDeliveryDays && (
+                    <p className="text-[0.7rem] text-dim italic pt-0.5">
+                      Estimated delivery: {shippingRules.estimatedDeliveryDays}
+                    </p>
+                  )}
                   <div className="flex justify-between border-t border-[rgba(237,231,218,0.1)] pt-3 text-base font-bold text-white">
                     <span>Total Due</span>
                     <span className="text-halo">{formatPrice(total)}</span>

@@ -4,6 +4,7 @@ import {
   CurrencyCode,
   ProductPriceResult,
 } from "../services/currencyService";
+import { apiUrl } from "../utils/api";
 
 export interface CurrencyContextType {
   currency: CurrencyCode;
@@ -20,6 +21,9 @@ export interface CurrencyContextType {
     fee: number;
     freeThreshold: number;
     freeText: string;
+    enableSalesTax?: boolean;
+    salesTaxPercentage?: number;
+    estimatedDeliveryDays?: string;
   };
 }
 
@@ -37,6 +41,19 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [detectedCountry, setDetectedCountry] = useState<string>("US");
   const [detectedCurrency, setDetectedCurrency] = useState<CurrencyCode>("USD");
   const [loading, setLoading] = useState<boolean>(true);
+  const [serverShippingSettings, setServerShippingSettings] = useState<any>(null);
+
+  // Fetch live shipping settings from backend API
+  useEffect(() => {
+    fetch(apiUrl("/public/settings/shipping"))
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data?.data?.shipping) {
+          setServerShippingSettings(data.data.shipping);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Initialize IP-based geolocation on mount
   useEffect(() => {
@@ -52,9 +69,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
         const currentSaved = currencyService.getSavedPreference();
         if (!currentSaved) {
-          // If no manual preference was saved, apply IP-based detection
-          setCurrencyState(geo.currency);
-          setCountry(geo.country);
+          // Website default currency is USD across all visitors
+          setCurrencyState("USD");
+          setCountry(geo.country || "US");
           setIsManual(false);
         } else {
           // Keep manual preference intact
@@ -83,15 +100,15 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /**
-   * Manual currency switch: "USD", "INR", or null for "Auto Detect"
+   * Manual currency switch: "USD", "INR", or null for "Auto Detect (USD Default)"
    */
   const setCurrency = useCallback(
     (newCurrency: CurrencyCode | null) => {
       if (newCurrency === null) {
-        // Switch back to Auto Detect
+        // Switch back to website default (USD)
         currencyService.savePreference(null);
         setIsManual(false);
-        setCurrencyState(detectedCurrency);
+        setCurrencyState("USD");
         setCountry(detectedCountry);
       } else {
         // User explicitly chose USD or INR
@@ -101,7 +118,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         setCountry(newCurrency === "INR" ? "IN" : "US");
       }
     },
-    [detectedCurrency, detectedCountry]
+    [detectedCountry]
   );
 
   const resetToAutoDetect = useCallback(() => {
@@ -125,8 +142,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   );
 
   const shippingRules = useMemo(() => {
-    return currencyService.getShippingRules(currency);
-  }, [currency]);
+    return currencyService.getShippingRules(currency, serverShippingSettings);
+  }, [currency, serverShippingSettings]);
 
   const value = useMemo<CurrencyContextType>(
     () => ({

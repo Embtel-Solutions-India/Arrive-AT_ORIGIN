@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
 import { useCurrency } from "./CurrencyContext";
+import { convertInrToUsd, convertUsdToInr } from "../services/currencyService";
 
 export interface CartItem {
   bookId: string;
@@ -54,7 +55,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   /**
    * Resolves the price of a cart item in the currently active currency.
-   * Priority: discrete sale price -> discrete regular price -> fallback item.price.
+   * Seamlessly converts between INR and USD using 1 USD = 96.79 INR.
    */
   const getItemPrice = useCallback(
     (item: CartItem): number => {
@@ -64,6 +65,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
         if (typeof item.priceINR === "number" && item.priceINR > 0) {
           return item.priceINR;
+        }
+        if (typeof item.priceUSD === "number" && item.priceUSD > 0) {
+          return convertUsdToInr(item.priceUSD);
         }
         return typeof item.price === "number" && item.price > 100 ? item.price : 483.23;
       }
@@ -75,7 +79,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (typeof item.priceUSD === "number" && item.priceUSD > 0) {
         return item.priceUSD;
       }
-      return typeof item.price === "number" && item.price < 100 ? item.price : 24.95;
+      if (typeof item.salePriceINR === "number" && item.salePriceINR > 0) {
+        return convertInrToUsd(item.salePriceINR);
+      }
+      if (typeof item.priceINR === "number" && item.priceINR > 0) {
+        return convertInrToUsd(item.priceINR);
+      }
+      if (typeof item.price === "number" && item.price > 0 && item.price < 50) {
+        return item.price;
+      }
+      if (typeof item.price === "number" && item.price >= 50) {
+        return convertInrToUsd(item.price);
+      }
+      return 4.99;
     },
     [currency]
   );
@@ -85,10 +101,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     // Extract both USD and INR discrete pricing
     const resolvedPricing = getProductPrice(book);
-    const bookPriceINR = typeof book.priceINR === "number" ? book.priceINR : undefined;
-    const bookPriceUSD = typeof book.priceUSD === "number" ? book.priceUSD : undefined;
+    const bookPriceINR = typeof book.priceINR === "number" && book.priceINR > 0
+      ? book.priceINR
+      : (typeof book.price === "number" && book.price >= 50 ? book.price : undefined);
+    const bookPriceUSD = typeof book.priceUSD === "number" && book.priceUSD > 0
+      ? book.priceUSD
+      : (bookPriceINR ? convertInrToUsd(bookPriceINR) : (typeof book.price === "number" && book.price < 50 ? book.price : undefined));
     const bookSaleINR = typeof book.salePriceINR === "number" ? book.salePriceINR : undefined;
-    const bookSaleUSD = typeof book.salePriceUSD === "number" ? book.salePriceUSD : undefined;
+    const bookSaleUSD = typeof book.salePriceUSD === "number"
+      ? book.salePriceUSD
+      : (bookSaleINR ? convertInrToUsd(bookSaleINR) : undefined);
 
     setItems((prev) => {
       const existingIdx = prev.findIndex(

@@ -128,7 +128,7 @@ function SiteNav() {
                 ? "border-halo/50 bg-halo/10 text-halo hover:bg-halo/20"
                 : "border-[rgba(237,231,218,0.2)] bg-white/5 text-vellum hover:border-halo hover:bg-white/10"
             }`}
-            title={isAuthenticated ? `Account: ${customer?.name}` : "Client Account Portal"}
+            title={isAuthenticated ? `Account: ${customer?.name}` : "User Account"}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
@@ -192,7 +192,7 @@ function SiteNav() {
                   </div>
                   <div className="min-w-0">
                     <span className="text-[0.92rem] font-semibold text-vellum block truncate group-hover:text-halo transition-colors">
-                      {isAuthenticated ? (customer?.name || "Client Account") : "Client Account & Sign In"}
+                      {isAuthenticated ? (customer?.name || "User Account") : "User Account & Sign In"}
                     </span>
                     <span className="text-[0.74rem] text-dim block truncate">
                       {isAuthenticated ? (customer?.email || "View appointments & orders") : "View booked sessions, receipts & orders"}
@@ -200,7 +200,7 @@ function SiteNav() {
                   </div>
                 </div>
                 <span className="text-xs font-bold text-halo shrink-0 ml-3 group-hover:translate-x-0.5 transition-transform">
-                  {isAuthenticated ? "Portal →" : "Sign In →"}
+                  {isAuthenticated ? "Account →" : "Sign In →"}
                 </span>
               </Link>
             </div>
