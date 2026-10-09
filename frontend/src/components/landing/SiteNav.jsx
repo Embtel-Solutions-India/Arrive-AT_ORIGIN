@@ -24,7 +24,7 @@ function SiteNav() {
     setOpen(false);
   }, [location.pathname, location.search, location.hash]);
 
-  // Lock body scroll when mobile menu is open
+  // Lock body scroll when mobile dropdown is open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -46,7 +46,7 @@ function SiteNav() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[rgba(237,231,218,0.08)] bg-void/90 backdrop-blur-[16px] backdrop-saturate-[1.3]">
+    <header className="sticky top-0 z-50 border-b border-[rgba(237,231,218,0.08)] bg-void/95 backdrop-blur-[16px] backdrop-saturate-[1.3]">
       <div className="relative mx-auto flex min-h-[68px] sm:min-h-[74px] w-full max-w-[1280px] items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 lg:px-8">
         {/* Brand Logo & Title */}
         <a
@@ -143,15 +143,15 @@ function SiteNav() {
             type="button"
             aria-expanded={open}
             aria-label={open ? "Close menu" : "Open menu"}
-            onClick={() => setOpen((v) => !v)}
-            className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[rgba(237,231,218,0.22)] bg-white/[0.04] text-vellum lg:hidden flex-shrink-0 cursor-pointer hover:border-halo hover:bg-white/10 transition-colors"
+            onClick={() => setOpen((prev) => !prev)}
+            className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[rgba(237,231,218,0.25)] bg-white/5 text-vellum lg:hidden flex-shrink-0 cursor-pointer hover:border-halo hover:bg-white/10 transition-colors"
           >
             {open ? (
               <svg className="w-5 h-5 text-halo" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
-              /* Three Lines Icon */
+              /* Three Lines Hamburger Icon */
               <svg className="w-5 h-5 text-vellum" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
@@ -161,130 +161,107 @@ function SiteNav() {
       </div>
 
       {/* ========================================================================= */}
-      {/* Mobile & Tablet Full Navigation Drawer (When Three Lines Icon Is Tapped)  */}
+      {/* Mobile & Tablet Full Width Dropdown Menu (Under the Header)              */}
       {/* ========================================================================= */}
       {open && (
         <div className="lg:hidden">
-          {/* Backdrop Blur */}
+          {/* Backdrop below the header */}
           <div
-            className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm transition-opacity"
+            className="fixed inset-x-0 bottom-0 top-[68px] sm:top-[74px] z-40 bg-black/75 backdrop-blur-sm transition-opacity"
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
 
-          {/* Slide-over Drawer Panel */}
+          {/* Mobile Dropdown Panel attached right below header */}
           <div
-            className="fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-[340px] sm:max-w-[380px] flex-col border-l border-[rgba(232,206,140,0.2)] bg-[#070B18] shadow-2xl transition-transform"
+            className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-74px)] overflow-y-auto border-b border-[rgba(232,206,140,0.25)] bg-[#070B18]/98 p-4 sm:p-6 shadow-2xl backdrop-blur-2xl space-y-4"
             role="dialog"
             aria-modal="true"
             aria-label="Navigation Menu"
           >
-            {/* Drawer Top Bar */}
-            <div className="flex h-16 items-center justify-between border-b border-white/10 px-5 bg-[#0B1022]">
-              <div className="flex items-center gap-2">
-                <svg width="24" height="24" viewBox="0 0 34 34" aria-hidden="true">
-                  <circle cx="17" cy="17" r="16" fill="none" stroke="#C9992E" strokeWidth="1" />
-                  <circle cx="17" cy="17" r="10" fill="none" stroke="#E8CE8C" strokeWidth="1" opacity=".7" />
-                  <circle cx="17" cy="17" r="3" fill="#E8CE8C" />
-                </svg>
-                <span className="font-display text-sm font-medium text-vellum">Navigation Menu</span>
-              </div>
-              <button
-                type="button"
+            {/* 1. Account Option Card (Prominent at the top) */}
+            <div className="rounded-2xl border border-[rgba(232,206,140,0.25)] bg-[#0E1630] p-3.5 shadow-md">
+              <Link
+                to="/account"
                 onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-dim hover:text-vellum hover:bg-white/10 transition-colors cursor-pointer"
-                aria-label="Close menu"
+                className="flex items-center justify-between no-underline group"
               >
-                ✕
-              </button>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-halo/15 border border-halo/30 text-halo text-base font-bold">
+                    👤
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[0.92rem] font-semibold text-vellum block truncate group-hover:text-halo transition-colors">
+                      {isAuthenticated ? (customer?.name || "Client Account") : "Client Account & Sign In"}
+                    </span>
+                    <span className="text-[0.74rem] text-dim block truncate">
+                      {isAuthenticated ? (customer?.email || "View appointments & orders") : "View booked sessions, receipts & orders"}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-halo shrink-0 ml-3 group-hover:translate-x-0.5 transition-transform">
+                  {isAuthenticated ? "Portal →" : "Sign In →"}
+                </span>
+              </Link>
             </div>
 
-            {/* Drawer Scrollable Content */}
-            <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
-              {/* 1. Account Option Card (Prominently at the top as requested) */}
-              <div className="rounded-2xl border border-[rgba(232,206,140,0.25)] bg-[#0E1630] p-3.5 shadow-md">
-                <Link
-                  to="/account"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center justify-between no-underline group"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-halo/15 border border-halo/30 text-halo text-base">
-                      👤
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[0.88rem] font-semibold text-vellum block truncate group-hover:text-halo transition-colors">
-                        {isAuthenticated ? (customer?.name || "Client Account") : "Account & Sign In"}
-                      </span>
-                      <span className="text-[0.72rem] text-dim block truncate">
-                        {isAuthenticated ? (customer?.email || "View portal & bookings") : "Track orders, appointments & profile"}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-semibold text-halo shrink-0 ml-2 group-hover:translate-x-0.5 transition-transform">
-                    {isAuthenticated ? "Portal →" : "Sign In →"}
-                  </span>
-                </Link>
-              </div>
+            {/* 2. All Page Navigation Buttons */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-1.5 space-y-1">
+              <span className="px-3 pt-2 pb-1 text-[0.68rem] font-bold uppercase tracking-wider text-dim block">
+                Explore Pages
+              </span>
+              {navLinks.map((link) => {
+                const Tag = link.to ? Link : "a";
+                const target = link.to ? { to: link.to } : { href: link.href };
+                return (
+                  <Tag
+                    key={link.label}
+                    {...target}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-between rounded-xl px-4 py-3 text-[0.95rem] font-medium text-vellum hover:bg-white/5 hover:text-halo transition-colors no-underline border-b border-white/[0.04] last:border-b-0"
+                  >
+                    <span>{link.label}</span>
+                    <span className="text-dim text-xs font-semibold">→</span>
+                  </Tag>
+                );
+              })}
+            </div>
 
-              {/* 2. All Page Navigation Buttons */}
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-2 space-y-1">
-                <span className="px-3 pt-2 pb-1 text-[0.68rem] font-bold uppercase tracking-wider text-dim block">
-                  Explore Pages
-                </span>
-                {navLinks.map((link) => {
-                  const Tag = link.to ? Link : "a";
-                  const target = link.to ? { to: link.to } : { href: link.href };
-                  return (
-                    <Tag
-                      key={link.label}
-                      {...target}
-                      onClick={() => setOpen(false)}
-                      className="flex items-center justify-between rounded-xl px-3.5 py-3 text-[0.92rem] font-medium text-vellum hover:bg-white/5 hover:text-halo transition-colors no-underline"
-                    >
-                      <span>{link.label}</span>
-                      <span className="text-dim text-xs">→</span>
-                    </Tag>
-                  );
-                })}
-              </div>
+            {/* 3. Book a Session Primary Action */}
+            <Link
+              to="/schedule"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center justify-center rounded-full bg-halo py-3 text-sm font-bold text-void no-underline shadow-[0_4px_16px_rgba(232,206,140,0.3)] hover:bg-white transition-all active:scale-[0.98]"
+            >
+              ✦ Book a Consultation Session
+            </Link>
 
-              {/* 3. Book a Session Primary Action */}
-              <Link
-                to="/schedule"
-                onClick={() => setOpen(false)}
-                className="flex w-full items-center justify-center rounded-xl bg-halo py-3 text-sm font-bold text-void no-underline shadow-[0_4px_16px_rgba(232,206,140,0.3)] transition-transform active:scale-[0.98]"
-              >
-                ✦ Book a Consultation Session
-              </Link>
-
-              {/* 4. Currency Selector Option */}
-              <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-xs text-vellum">
-                <span className="text-dim font-medium">Currency Display</span>
-                <CurrencySelector />
-              </div>
-
-              {/* 5. Shopping Cart Drawer Trigger */}
+            {/* 4. Cart & Currency Row */}
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={() => {
                   setOpen(false);
                   setCartOpen(true);
                 }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] py-2.5 text-xs font-semibold text-vellum hover:border-halo cursor-pointer transition-colors"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-white/5 py-2.5 text-xs font-semibold text-vellum hover:border-halo cursor-pointer transition-colors"
               >
-                <span>🛒 View Shopping Cart</span>
+                <span>🛒 Cart</span>
                 {totalItems > 0 && (
-                  <span className="rounded-full bg-halo px-2 py-0.2 text-[0.68rem] font-bold text-void">
-                    {totalItems} items
+                  <span className="rounded-full bg-halo px-1.5 py-0.2 text-[0.66rem] font-bold text-void">
+                    {totalItems}
                   </span>
                 )}
               </button>
+
+              <div className="flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-2 py-1.5 text-xs text-vellum">
+                <CurrencySelector />
+              </div>
             </div>
 
-            {/* Drawer Footer */}
-            <div className="border-t border-white/10 bg-[#0B1022] p-4 flex items-center justify-between text-xs text-dim">
-              <span>Arrive at Origin</span>
+            {/* 5. Admin Portal Link */}
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-dim">
+              <span>Dr. Alka Chopra Madan</span>
               <Link
                 to="/admin"
                 onClick={() => setOpen(false)}
