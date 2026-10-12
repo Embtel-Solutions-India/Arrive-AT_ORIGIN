@@ -252,3 +252,81 @@
   }
 }
 
+/* ========================================================================= */
+/* Rich Blog Content Editor: Sticky Toolbar & Document Scroller Effect       */
+/* ========================================================================= */
+.editor-sticky-toolbar {
+  position: sticky;
+  top: 4rem;
+  z-index: 25;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.editor-text-scroller {
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.editor-text-scroller::-webkit-scrollbar {
+  width: 8px;
+}
+
+.editor-text-scroller::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 9999px;
+}
+
+.editor-text-scroller::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+  border: 2px solid #f8fafc;
+}
+
+.editor-text-scroller::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.editor-text-scroller::-webkit-scrollbar-thumb:active {
+  background: #c91d24;
+}
+
+/* Subtle scroll indicator glow effect on the top & bottom of the text page */
+.editor-scroller-viewport {
+  position: relative;
+}
+
+.editor-scroller-viewport::before,
+.editor-scroller-viewport::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 8px;
+  height: 14px;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.editor-scroller-viewport::before {
+  top: 0;
+  background: linear-gradient(to bottom, rgba(15, 23, 42, 0.08), transparent);
+}
+
+.editor-scroller-viewport::after {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.08), transparent);
+}
+
+.editor-scroller-viewport.is-scrolled::before {
+  opacity: 1;
+}
+
+.editor-scroller-viewport.has-more-scroll::after {
+  opacity: 1;
+}
+
