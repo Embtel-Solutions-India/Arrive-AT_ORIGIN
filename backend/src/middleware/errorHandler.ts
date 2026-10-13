@@ -19,7 +19,7 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof HttpError) {
     return res.status(err.status).json({ success: false, message: err.message, errors: err.errors });
   }
-  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+  if (Prisma?.PrismaClientKnownRequestError && err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === "P2002") {
       return res.status(409).json({ success: false, message: "A record with these values already exists", errors: [] });
     }
@@ -28,5 +28,5 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     }
   }
   logger.error({ err }, "Unhandled error");
-  res.status(500).json({ success: false, message: "Something went wrong", errors: [] });
+  res.status(500).json({ success: false, message: err?.message || "Something went wrong", errors: [] });
 };

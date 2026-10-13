@@ -7,14 +7,24 @@ interface RichBlogContentEditorProps {
 }
 
 const FORMAT_OPTIONS = [
-  { value: "p", label: "Normal text", tag: "¶", badge: "Normal" },
-  { value: "h1", label: "Heading 1", tag: "H1", badge: "Title" },
-  { value: "h2", label: "Heading 2", tag: "H2", badge: "Section" },
-  { value: "h3", label: "Heading 3", tag: "H3", badge: "Subsection" },
-  { value: "h4", label: "Heading 4", tag: "H4", badge: "Minor" },
+  { value: "p", label: "Normal text", tag: "¶", badge: "17px" },
+  { value: "h1", label: "Heading 1", tag: "H1", badge: "36px" },
+  { value: "h2", label: "Heading 2", tag: "H2", badge: "28px" },
+  { value: "h3", label: "Heading 3", tag: "H3", badge: "22px" },
+  { value: "h4", label: "Heading 4", tag: "H4", badge: "18px" },
   { value: "blockquote", label: "Quote / Excerpt", tag: "❝", badge: "Quote" },
   { value: "pre", label: "Code Block", tag: "</>", badge: "Code" },
 ];
+
+export const HEADING_FONT_SIZES: Record<string, number> = {
+  h1: 36,
+  h2: 28,
+  h3: 22,
+  h4: 18,
+  p: 17,
+  blockquote: 17,
+  pre: 14,
+};
 
 const FONT_OPTIONS = [
   { value: "Default", label: "Default Font ↕" },
@@ -28,7 +38,7 @@ const FONT_OPTIONS = [
   { value: "Verdana, sans-serif", label: "Verdana" },
 ];
 
-const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
+const FONT_SIZES = [10, 12, 14, 16, 17, 18, 20, 22, 24, 28, 32, 36, 48];
 
 const TEXT_COLORS = [
   { name: "Blog Vellum (Heading)", value: "#ede7da" },
@@ -64,7 +74,7 @@ export function RichBlogContentEditor({
   onOpenMediaPicker,
 }: RichBlogContentEditorProps) {
   const [mode, setMode] = useState<"visual" | "html" | "preview">("visual");
-  const [fontSize, setFontSize] = useState<number>(18);
+  const [fontSize, setFontSize] = useState<number>(17);
   const [selectedFormat, setSelectedFormat] = useState<string>("p");
   const [selectedFont, setSelectedFont] = useState<string>("Default");
   const [editorHeight, setEditorHeight] = useState<"compact" | "default" | "expanded">("default");
@@ -220,10 +230,12 @@ export function RichBlogContentEditor({
   // Update active format state based on cursor position
   const updateActiveFormat = useCallback((range: Range) => {
     const block = getBlockElementAtNode(range.startContainer);
+    let currentTag = "p";
     if (block) {
       const tag = block.tagName.toLowerCase();
       if (["h1", "h2", "h3", "h4", "blockquote", "pre", "p"].includes(tag)) {
         setSelectedFormat(tag);
+        currentTag = tag;
       }
     } else {
       setSelectedFormat("p");
@@ -248,6 +260,8 @@ export function RichBlogContentEditor({
       if (parentElem.style.fontSize) {
         const sz = parseInt(parentElem.style.fontSize, 10);
         if (!isNaN(sz)) setFontSize(sz);
+      } else {
+        setFontSize(HEADING_FONT_SIZES[currentTag] || 17);
       }
     }
   }, [getBlockElementAtNode]);
@@ -297,10 +311,49 @@ export function RichBlogContentEditor({
     saveSelection();
   };
 
+  // Clean child inline font-size styles so the heading tag's automatic font size takes full effect
+  const cleanChildFontSizes = (elem: HTMLElement) => {
+    // 0. Clean inline font-size directly on elem itself
+    if (elem.style.fontSize) {
+      elem.style.fontSize = "";
+      if (!elem.getAttribute("style") || elem.getAttribute("style")?.trim() === "") {
+        elem.removeAttribute("style");
+      }
+    }
+
+    // 1. Spans with inline font-size or fontSize
+    const styledSpans = elem.querySelectorAll<HTMLElement>("span[style*='font-size'], span[style*='fontSize']");
+    styledSpans.forEach((span) => {
+      span.style.fontSize = "";
+      if (!span.getAttribute("style") || span.getAttribute("style")?.trim() === "") {
+        span.removeAttribute("style");
+      }
+      // If span has no attributes left, unwrap its contents
+      if (!span.hasAttributes()) {
+        const parent = span.parentNode;
+        if (parent) {
+          while (span.firstChild) {
+            parent.insertBefore(span.firstChild, span);
+          }
+          span.remove();
+        }
+      }
+    });
+
+    // 2. Deprecated <font size="..."> tags
+    const fontTags = elem.querySelectorAll<HTMLElement>("font[size]");
+    fontTags.forEach((f) => {
+      f.removeAttribute("size");
+    });
+  };
+
   // Convert a single DOM block into newTag cleanly
   const convertSingleCleanBlock = (block: HTMLElement, newTag: string): HTMLElement => {
     const currentTag = block.tagName.toLowerCase();
-    if (currentTag === newTag) return block;
+    if (currentTag === newTag) {
+      cleanChildFontSizes(block);
+      return block;
+    }
 
     const newElem = document.createElement(newTag);
     while (block.firstChild) {
@@ -311,19 +364,43 @@ export function RichBlogContentEditor({
       newElem.innerHTML = "<br>";
     }
 
+    // Clean inline font-size on child spans/fonts so the new tag's heading font-size automatically applies
+    cleanChildFontSizes(newElem);
+
     if (block.parentNode) {
       block.parentNode.replaceChild(newElem, block);
     }
     return newElem;
   };
 
-  // Split a block by <br> tags so each line becomes an independent paragraph
+  // Split a block by <br> tags only if it contains multiple lines separated by internal <br>
   const splitBlockByBr = (block: HTMLElement): HTMLElement[] => {
     const parent = block.parentNode;
     if (!parent) return [block];
 
+    const childNodes = Array.from(block.childNodes);
+    if (childNodes.length === 0) return [block];
+
+    // Filter out trailing <br> if it's at the end of the block
+    const effectiveNodes = [...childNodes];
+    while (
+      effectiveNodes.length > 0 &&
+      effectiveNodes[effectiveNodes.length - 1].nodeName.toLowerCase() === "br"
+    ) {
+      if (effectiveNodes.length === 1) {
+        return [block];
+      }
+      effectiveNodes.pop();
+    }
+
+    // Check if there are any remaining <br> tags separating content
+    const hasInternalBr = effectiveNodes.some((n) => n.nodeName.toLowerCase() === "br");
+    if (!hasInternalBr) {
+      return [block];
+    }
+
     const lines: Node[][] = [[]];
-    Array.from(block.childNodes).forEach((child) => {
+    effectiveNodes.forEach((child) => {
       if (child.nodeName.toLowerCase() === "br") {
         lines.push([]);
       } else {
@@ -372,12 +449,27 @@ export function RichBlogContentEditor({
     let currentInlineNodes: Node[] = [];
     const wrapInP = (nodes: Node[]) => {
       if (nodes.length === 0) return;
-      const p = document.createElement("p");
-      nodes.forEach((n) => p.appendChild(n));
-      if (p.childNodes.length === 0) {
-        p.appendChild(document.createElement("br"));
+
+      // If these nodes are solely whitespace and editor already has other block elements, remove them instead of wrapping
+      const isPureWhitespace = nodes.every(
+        (n) => n.nodeType === Node.TEXT_NODE && (!n.textContent || n.textContent.trim() === "")
+      );
+      if (isPureWhitespace && editor.childNodes.length > nodes.length) {
+        nodes.forEach((n) => {
+          if (n.parentNode === editor) editor.removeChild(n);
+        });
+        return;
       }
-      editor.insertBefore(p, nodes[0]);
+
+      const refNode = nodes[0];
+      if (!refNode.parentNode || refNode.parentNode !== editor) return;
+      const p = document.createElement("p");
+      // CRITICAL FIX: Insert p into editor BEFORE moving refNode into p
+      editor.insertBefore(p, refNode);
+      nodes.forEach((n) => p.appendChild(n));
+      if (p.childNodes.length === 0 || (!p.textContent?.trim() && !p.querySelector("img, svg, iframe, br"))) {
+        p.innerHTML = "<br>";
+      }
     };
 
     children.forEach((child) => {
@@ -422,21 +514,29 @@ export function RichBlogContentEditor({
     normalizeRootBlocks();
 
     const editor = visualEditorRef.current;
+    let finalAppliedTag = targetTag;
 
     const convertBlock = (block: HTMLElement, newTag: string): HTMLElement => {
       const currentTag = block.tagName.toLowerCase();
       const effectiveTag = currentTag === newTag && newTag !== "p" ? "p" : newTag;
+      finalAppliedTag = effectiveTag;
 
-      if (block.querySelector("br") && !["pre"].includes(currentTag)) {
+      if (!["pre"].includes(currentTag)) {
         const splitBlocks = splitBlockByBr(block);
-        let targetSubBlock = splitBlocks[0];
-        for (const sb of splitBlocks) {
-          if (sel.containsNode(sb, true)) {
-            targetSubBlock = sb;
-            break;
+        if (splitBlocks.length > 1) {
+          let targetSubBlock = splitBlocks[0];
+          for (const sb of splitBlocks) {
+            try {
+              if (sel && typeof sel.containsNode === "function" && sel.containsNode(sb, true)) {
+                targetSubBlock = sb;
+                break;
+              }
+            } catch {
+              // ignore
+            }
           }
+          return convertSingleCleanBlock(targetSubBlock, effectiveTag);
         }
-        return convertSingleCleanBlock(targetSubBlock, effectiveTag);
       }
 
       return convertSingleCleanBlock(block, effectiveTag);
@@ -459,7 +559,8 @@ export function RichBlogContentEditor({
         setCursorToEnd(newBlock);
       }
       handleVisualInput();
-      setSelectedFormat(targetTag);
+      setSelectedFormat(finalAppliedTag);
+      setFontSize(HEADING_FONT_SIZES[finalAppliedTag] || 17);
       setFormatMenuOpen(false);
       return;
     }
@@ -481,7 +582,8 @@ export function RichBlogContentEditor({
     }
 
     handleVisualInput();
-    setSelectedFormat(targetTag);
+    setSelectedFormat(finalAppliedTag);
+    setFontSize(HEADING_FONT_SIZES[finalAppliedTag] || 17);
     setFormatMenuOpen(false);
   };
 
@@ -517,6 +619,7 @@ export function RichBlogContentEditor({
           sel.addRange(newRange);
           savedRangeRef.current = newRange.cloneRange();
           setSelectedFormat("p");
+          setFontSize(17);
           handleVisualInput();
         } else {
           const afterRange = range.cloneRange();
@@ -538,6 +641,7 @@ export function RichBlogContentEditor({
           sel.addRange(newRange);
           savedRangeRef.current = newRange.cloneRange();
           setSelectedFormat("p");
+          setFontSize(17);
           handleVisualInput();
         }
       }
@@ -1805,22 +1909,12 @@ export function RichBlogContentEditor({
               onPaste={handlePaste}
               onKeyUp={saveSelection}
               onMouseUp={saveSelection}
-              className={`prose max-w-none min-h-[340px] leading-[1.8] focus:outline-none text-[1.05rem] ${
+              className={`blog-editor-content blog-rich-content prose max-w-none min-h-[340px] leading-[1.8] focus:outline-none text-[1.05rem] ${
                 canvasTheme === "dark"
-                  ? "prose-invert text-[#D7D9E0] font-sans [&_h1]:font-display [&_h1]:text-[2.2rem] [&_h1]:font-light [&_h1]:text-[#ede7da] [&_h1]:tracking-tight [&_h1]:mt-8 [&_h1]:mb-4 [&_h1]:border-b [&_h1]:border-white/10 [&_h1]:pb-2 [&_h2]:font-display [&_h2]:text-[1.8rem] [&_h2]:font-light [&_h2]:text-[#ede7da] [&_h2]:tracking-tight [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:font-display [&_h3]:text-[1.4rem] [&_h3]:font-light [&_h3]:text-[#ede7da] [&_h3]:mt-5 [&_h3]:mb-2 [&_h4]:font-display [&_h4]:text-[1.15rem] [&_h4]:font-medium [&_h4]:text-[#c9992e] [&_h4]:mt-4 [&_h4]:mb-1.5 [&_p]:my-3.5 [&_p]:leading-[1.8] [&_p]:text-[#D7D9E0] [&_blockquote]:border-l-2 [&_blockquote]:border-[#c9992e] [&_blockquote]:bg-[#c9992e]/10 [&_blockquote]:pl-5 [&_blockquote]:py-2 [&_blockquote]:italic [&_blockquote]:text-[#E0C9A6] [&_blockquote]:my-6 [&_blockquote]:rounded-r-lg [&_pre]:bg-[#030712] [&_pre]:border [&_pre]:border-white/10 [&_pre]:text-[#38bdf8] [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:font-mono [&_pre]:text-sm [&_pre]:my-4 [&_pre]:overflow-x-auto [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_li]:my-1 [&_a]:text-[#e8ce8c] [&_a]:underline [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:border [&_table]:border-white/20 [&_th]:border [&_th]:border-white/20 [&_th]:bg-white/10 [&_th]:p-2.5 [&_th]:text-left [&_th]:font-semibold [&_th]:text-white [&_td]:border [&_td]:border-white/10 [&_td]:p-2.5 [&_hr]:my-6 [&_hr]:border-[rgba(237,231,218,0.15)]"
-                  : "text-[#1e293b] font-sans [&_h1]:text-[2.2rem] [&_h1]:font-bold [&_h1]:text-[#0f172a] [&_h1]:tracking-tight [&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:border-b [&_h1]:border-slate-100 [&_h1]:pb-2 [&_h2]:text-[1.75rem] [&_h2]:font-bold [&_h2]:text-[#0f172a] [&_h2]:tracking-tight [&_h2]:mt-5 [&_h2]:mb-2.5 [&_h3]:text-[1.35rem] [&_h3]:font-bold [&_h3]:text-[#1e293b] [&_h3]:mt-4 [&_h3]:mb-2 [&_h4]:text-[1.12rem] [&_h4]:font-semibold [&_h4]:text-[#334155] [&_h4]:mt-3 [&_h4]:mb-1.5 [&_p]:my-2.5 [&_p]:leading-[1.8] [&_blockquote]:border-l-4 [&_blockquote]:border-[#c91d24] [&_blockquote]:bg-red-50/40 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:italic [&_blockquote]:text-[#475569] [&_blockquote]:my-4 [&_blockquote]:rounded-r-lg [&_pre]:bg-[#0f172a] [&_pre]:text-[#38bdf8] [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:font-mono [&_pre]:text-sm [&_pre]:my-4 [&_pre]:overflow-x-auto [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_li]:my-1 [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:border [&_table]:border-slate-300 [&_th]:border [&_th]:border-slate-300 [&_th]:bg-slate-100 [&_th]:p-2.5 [&_th]:text-left [&_th]:font-semibold [&_td]:border [&_td]:border-slate-300 [&_td]:p-2.5 [&_hr]:my-6 [&_hr]:border-slate-200"
+                  ? "theme-blog-dark prose-invert text-[#D7D9E0] font-sans"
+                  : "text-[#1e293b] font-sans"
               }`}
             />
-            {(!content || content === "<p><br></p>" || content === "<br>") && (
-              <div
-                onClick={() => visualEditorRef.current?.focus()}
-                className={`pointer-events-none absolute left-12 top-12 italic text-[1.05rem] ${
-                  canvasTheme === "dark" ? "text-[#8a93a8]" : "text-[#94a3b8]"
-                }`}
-              >
-                Write your blog content here... Live blog dark theme matches your frontend layout.
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -1859,7 +1953,7 @@ export function RichBlogContentEditor({
               Preview Mode · Live Article Layout
             </span>
             <div
-              className="prose prose-invert max-w-none text-[#d7d9e0] text-[1.05rem] leading-[1.8] [&_h1]:text-[#ede7da] [&_h1]:font-display [&_h2]:text-[#ede7da] [&_h2]:font-display [&_h3]:text-[#ede7da] [&_h3]:font-display [&_a]:text-[#e8ce8c] [&_blockquote]:border-l-2 [&_blockquote]:border-[#c9992e] [&_blockquote]:pl-4 [&_blockquote]:italic"
+              className="blog-rich-content prose prose-invert max-w-none text-[#d7d9e0] text-[1.05rem] leading-[1.8]"
               dangerouslySetInnerHTML={{ __html: content || "<p className='text-dim italic'>No content written yet.</p>" }}
             />
           </div>

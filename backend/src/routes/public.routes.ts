@@ -21,11 +21,15 @@ publicRouter.get("/geo", asyncHandler(publicController.getGeoLocation));
 publicRouter.post("/coupons/validate", asyncHandler(couponController.validate));
 publicRouter.post("/orders/checkout", asyncHandler(publicController.checkout));
 publicRouter.post("/orders/razorpay/create", asyncHandler(publicController.createBookRazorpayOrder));
+publicRouter.post("/orders/stripe/create-session", asyncHandler(publicController.createBookStripeSession));
+publicRouter.post("/orders/stripe/verify", asyncHandler(publicController.verifyBookStripeSession));
 
-// Public Consultations & Razorpay Booking
+// Public Consultations & Booking (Stripe + Razorpay)
 publicRouter.get("/consultations/packages", asyncHandler(consultationController.getPackages));
 publicRouter.post("/consultations/book", asyncHandler(consultationController.createBookingOrder));
 publicRouter.post("/consultations/verify-payment", asyncHandler(consultationController.verifyPayment));
+publicRouter.post("/consultations/stripe/create-session", asyncHandler(consultationController.createStripeBookingSession));
+publicRouter.post("/consultations/stripe/verify", asyncHandler(consultationController.verifyStripePayment));
 
 // Public Customer Account & Portal
 publicRouter.post("/customer/login", asyncHandler(customerAuthController.login));

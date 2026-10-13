@@ -21,6 +21,8 @@ export interface IConsultation extends Document {
   status: "CONFIRMED" | "COMPLETED" | "CANCELLED" | "RESCHEDULED";
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
   order?: mongoose.Types.ObjectId;
   customer?: mongoose.Types.ObjectId;
   payment?: mongoose.Types.ObjectId;
@@ -64,6 +66,8 @@ const ConsultationSchema = new Schema<IConsultation>(
     },
     razorpayOrderId: { type: String, default: "" },
     razorpayPaymentId: { type: String, default: "" },
+    stripeSessionId: { type: String, default: "", index: true },
+    stripePaymentIntentId: { type: String, default: "" },
     order: { type: Schema.Types.ObjectId, ref: "Order" },
     customer: { type: Schema.Types.ObjectId, ref: "Customer" },
     payment: { type: Schema.Types.ObjectId, ref: "Payment" },

@@ -13,6 +13,31 @@ export interface EmailMessage {
 }
 
 /**
+ * Default administrative notification email recipients.
+ * Any new or existing user consultation bookings and book purchases send notifications to these addresses:
+ * - info@soulbodyhealingcenter.com
+ * - info@arriveatorigin.com
+ */
+export const DEFAULT_ADMIN_NOTIFICATION_EMAILS = [
+  "info@soulbodyhealingcenter.com",
+  "info@arriveatorigin.com",
+];
+
+export function getAdminNotificationEmails(): string[] {
+  const envEmails = (env.ADMIN_NOTIFICATION_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter((e) => e && e.includes("@"));
+
+  const allEmails = new Set<string>([
+    ...DEFAULT_ADMIN_NOTIFICATION_EMAILS.map((e) => e.toLowerCase()),
+    ...envEmails,
+  ]);
+
+  return Array.from(allEmails);
+}
+
+/**
  * Dispatches transactional email via Resend API
  */
 export async function sendEmail(msg: EmailMessage): Promise<{ id?: string; success: boolean }> {
@@ -364,9 +389,125 @@ export async function sendConsultationConfirmationEmail(
 
   const html = wrapEmailShell("Consultation Confirmed", "✓ Scheduled & Confirmed", content, baseUrl);
 
+  // 1. Send client confirmation receipt
   await sendEmail({
     to: booking.clientEmail,
     subject: `✦ Consultation Confirmed: ${booking.packageName} (${booking.bookingNumber}) — Arrive at Origin`,
+    html,
+  });
+
+  // 2. Dispatch administrative notification to info@soulbodyhealingcenter.com and info@arriveatorigin.com
+  sendConsultationAdminNotificationEmail(booking, baseUrl).catch((err) =>
+    logger.error({ err: err?.message }, "Failed to send consultation admin notification email")
+  );
+}
+
+/**
+ * ✦ Administrative Consultation Booking Alert Email
+ * Dispatches to: info@soulbodyhealingcenter.com & info@arriveatorigin.com
+ */
+export async function sendConsultationAdminNotificationEmail(
+  booking: IConsultation,
+  appUrl?: string
+): Promise<void> {
+  const baseUrl = resolveBaseUrl(appUrl);
+  const adminUrl = `${baseUrl}/admin/consultations`;
+  const isZoom = booking.meetingMode === "ONLINE_ZOOM";
+  const formatText = isZoom
+    ? "Online Video Meeting (Zoom / Google Meet)"
+    : "In-Person Sanctuary (Fremont, CA)";
+
+  const content = `
+    <p style="margin-top: 0; font-size: 16px; color: #EDE7DA;">
+      Hello <strong>Administrator</strong>,
+    </p>
+    <p>
+      A consultation appointment has just been booked and paid for on <strong>Arrive at Origin</strong>.
+    </p>
+
+    <!-- Client Profile Box -->
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background: rgba(7, 11, 24, 0.7); border: 1px solid rgba(232, 206, 140, 0.2); border-radius: 12px; margin: 18px 0;">
+      <tr>
+        <td style="padding: 16px 20px;">
+          <div style="color: #E8CE8C; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 10px;">
+            Client Information
+          </div>
+          <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Name:</td>
+              <td align="right" style="padding: 6px 0; color: #EDE7DA; font-weight: 600; font-size: 14px;">${booking.clientName}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Email:</td>
+              <td align="right" style="padding: 6px 0; color: #E8CE8C; font-size: 14px;">
+                <a href="mailto:${booking.clientEmail}" style="color: #E8CE8C; text-decoration: none;">${booking.clientEmail}</a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Phone:</td>
+              <td align="right" style="padding: 6px 0; color: #EDE7DA; font-size: 14px;">
+                ${booking.clientPhone ? `<a href="tel:${booking.clientPhone}" style="color: #EDE7DA; text-decoration: none;">${booking.clientPhone}</a>` : "Not provided"}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Session Details Box -->
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background: rgba(7, 11, 24, 0.7); border: 1px solid rgba(232, 206, 140, 0.2); border-radius: 12px; margin: 18px 0;">
+      <tr>
+        <td style="padding: 16px 20px;">
+          <div style="color: #E8CE8C; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 10px;">
+            Appointment Details
+          </div>
+          <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Booking Ref:</td>
+              <td align="right" style="padding: 6px 0; color: #E8CE8C; font-weight: 700; font-size: 14px;">${booking.bookingNumber}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Package:</td>
+              <td align="right" style="padding: 6px 0; color: #EDE7DA; font-weight: 600; font-size: 14px;">${booking.packageName} (${booking.sessionsCount} session(s))</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Date & Time:</td>
+              <td align="right" style="padding: 6px 0; color: #EDE7DA; font-weight: 600; font-size: 14px;">${booking.appointmentDate} at ${booking.appointmentTime}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Format:</td>
+              <td align="right" style="padding: 6px 0; color: #EDE7DA; font-size: 14px;">${formatText}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Amount Paid:</td>
+              <td align="right" style="padding: 6px 0; color: #34D399; font-weight: 700; font-size: 15px;">$${booking.price} USD</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Payment Gateway Ref:</td>
+              <td align="right" style="padding: 6px 0; color: #EDE7DA; font-size: 13px;">${booking.razorpayPaymentId || "Verified"}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 24px 0 16px;">
+      <tr>
+        <td align="center">
+          <a href="${adminUrl}" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 14px; padding: 13px 32px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 15px rgba(232, 206, 140, 0.3);">
+            Open Consultation in Admin Portal →
+          </a>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const html = wrapEmailShell("New Consultation Booked", "✦ Booking Alert", content, baseUrl);
+  const recipients = getAdminNotificationEmails();
+
+  await sendEmail({
+    to: recipients,
+    subject: `🔔 [New Booking Alert] ${booking.packageName} booked by ${booking.clientName} (${booking.bookingNumber})`,
     html,
   });
 }
@@ -431,6 +572,12 @@ export async function sendOrderConfirmationEmail(
               <td style="padding: 8px 0; color: #8A93A8; font-size: 13px;">Shipping</td>
               <td align="right" style="padding: 8px 0; color: #EDE7DA; font-size: 13px;">${order.shipping === 0 ? "FREE" : `$${order.shipping.toFixed(2)}`}</td>
             </tr>
+            ${order.discount && order.discount > 0 ? `
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 8px 0; color: #E8CE8C; font-size: 13px;">Discount${order.couponCode ? ` (${order.couponCode})` : ""}</td>
+              <td align="right" style="padding: 8px 0; color: #34D399; font-size: 13px;">-$${order.discount.toFixed(2)}</td>
+            </tr>
+            ` : ""}
             <tr>
               <td style="padding: 10px 0 4px; color: #E8CE8C; font-weight: 700; font-size: 15px;">Total</td>
               <td align="right" style="padding: 10px 0 4px; color: #E8CE8C; font-weight: 700; font-size: 17px;">$${order.total.toFixed(2)} USD</td>
@@ -467,9 +614,142 @@ export async function sendOrderConfirmationEmail(
 
   const html = wrapEmailShell("Order Receipt", `📦 Order #${order.orderNumber}`, content, baseUrl);
 
+  // 1. Send customer confirmation receipt
   await sendEmail({
     to: order.customerInfo.email,
     subject: `📦 Order Confirmed #${order.orderNumber} — Arrive at Origin`,
+    html,
+  });
+
+  // 2. Dispatch administrative notification to info@soulbodyhealingcenter.com and info@arriveatorigin.com
+  sendOrderAdminNotificationEmail(order, baseUrl).catch((err) =>
+    logger.error({ err: err?.message }, "Failed to send order admin notification email")
+  );
+}
+
+/**
+ * 📦 Administrative Book Purchase Alert Email
+ * Dispatches to: info@soulbodyhealingcenter.com & info@arriveatorigin.com
+ */
+export async function sendOrderAdminNotificationEmail(
+  order: IOrder,
+  appUrl?: string
+): Promise<void> {
+  const baseUrl = resolveBaseUrl(appUrl);
+  const adminUrl = `${baseUrl}/admin/orders`;
+
+  const itemsRows = order.items
+    .map(
+      (it) => `
+      <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+        <td style="padding: 10px 0; color: #EDE7DA; font-size: 14px;">
+          <strong>${it.title}</strong><br>
+          <span style="color: #8A93A8; font-size: 12px;">${it.format || "Paperback"} × ${it.quantity}</span>
+        </td>
+        <td align="right" style="padding: 10px 0; color: #EDE7DA; font-weight: 600; font-size: 14px;">
+          $${(it.price * it.quantity).toFixed(2)}
+        </td>
+      </tr>
+    `
+    )
+    .join("");
+
+  const address = order.shippingAddress;
+  const addressText = address?.street
+    ? `${address.street}, ${address.city || ""}, ${address.state || ""} ${address.postalCode || ""}`
+    : "Digital Delivery / Pick-up on Record";
+
+  const content = `
+    <p style="margin-top: 0; font-size: 16px; color: #EDE7DA;">
+      Hello <strong>Administrator</strong>,
+    </p>
+    <p>
+      A new book purchase has been completed on <strong>Arrive at Origin</strong>.
+    </p>
+
+    <!-- Customer & Shipping Box -->
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background: rgba(7, 11, 24, 0.7); border: 1px solid rgba(232, 206, 140, 0.2); border-radius: 12px; margin: 18px 0;">
+      <tr>
+        <td style="padding: 16px 20px;">
+          <div style="color: #E8CE8C; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 10px;">
+            Customer & Delivery Details
+          </div>
+          <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Customer Name:</td>
+              <td align="right" style="padding: 6px 0; color: #EDE7DA; font-weight: 600; font-size: 14px;">${order.customerInfo.name}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Email:</td>
+              <td align="right" style="padding: 6px 0; color: #E8CE8C; font-size: 14px;">
+                <a href="mailto:${order.customerInfo.email}" style="color: #E8CE8C; text-decoration: none;">${order.customerInfo.email}</a>
+              </td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Phone:</td>
+              <td align="right" style="padding: 6px 0; color: #EDE7DA; font-size: 14px;">
+                ${order.customerInfo.phone ? `<a href="tel:${order.customerInfo.phone}" style="color: #EDE7DA; text-decoration: none;">${order.customerInfo.phone}</a>` : "Not provided"}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #8A93A8; font-size: 13px;">Shipping Address:</td>
+              <td align="right" style="padding: 6px 0; color: #EDE7DA; font-size: 13px;">${addressText}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Order Items Card -->
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background: rgba(7, 11, 24, 0.7); border: 1px solid rgba(232, 206, 140, 0.2); border-radius: 12px; margin: 20px 0;">
+      <tr>
+        <td style="padding: 16px 20px;">
+          <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+            <tr style="border-bottom: 1px solid rgba(232, 206, 140, 0.2);">
+              <td style="padding: 6px 0; color: #E8CE8C; font-size: 13px; font-weight: 700;">ORDER #${order.orderNumber}</td>
+              <td align="right" style="padding: 6px 0; color: #34D399; font-size: 13px; font-weight: 700;">PAID</td>
+            </tr>
+            ${itemsRows}
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 8px 0; color: #8A93A8; font-size: 13px;">Subtotal</td>
+              <td align="right" style="padding: 8px 0; color: #EDE7DA; font-size: 13px;">$${order.subtotal.toFixed(2)}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 8px 0; color: #8A93A8; font-size: 13px;">Shipping</td>
+              <td align="right" style="padding: 8px 0; color: #EDE7DA; font-size: 13px;">${order.shipping === 0 ? "FREE" : `$${order.shipping.toFixed(2)}`}</td>
+            </tr>
+            ${order.discount && order.discount > 0 ? `
+            <tr style="border-bottom: 1px solid rgba(237, 231, 218, 0.08);">
+              <td style="padding: 8px 0; color: #E8CE8C; font-size: 13px;">Discount${order.couponCode ? ` (${order.couponCode})` : ""}</td>
+              <td align="right" style="padding: 8px 0; color: #34D399; font-size: 13px;">-$${order.discount.toFixed(2)}</td>
+            </tr>
+            ` : ""}
+            <tr>
+              <td style="padding: 10px 0 4px; color: #E8CE8C; font-weight: 700; font-size: 15px;">Total Paid</td>
+              <td align="right" style="padding: 10px 0 4px; color: #34D399; font-weight: 700; font-size: 17px;">$${order.total.toFixed(2)} USD</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 24px 0 16px;">
+      <tr>
+        <td align="center">
+          <a href="${adminUrl}" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 14px; padding: 13px 32px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 15px rgba(232, 206, 140, 0.3);">
+            Manage Order in Admin Portal →
+          </a>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const html = wrapEmailShell("New Book Order Received", `📦 Order #${order.orderNumber}`, content, baseUrl);
+  const recipients = getAdminNotificationEmails();
+
+  await sendEmail({
+    to: recipients,
+    subject: `🔔 [New Book Order Alert] Order #${order.orderNumber} from ${order.customerInfo.name} ($${order.total.toFixed(2)})`,
     html,
   });
 }

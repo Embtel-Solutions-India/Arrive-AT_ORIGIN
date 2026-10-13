@@ -4,6 +4,7 @@ import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import Reveal from "../components/landing/Reveal";
+import StripeCheckoutModal from "../components/payment/StripeCheckoutModal";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { apiUrl } from "../utils/api";
 
@@ -146,11 +147,48 @@ function Schedule() {
   const [couponError, setCouponError] = useState("");
   const [couponSuccess, setCouponSuccess] = useState("");
 
+  // Stripe Popup Modal State
+  const [stripeModalOpen, setStripeModalOpen] = useState(false);
+  const [stripeClientSecret, setStripeClientSecret] = useState(null);
+  const [stripePublishableKey, setStripePublishableKey] = useState("");
+
   const discount = appliedCoupon ? Number(appliedCoupon.discountAmount || 0) : 0;
   const finalPrice = Math.max(0, Number((selectedPackage.price - discount).toFixed(2)));
 
   useEffect(() => {
     window.scrollTo(0, 0);
+
+    // Check if returning from Stripe Checkout with session_id
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    const bookingSuccess = params.get("booking_success");
+    const bookingNumber = params.get("bookingNumber");
+
+    if (bookingSuccess && sessionId) {
+      setLoading(true);
+      fetch(apiUrl("/public/consultations/stripe/verify"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, bookingNumber }),
+      })
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.success && json.data?.booking) {
+            setConfirmedBooking(json.data.booking);
+            setIsModalOpen(true);
+            if (json.data.customer && json.data.customerToken) {
+              autoLogin(json.data.customer, json.data.customerToken);
+            }
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to verify Stripe consultation session", err);
+        })
+        .finally(() => {
+          setLoading(false);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        });
+    }
 
     // Fetch dynamic packages from backend API
     fetch(apiUrl("/public/consultations/packages"))
@@ -166,7 +204,7 @@ function Schedule() {
       .catch(() => {
         // Fallback to default packages
       });
-  }, []);
+  }, [autoLogin]);
 
   const openBookingModal = (pkg) => {
     setSelectedPackage(pkg);
@@ -242,8 +280,8 @@ function Schedule() {
     setErrorMsg("");
 
     try {
-      // 1. Initialize booking & create Razorpay order on backend
-      const res = await fetch(apiUrl("/public/consultations/book"), {
+      // 1. Initialize booking & create Stripe Checkout Session on backend
+      const res = await fetch(apiUrl("/public/consultations/stripe/create-session"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -264,74 +302,23 @@ function Schedule() {
         throw new Error(json.message || "Unable to initiate consultation booking.");
       }
 
-      const orderData = json.data;
-
-      // 2. Ensure Razorpay checkout script is available
-      if (typeof window.Razorpay === "undefined") {
-        throw new Error("Razorpay payment gateway is loading. Please try again in a moment.");
+      if (json.data?.clientSecret) {
+        setStripeClientSecret(json.data.clientSecret);
+        setStripePublishableKey(
+          json.data.stripePublishableKey || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ""
+        );
+        setStripeModalOpen(true);
+        setIsModalOpen(false);
+        setLoading(false);
+        return;
       }
 
-      // 3. Configure and open Razorpay Checkout modal
-      const options = {
-        key: orderData.keyId || razorpayKeyId,
-        amount: orderData.amount,
-        currency: orderData.currency || "USD",
-        name: "Soul Body Healing Center",
-        description: `${selectedPackage.name} (${selectedPackage.meetingType})`,
-        image: "/favicon.svg",
-        order_id: orderData.razorpayOrderId,
-        prefill: {
-          name: clientName,
-          email: clientEmail,
-          contact: clientPhone,
-        },
-        theme: {
-          color: "#C9992E", // Gold brand accent
-        },
-        modal: {
-          ondismiss: function () {
-            setLoading(false);
-          },
-        },
-        handler: async function (response) {
-          try {
-            setLoading(true);
-            // 4. Verify payment signature on backend
-            const verifyRes = await fetch(apiUrl("/public/consultations/verify-payment"), {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                bookingNumber: orderData.bookingNumber,
-              }),
-            });
+      if (json.data?.sessionUrl) {
+        window.location.href = json.data.sessionUrl;
+        return;
+      }
 
-            const verifyJson = await verifyRes.json();
-            if (!verifyRes.ok || !verifyJson.success) {
-              throw new Error(verifyJson.message || "Payment signature verification failed.");
-            }
-
-            setConfirmedBooking(verifyJson.data.booking);
-            if (verifyJson.data.customer && verifyJson.data.customerToken) {
-              autoLogin(verifyJson.data.customer, verifyJson.data.customerToken);
-            }
-          } catch (verifyErr) {
-            setErrorMsg(verifyErr.message || "Payment verification failed. Please contact support.");
-          } finally {
-            setLoading(false);
-          }
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", function (response) {
-        setErrorMsg(response.error?.description || "Payment was declined. Please try again.");
-        setLoading(false);
-      });
-
-      rzp.open();
+      throw new Error("No checkout URL or client secret returned by Stripe gateway.");
     } catch (err) {
       setErrorMsg(err.message || "An unexpected error occurred during booking.");
       setLoading(false);
@@ -359,7 +346,7 @@ function Schedule() {
             <p className="text-[#C6CBD8]">
               Embark on your journey towards inner harmony, mental clarity, and spiritual resonance.
               Choose from our curated 1-on-1 consultations or comprehensive multi-session series.
-              Every meeting is priced accordingly and processed through our verified, secure Razorpay gateway.
+              Every meeting is priced accordingly and processed through our verified, secure Stripe gateway.
             </p>
           </Reveal>
 
@@ -489,7 +476,7 @@ function Schedule() {
                 </div>
 
                 <span className="text-[0.75rem] font-bold tracking-widest text-emerald-400 uppercase">
-                  Payment Verified via Razorpay
+                  Payment Verified via Stripe
                 </span>
                 <h2 className="font-display text-2xl sm:text-3xl text-vellum mt-1 mb-2">
                   Consultation Confirmed!
@@ -593,7 +580,7 @@ function Schedule() {
                     Book Consultation Meeting
                   </h2>
                   <p className="text-[0.88rem] text-dim mt-1">
-                    Select your preferred meeting format, date, and complete payment via Razorpay.
+                    Select your preferred meeting format, date, and complete payment via Stripe.
                   </p>
                 </div>
 
@@ -866,7 +853,7 @@ function Schedule() {
                     </div>
                   )}
 
-                  {/* Pay with Razorpay Button */}
+                  {/* Pay with Stripe Button */}
                   <div>
                     <button
                       type="submit"
@@ -879,11 +866,11 @@ function Schedule() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
-                          <span>Processing Razorpay Portal…</span>
+                          <span>Processing Stripe Checkout…</span>
                         </>
                       ) : (
                         <>
-                          <span>Pay ${finalPrice.toFixed(2)} via Razorpay & Confirm</span>
+                          <span>Pay ${finalPrice.toFixed(2)} via Stripe & Confirm</span>
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                           </svg>
@@ -893,7 +880,7 @@ function Schedule() {
                     <div className="mt-2.5 flex items-center justify-center gap-2 text-[0.74rem] text-dim">
                       <span>🔒 256-bit Encrypted Checkout</span>
                       <span>•</span>
-                      <span>Verified Razorpay Gateway</span>
+                      <span>Verified Stripe Gateway</span>
                     </div>
                   </div>
                 </form>
@@ -902,6 +889,22 @@ function Schedule() {
           </div>
         </div>
       )}
+
+      {/* Stripe Popup Modal */}
+      <StripeCheckoutModal
+        isOpen={stripeModalOpen}
+        onClose={() => {
+          setStripeModalOpen(false);
+          setIsModalOpen(true);
+        }}
+        clientSecret={stripeClientSecret}
+        publishableKey={stripePublishableKey}
+        title="Consultation Booking Checkout"
+        subtitle="Complete your payment safely with Stripe"
+        amount={finalPrice}
+        currency={selectedPackage.currency || "USD"}
+        itemSummary={`${selectedPackage.name} • ${appointmentDate} at ${appointmentTime}`}
+      />
 
       <SiteFooter />
     </div>

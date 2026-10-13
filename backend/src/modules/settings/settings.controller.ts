@@ -84,11 +84,11 @@ const DEFAULT_SESSIONS = {
 
 const DEFAULT_PAYMENTS = {
   stripe: {
-    active: false,
-    mode: "test", // "test" | "live"
-    publishableKey: "pk_test_placeholder_key",
-    secretKey: "",
-    webhookSecret: "",
+    active: true,
+    mode: "live", // "test" | "live"
+    publishableKey: env.STRIPE_PUBLISHABLE_KEY || "",
+    secretKey: env.STRIPE_SECRET_KEY || "",
+    webhookSecret: env.STRIPE_WEBHOOK_SECRET || "",
     currency: "USD",
   },
   razorpay: {
@@ -108,7 +108,7 @@ const DEFAULT_PAYMENTS = {
     currency: "USD",
   },
   rules: {
-    defaultGateway: "razorpay",
+    defaultGateway: "stripe",
     allowMultipleGateways: true,
     currency: "USD",
     taxPercentage: 0,

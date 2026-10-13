@@ -592,7 +592,7 @@ export function BlogEditorPage() {
             <img src={featuredImage} alt={title} className="w-full h-64 object-cover rounded-xl" />
           )}
           <div
-            className="prose prose-invert max-w-none text-sm leading-relaxed space-y-4"
+            className="blog-rich-content prose prose-invert max-w-none text-base leading-relaxed space-y-4"
             dangerouslySetInnerHTML={{ __html: content || "<p>No content entered yet.</p>" }}
           />
         </div>

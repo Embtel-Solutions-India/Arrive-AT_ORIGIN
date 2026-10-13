@@ -4,6 +4,7 @@ import { Order } from "../../models/Order.js";
 import { Payment } from "../../models/Payment.js";
 import { Customer } from "../../models/Customer.js";
 import { razorpayService } from "../../services/razorpay.service.js";
+import { stripeService } from "../../services/stripe.service.js";
 import { ok } from "../../utils/response.js";
 import { HttpError } from "../../utils/httpError.js";
 import { env } from "../../config/env.js";
@@ -109,7 +110,9 @@ export const consultationController = {
   async getPackages(_req: Request, res: Response) {
     ok(res, {
       packages: CONSULTATION_PACKAGES,
-      razorpayKeyId: env.RAZORPAY_KEY_ID,
+      stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY || "",
+      razorpayKeyId: env.RAZORPAY_KEY_ID || "",
+      defaultGateway: "stripe",
     });
   },
 
@@ -367,6 +370,291 @@ export const consultationController = {
         phone: customer.phone,
       },
     }, "Consultation confirmed successfully!");
+  },
+
+  /**
+   * Initiate a consultation booking and create Stripe Checkout Session
+   */
+  async createStripeBookingSession(req: Request, res: Response) {
+    const {
+      packageId,
+      clientName,
+      clientEmail,
+      clientPhone,
+      appointmentDate,
+      appointmentTime,
+      meetingMode = "ONLINE_ZOOM",
+      notes = "",
+      couponCode = "",
+    } = req.body;
+
+    if (!packageId || !clientName || !clientEmail || !appointmentDate || !appointmentTime) {
+      throw HttpError.badRequest("Please fill in all required booking fields");
+    }
+
+    const selectedPackage = CONSULTATION_PACKAGES.find((p) => p.id === packageId);
+    if (!selectedPackage) {
+      throw HttpError.badRequest("Invalid consultation package selected");
+    }
+
+    let discount = 0;
+    let appliedCouponCode = "";
+    let finalPrice = selectedPackage.price;
+
+    if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+      try {
+        const discountResult = await calculateCouponDiscount(
+          couponCode,
+          "CONSULTATION",
+          selectedPackage.price,
+          selectedPackage.currency
+        );
+        discount = discountResult.discountAmount;
+        appliedCouponCode = discountResult.code;
+        finalPrice = discountResult.newAmount;
+      } catch (err: any) {
+        throw HttpError.badRequest(err.message || "Invalid coupon code");
+      }
+    }
+
+    const bookingNumber = `SB-CNS-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+
+    const origin =
+      (req.headers.origin as string) ||
+      (req.headers.referer ? new URL(req.headers.referer).origin : "") ||
+      env.APP_URL;
+
+    const returnUrl = `${origin}/schedule?booking_success=true&session_id={CHECKOUT_SESSION_ID}&bookingNumber=${bookingNumber}`;
+    const successUrl = returnUrl;
+    const cancelUrl = `${origin}/schedule?booking_cancelled=true`;
+
+    const stripeSession = await stripeService.createConsultationCheckoutSession({
+      bookingNumber,
+      packageId: selectedPackage.id,
+      packageName: selectedPackage.name,
+      meetingType: selectedPackage.meetingType,
+      sessionsCount: selectedPackage.sessionsCount,
+      meetingMode,
+      clientName,
+      clientEmail: clientEmail.toLowerCase(),
+      clientPhone: clientPhone || "",
+      appointmentDate,
+      appointmentTime,
+      finalPrice,
+      originalPrice: selectedPackage.price,
+      discount,
+      couponCode: appliedCouponCode,
+      currency: selectedPackage.currency,
+      successUrl,
+      cancelUrl,
+      returnUrl,
+      uiMode: req.body.uiMode || "embedded",
+    });
+
+    const consultation = await Consultation.create({
+      bookingNumber,
+      clientName,
+      clientEmail: clientEmail.toLowerCase(),
+      clientPhone: clientPhone || "",
+      packageName: selectedPackage.name,
+      meetingType: selectedPackage.meetingType,
+      sessionsCount: selectedPackage.sessionsCount,
+      price: finalPrice,
+      originalPrice: selectedPackage.price,
+      discount,
+      couponCode: appliedCouponCode,
+      currency: selectedPackage.currency,
+      appointmentDate,
+      appointmentTime,
+      meetingMode,
+      notes,
+      paymentStatus: "PENDING",
+      status: "CONFIRMED",
+      stripeSessionId: stripeSession.id,
+    });
+
+    ok(
+      res,
+      {
+        bookingNumber,
+        bookingId: consultation._id,
+        sessionId: stripeSession.id,
+        clientSecret: stripeSession.client_secret,
+        sessionUrl: stripeSession.url,
+        stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY,
+        packageName: selectedPackage.name,
+        originalPrice: selectedPackage.price,
+        discount,
+        couponCode: appliedCouponCode,
+        price: finalPrice,
+        currency: selectedPackage.currency,
+      },
+      "Stripe booking session created. Redirecting to payment.",
+      201
+    );
+  },
+
+  /**
+   * Verify Stripe Checkout Session and confirm consultation booking
+   */
+  async verifyStripePayment(req: Request, res: Response) {
+    const { sessionId, bookingNumber } = req.body;
+    if (!sessionId) {
+      throw HttpError.badRequest("Stripe session ID is required");
+    }
+
+    const session = await stripeService.retrieveSession(sessionId);
+    if (session.payment_status !== "paid") {
+      throw HttpError.badRequest(`Stripe payment not completed (status: ${session.payment_status})`);
+    }
+
+    const refBookingNumber = session.client_reference_id || bookingNumber || session.metadata?.bookingNumber;
+
+    let consultation = await Consultation.findOne({
+      $or: [{ stripeSessionId: sessionId }, { bookingNumber: refBookingNumber }],
+    });
+
+    if (!consultation && session.metadata?.bookingNumber) {
+      consultation = await Consultation.findOne({ bookingNumber: session.metadata.bookingNumber });
+    }
+
+    if (!consultation) {
+      throw HttpError.notFound("Consultation record not found for this Stripe session");
+    }
+
+    let customer = await Customer.findOne({ email: consultation.clientEmail });
+    if (!customer) {
+      customer = await Customer.create({
+        name: consultation.clientName,
+        email: consultation.clientEmail,
+        phone: consultation.clientPhone,
+        totalOrders: 1,
+        totalSpent: consultation.price,
+        lastOrderDate: new Date(),
+      });
+    } else if (consultation.paymentStatus !== "PAID") {
+      customer.totalOrders += 1;
+      customer.totalSpent += consultation.price;
+      customer.lastOrderDate = new Date();
+      if (consultation.clientPhone && !customer.phone) {
+        customer.phone = consultation.clientPhone;
+      }
+      await customer.save();
+    }
+
+    if (consultation.paymentStatus === "PAID") {
+      const customerToken = generateCustomerToken(customer);
+      return ok(res, {
+        booking: consultation,
+        orderNumber: consultation.bookingNumber,
+        customerToken,
+        customer: {
+          id: customer._id,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+        },
+      }, "Consultation confirmed successfully!");
+    }
+
+    const paymentIntentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id || session.id;
+
+    const order = await Order.create({
+      orderNumber: consultation.bookingNumber,
+      orderType: "CONSULTATION",
+      customer: customer._id,
+      customerInfo: {
+        name: consultation.clientName,
+        email: consultation.clientEmail,
+        phone: consultation.clientPhone,
+      },
+      items: [
+        {
+          title: `Consultation: ${consultation.packageName}`,
+          sku: `CNS-${consultation.sessionsCount}`,
+          format: `${consultation.sessionsCount} Session(s) • ${consultation.meetingMode.replace("_", " ")}`,
+          price: consultation.price,
+          quantity: 1,
+          subtotal: consultation.price,
+        },
+      ],
+      subtotal: consultation.originalPrice || consultation.price,
+      shipping: 0,
+      tax: 0,
+      discount: consultation.discount || 0,
+      couponCode: consultation.couponCode || "",
+      total: consultation.price,
+      currency: consultation.currency,
+      paymentStatus: "PAID",
+      orderStatus: "PAYMENT_CONFIRMED",
+      notes: `Stripe Checkout paid (Session: ${sessionId}). Appointment: ${consultation.appointmentDate} at ${consultation.appointmentTime} (${consultation.meetingMode}).`,
+    });
+
+    if (consultation.couponCode) {
+      await Coupon.updateOne({ code: consultation.couponCode }, { $inc: { usedCount: 1 } });
+    }
+
+    const payment = await Payment.create({
+      order: order._id,
+      orderNumber: consultation.bookingNumber,
+      transactionId: paymentIntentId,
+      paymentGateway: "stripe",
+      amount: consultation.price,
+      currency: consultation.currency,
+      status: "SUCCESSFUL",
+      paymentMethod: "Stripe",
+      gatewayResponse: {
+        stripeSessionId: session.id,
+        paymentIntentId,
+        customerEmail: session.customer_details?.email,
+      },
+    });
+
+    order.payment = payment._id as any;
+    await order.save();
+
+    consultation.paymentStatus = "PAID";
+    consultation.status = "CONFIRMED";
+    consultation.stripeSessionId = sessionId;
+    consultation.stripePaymentIntentId = paymentIntentId;
+    consultation.order = order._id as any;
+    consultation.payment = payment._id as any;
+    consultation.customer = customer._id as any;
+    await consultation.save();
+
+    const customerToken = generateCustomerToken(customer);
+    const origin =
+      (req.headers.origin as string) ||
+      (req.headers.referer ? new URL(req.headers.referer).origin : "") ||
+      undefined;
+
+    sendConsultationConfirmationEmail(consultation, origin, customerToken).catch((err) =>
+      logger.error({ err: err?.message }, "Failed to send consultation confirmation email")
+    );
+
+    logger.info(
+      { bookingNumber: consultation.bookingNumber, sessionId, paymentIntentId },
+      "Stripe consultation booking successfully verified and confirmed"
+    );
+
+    return ok(
+      res,
+      {
+        booking: consultation,
+        orderNumber: order.orderNumber,
+        customerToken,
+        customer: {
+          id: customer._id,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+        },
+      },
+      "Consultation confirmed successfully!"
+    );
   },
 
   /**

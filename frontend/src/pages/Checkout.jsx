@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
+import StripeCheckoutModal from "../components/payment/StripeCheckoutModal";
 import { useCart } from "../context/CartContext";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { useCurrency } from "../context/CurrencyContext";
@@ -23,6 +24,11 @@ function Checkout() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState("");
   const [couponSuccess, setCouponSuccess] = useState("");
+
+  // Stripe Popup Modal State
+  const [stripeModalOpen, setStripeModalOpen] = useState(false);
+  const [stripeClientSecret, setStripeClientSecret] = useState(null);
+  const [stripePublishableKey, setStripePublishableKey] = useState("");
 
   const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const isFreeShipping =
@@ -86,7 +92,7 @@ function Checkout() {
   const [state, setState] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [country, setCountry] = useState(activeCountry === "IN" ? "India" : "United States");
-  const [paymentMethod, setPaymentMethod] = useState("Razorpay");
+  const [paymentMethod, setPaymentMethod] = useState("Stripe");
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -106,6 +112,58 @@ function Checkout() {
     setErrorMsg("");
 
     try {
+      if (paymentMethod === "Stripe") {
+        // 1. Create Stripe Checkout Session on backend
+        const stripeRes = await fetch(apiUrl("/public/orders/stripe/create-session"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: items.map((i) => ({ bookId: i.bookId, quantity: i.quantity, format: i.format })),
+            customerInfo: { name, email, phone },
+            shippingAddress: { street, city, state, postalCode, country },
+            billingAddress: { street, city, state, postalCode, country },
+            couponCode: appliedCoupon?.code || undefined,
+            currency,
+          }),
+        });
+
+        const stripeData = await stripeRes.json();
+        if (!stripeRes.ok || !stripeData.success) {
+          throw new Error(stripeData.message || "Failed to initialize Stripe checkout session.");
+        }
+
+        // Cache pending details for immediate verification and cart clearing on success return
+        try {
+          localStorage.setItem(
+            "aao_pending_order",
+            JSON.stringify({
+              orderNumber: stripeData.data.orderNumber,
+              items: items.map((i) => ({ bookId: i.bookId, quantity: i.quantity, format: i.format })),
+              customerInfo: { name, email, phone },
+              shippingAddress: { street, city, state, postalCode, country },
+              billingAddress: { street, city, state, postalCode, country },
+              couponCode: appliedCoupon?.code || undefined,
+              currency,
+            })
+          );
+        } catch (_) {}
+
+        if (stripeData.data.clientSecret) {
+          setStripeClientSecret(stripeData.data.clientSecret);
+          setStripePublishableKey(
+            stripeData.data.publishableKey || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ""
+          );
+          setStripeModalOpen(true);
+          setLoading(false);
+          return;
+        } else if (stripeData.data.sessionUrl) {
+          window.location.href = stripeData.data.sessionUrl;
+          return;
+        } else {
+          throw new Error("No checkout URL or client secret returned by Stripe gateway.");
+        }
+      }
+
       if (paymentMethod === "Razorpay") {
         // 1. Create Razorpay order on backend
         const rzpRes = await fetch(apiUrl("/public/orders/razorpay/create"), {
@@ -227,8 +285,9 @@ function Checkout() {
       navigate(`/order-success/${json.data.orderNumber}`);
     } catch (err) {
       setErrorMsg(err.message || "An unexpected error occurred during checkout.");
+      setLoading(false);
     } finally {
-      if (paymentMethod !== "Razorpay") {
+      if (paymentMethod !== "Razorpay" && paymentMethod !== "Stripe") {
         setLoading(false);
       }
     }
@@ -399,9 +458,9 @@ function Checkout() {
                 
                 <div className="space-y-3 mb-4">
                   <label
-                    onClick={() => setPaymentMethod("Razorpay")}
+                    onClick={() => setPaymentMethod("Stripe")}
                     className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
-                      paymentMethod === "Razorpay"
+                      paymentMethod === "Stripe"
                         ? "border-halo bg-halo/10"
                         : "border-[rgba(237,231,218,0.12)] bg-black/30 hover:border-white/20"
                     }`}
@@ -409,19 +468,19 @@ function Checkout() {
                     <input
                       type="radio"
                       name="paymentMethod"
-                      checked={paymentMethod === "Razorpay"}
-                      onChange={() => setPaymentMethod("Razorpay")}
+                      checked={paymentMethod === "Stripe"}
+                      onChange={() => setPaymentMethod("Stripe")}
                       className="mt-1 accent-halo"
                     />
                     <div>
                       <div className="font-semibold text-vellum text-sm flex items-center gap-2">
-                        <span>Razorpay Gateway (Cards, UPI, Netbanking)</span>
+                        <span>Stripe Gateway (Cards, Apple Pay, Google Pay)</span>
                         <span className="text-[0.7rem] bg-halo/20 text-halo px-2 py-0.5 rounded-full font-bold">
-                          Secure Gateway
+                          Recommended
                         </span>
                       </div>
                       <p className="text-xs text-dim mt-0.5">
-                        Interactive checkout window powered by Razorpay. Test cards and UPI simulated flows supported.
+                        Direct 256-bit encrypted checkout powered by Stripe. All major credit & debit cards, Apple Pay, and Google Pay supported.
                       </p>
                     </div>
                   </label>
@@ -429,7 +488,7 @@ function Checkout() {
                   <label
                     onClick={() => setPaymentMethod("Credit Card (Visa ···· 4242)")}
                     className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
-                      paymentMethod !== "Razorpay"
+                      paymentMethod !== "Stripe"
                         ? "border-halo bg-halo/10"
                         : "border-[rgba(237,231,218,0.12)] bg-black/30 hover:border-white/20"
                     }`}
@@ -437,7 +496,7 @@ function Checkout() {
                     <input
                       type="radio"
                       name="paymentMethod"
-                      checked={paymentMethod !== "Razorpay"}
+                      checked={paymentMethod !== "Stripe"}
                       onChange={() => setPaymentMethod("Credit Card (Visa ···· 4242)")}
                       className="mt-1 accent-halo"
                     />
@@ -588,12 +647,22 @@ function Checkout() {
                   </div>
                 </div>
 
+                {errorMsg && (
+                  <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-300">
+                    ⚠️ {errorMsg}
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   disabled={loading}
-                  className="mt-6 w-full rounded-full bg-halo py-3.5 text-center text-sm font-bold text-void hover:bg-white transition-colors cursor-pointer disabled:opacity-50"
+                  className="mt-4 w-full rounded-full bg-halo py-3.5 text-center text-sm font-bold text-void hover:bg-white transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {loading ? "Processing Order…" : `Place Order · ${formatPrice(total)}`}
+                  {loading
+                    ? "Connecting to Stripe…"
+                    : paymentMethod === "Stripe"
+                    ? `Proceed to Stripe Checkout · ${formatPrice(total)}`
+                    : `Place Order · ${formatPrice(total)}`}
                 </button>
 
                 <p className="mt-3 text-center text-[0.7rem] text-dim">
@@ -604,6 +673,20 @@ function Checkout() {
           </form>
         </div>
       </main>
+
+      {/* Stripe Popup Modal */}
+      <StripeCheckoutModal
+        isOpen={stripeModalOpen}
+        onClose={() => setStripeModalOpen(false)}
+        clientSecret={stripeClientSecret}
+        publishableKey={stripePublishableKey}
+        title="Secure Book Order Checkout"
+        subtitle="Complete your payment safely with Stripe"
+        amount={total}
+        currency={currency}
+        itemSummary={`${items.length} Book Item(s) • Total ${formatPrice(total)}`}
+      />
+
       <SiteFooter />
     </div>
   );

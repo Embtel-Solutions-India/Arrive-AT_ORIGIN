@@ -342,29 +342,199 @@
   caret-color: #c9992e;
 }
 
-.editor-text-scroller.theme-blog-dark [contenteditable] h1,
-.editor-text-scroller.theme-blog-dark [contenteditable] h2,
-.editor-text-scroller.theme-blog-dark [contenteditable] h3 {
-  color: #ede7da !important;
-  font-family: var(--font-display, "Fraunces", Georgia, serif);
+/* ========================================================================= */
+/* Blog Content Typography: Headings & Body Auto-Sizing                      */
+/* ========================================================================= */
+.editor-text-scroller [contenteditable],
+.blog-editor-content,
+.blog-rich-content {
+  font-family: var(--font-text, "Karla", "Helvetica Neue", Arial, sans-serif);
+  font-size: 1.05rem;
+  line-height: 1.8;
 }
 
-.editor-text-scroller.theme-blog-dark [contenteditable] h4 {
+/* Headings auto-size according to tag */
+.editor-text-scroller [contenteditable] h1,
+.blog-editor-content h1,
+.blog-rich-content h1 {
+  display: block !important;
+  font-family: var(--font-display, "Fraunces", Georgia, serif) !important;
+  font-size: 2.25rem !important; /* 36px */
+  line-height: 1.25 !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.02em !important;
+  margin-top: 1.75rem !important;
+  margin-bottom: 0.85rem !important;
+  padding-bottom: 0.4rem !important;
+}
+
+.editor-text-scroller [contenteditable] h2,
+.blog-editor-content h2,
+.blog-rich-content h2 {
+  display: block !important;
+  font-family: var(--font-display, "Fraunces", Georgia, serif) !important;
+  font-size: 1.75rem !important; /* 28px */
+  line-height: 1.3 !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.015em !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.7rem !important;
+}
+
+.editor-text-scroller [contenteditable] h3,
+.blog-editor-content h3,
+.blog-rich-content h3 {
+  display: block !important;
+  font-family: var(--font-display, "Fraunces", Georgia, serif) !important;
+  font-size: 1.375rem !important; /* 22px */
+  line-height: 1.35 !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em !important;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.55rem !important;
+}
+
+.editor-text-scroller [contenteditable] h4,
+.blog-editor-content h4,
+.blog-rich-content h4 {
+  display: block !important;
+  font-family: var(--font-display, "Fraunces", Georgia, serif) !important;
+  font-size: 1.125rem !important; /* 18px */
+  line-height: 1.4 !important;
+  font-weight: 600 !important;
+  margin-top: 1rem !important;
+  margin-bottom: 0.4rem !important;
+}
+
+.editor-text-scroller [contenteditable] p,
+.blog-editor-content p,
+.blog-rich-content p {
+  display: block !important;
+  font-size: 1.05rem !important; /* ~17px */
+  line-height: 1.8 !important;
+  margin-top: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.editor-text-scroller [contenteditable] blockquote,
+.blog-editor-content blockquote,
+.blog-rich-content blockquote {
+  display: block !important;
+  border-left: 3px solid #c9992e !important;
+  background-color: rgba(201, 153, 46, 0.08) !important;
+  padding: 0.65rem 1.25rem !important;
+  margin: 1.25rem 0 !important;
+  font-style: italic !important;
+  border-radius: 0 0.5rem 0.5rem 0 !important;
+}
+
+.editor-text-scroller [contenteditable] pre,
+.blog-editor-content pre,
+.blog-rich-content pre {
+  display: block !important;
+  background-color: #030712 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #38bdf8 !important;
+  padding: 1rem !important;
+  border-radius: 0.75rem !important;
+  font-family: ui-monospace, monospace !important;
+  font-size: 0.875rem !important;
+  margin: 1rem 0 !important;
+  overflow-x: auto !important;
+}
+
+.editor-text-scroller [contenteditable] ul,
+.blog-editor-content ul,
+.blog-rich-content ul {
+  display: block !important;
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin: 0.6rem 0 !important;
+}
+
+.editor-text-scroller [contenteditable] ol,
+.blog-editor-content ol,
+.blog-rich-content ol {
+  display: block !important;
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin: 0.6rem 0 !important;
+}
+
+.editor-text-scroller [contenteditable] li,
+.blog-editor-content li,
+.blog-rich-content li {
+  display: list-item !important;
+  margin: 0.25rem 0 !important;
+}
+
+.editor-text-scroller [contenteditable] a,
+.blog-editor-content a,
+.blog-rich-content a {
+  text-decoration: underline !important;
+}
+
+/* Dark Theme Colors */
+.editor-text-scroller.theme-blog-dark [contenteditable] h1,
+.editor-text-scroller.theme-blog-dark [contenteditable] h2,
+.editor-text-scroller.theme-blog-dark [contenteditable] h3,
+.blog-rich-content.theme-blog-dark h1,
+.blog-rich-content.theme-blog-dark h2,
+.blog-rich-content.theme-blog-dark h3 {
+  color: #ede7da !important;
+  border-bottom: 1px solid rgba(237, 231, 218, 0.14) !important;
+}
+
+.editor-text-scroller.theme-blog-dark [contenteditable] h4,
+.blog-rich-content.theme-blog-dark h4 {
   color: #c9992e !important;
 }
 
-.editor-text-scroller.theme-blog-dark [contenteditable] p {
-  color: #d7d9e0;
+.editor-text-scroller.theme-blog-dark [contenteditable] p,
+.blog-rich-content.theme-blog-dark p {
+  color: #d7d9e0 !important;
 }
 
-.editor-text-scroller.theme-blog-dark [contenteditable] blockquote {
-  border-left-color: #c9992e !important;
-  background-color: rgba(201, 153, 46, 0.08) !important;
+.editor-text-scroller.theme-blog-dark [contenteditable] blockquote,
+.blog-rich-content.theme-blog-dark blockquote {
   color: #e0c9a6 !important;
 }
 
-.editor-text-scroller.theme-blog-dark [contenteditable] a {
+.editor-text-scroller.theme-blog-dark [contenteditable] a,
+.blog-rich-content.theme-blog-dark a {
   color: #e8ce8c !important;
+}
+
+/* Light Theme Colors */
+.editor-text-scroller:not(.theme-blog-dark) [contenteditable] h1,
+.editor-text-scroller:not(.theme-blog-dark) [contenteditable] h2 {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.editor-text-scroller:not(.theme-blog-dark) [contenteditable] h3 {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+.editor-text-scroller:not(.theme-blog-dark) [contenteditable] h4 {
+  color: #b8861d !important;
+  font-weight: 600 !important;
+}
+
+.editor-text-scroller:not(.theme-blog-dark) [contenteditable] p {
+  color: #334155 !important;
+}
+
+.editor-text-scroller:not(.theme-blog-dark) [contenteditable] blockquote {
+  border-left-color: #c91d24 !important;
+  background-color: rgba(201, 29, 36, 0.05) !important;
+  color: #475569 !important;
+}
+
+.editor-text-scroller:not(.theme-blog-dark) [contenteditable] a {
+  color: #c91d24 !important;
 }
 
 .editor-text-scroller.theme-blog-dark [contenteditable]::selection,

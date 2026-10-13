@@ -48,11 +48,12 @@ const schema = z.object({
   S3_PUBLIC_URL: z.string().optional(),
 
   // Payment Gateway Credentials (Razorpay, Stripe, PayPal)
-  PAYMENT_PROVIDER: z.string().default("razorpay"),
+  PAYMENT_PROVIDER: z.string().default("stripe"),
   PAYMENT_SECRET_KEY: z.string().optional(),
   PAYMENT_WEBHOOK_SECRET: z.string().optional(),
   RAZORPAY_KEY_ID: z.string().default(""),
   RAZORPAY_KEY_SECRET: z.string().default(""),
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   PAYPAL_CLIENT_ID: z.string().optional(),
@@ -67,6 +68,11 @@ const schema = z.object({
   SMTP_PORT: z.coerce.number().default(465),
   SMTP_USER: z.string().default("resend"),
   SMTP_PASS: z.string().default(""),
+
+  // Administrative Notification Recipients
+  ADMIN_NOTIFICATION_EMAILS: z
+    .string()
+    .default("info@soulbodyhealingcenter.com,info@arriveatorigin.com"),
 });
 
 const parsed = schema.safeParse(process.env);

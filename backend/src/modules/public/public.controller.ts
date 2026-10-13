@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
+import mongoose from "mongoose";
 import { BlogPost } from "../../models/BlogPost.js";
+import { BlogCategory } from "../../models/BlogCategory.js";
+import { BlogTag } from "../../models/BlogTag.js";
 import { Book } from "../../models/Book.js";
 import { Customer } from "../../models/Customer.js";
 import { Order, IOrderItem } from "../../models/Order.js";
@@ -7,6 +10,7 @@ import { Payment } from "../../models/Payment.js";
 import { ok } from "../../utils/response.js";
 import { HttpError } from "../../utils/httpError.js";
 import { razorpayService } from "../../services/razorpay.service.js";
+import { stripeService } from "../../services/stripe.service.js";
 import { env } from "../../config/env.js";
 import { generateCustomerToken } from "../customerAuth/customerAuth.controller.js";
 import { sendOrderConfirmationEmail } from "../../services/email.service.js";
@@ -14,6 +18,19 @@ import { logger } from "../../utils/logger.js";
 import { Coupon } from "../../models/Coupon.js";
 import { calculateCouponDiscount } from "../coupons/coupon.controller.js";
 import { getGroupSetting, DEFAULT_SHIPPING } from "../settings/settings.controller.js";
+
+// Helper to look up a book by either MongoDB ObjectId or URL slug
+export async function findBookByIdOrSlug(idOrSlug: string) {
+  if (!idOrSlug) return null;
+  const isMongoId = mongoose.Types.ObjectId.isValid(idOrSlug) && idOrSlug.length === 24;
+  if (isMongoId) {
+    const book = await (Book as any).findById(idOrSlug);
+    if (book) return book;
+  }
+  return await (Book as any).findOne({
+    $or: [{ slug: idOrSlug }, { sku: idOrSlug }, { title: new RegExp(`^${idOrSlug}$`, "i") }],
+  });
+}
 
 // Cache IP geolocation for 24 hours to avoid redundant lookups
 const ipGeoCache = new Map<string, { country: string; timestamp: number }>();
@@ -58,33 +75,108 @@ export const publicController = {
   // ─── Public Blogs ───
   async getBlogs(req: Request, res: Response) {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.max(1, parseInt(req.query.limit as string) || 9);
+    const limit = Math.max(1, parseInt(req.query.limit as string) || 10);
     const category = req.query.category as string | undefined;
+    const tag = req.query.tag as string | undefined;
     const search = req.query.search as string | undefined;
 
     const query: Record<string, unknown> = { status: "PUBLISHED" };
-    if (category && category !== "all") {
-      query.categoryName = { $regex: new RegExp(`^${category}$`, "i") };
+    if (category && category.toLowerCase() !== "all") {
+      query.categoryName = { $regex: new RegExp(`^${category.trim()}$`, "i") };
     }
-    if (search) {
+    if (tag && tag.toLowerCase() !== "all") {
+      query.tags = { $in: [new RegExp(`^${tag.trim()}$`, "i")] };
+    }
+    if (search && search.trim()) {
+      const s = search.trim();
       query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { excerpt: { $regex: search, $options: "i" } },
-        { tags: { $in: [new RegExp(search, "i")] } },
+        { title: { $regex: s, $options: "i" } },
+        { excerpt: { $regex: s, $options: "i" } },
+        { categoryName: { $regex: s, $options: "i" } },
+        { tags: { $in: [new RegExp(s, "i")] } },
       ];
     }
 
-    const [blogs, total] = await Promise.all([
-      BlogPost.find(query)
+    const [blogs, total, recentPosts, allCategories, allTags, postCategoryCounts, postTagAgg] = await Promise.all([
+      (BlogPost as any).find(query)
         .sort({ publishDate: -1, createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .select("-content"),
-      BlogPost.countDocuments(query),
+      (BlogPost as any).countDocuments(query),
+      (BlogPost as any).find({ status: "PUBLISHED" })
+        .sort({ publishDate: -1, createdAt: -1 })
+        .limit(5)
+        .select("title slug excerpt featuredImage publishDate readTime categoryName"),
+      (BlogCategory as any).find().sort({ name: 1 }).select("name slug"),
+      (BlogTag as any).find().sort({ name: 1 }).select("name slug"),
+      BlogPost.aggregate([
+        { $match: { status: "PUBLISHED" } },
+        { $group: { _id: "$categoryName", count: { $sum: 1 } } },
+      ]),
+      BlogPost.aggregate([
+        { $match: { status: "PUBLISHED" } },
+        { $unwind: "$tags" },
+        { $match: { tags: { $ne: "" } } },
+        { $group: { _id: "$tags", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 25 },
+      ]),
     ]);
+
+    // Build category count map
+    const countMap: Record<string, number> = {};
+    postCategoryCounts.forEach((c: { _id: string; count: number }) => {
+      if (c._id) countMap[c._id.toLowerCase()] = c.count;
+    });
+
+    const categoryList = allCategories.map((c: any) => ({
+      name: c.name,
+      slug: c.slug,
+      count: countMap[c.name.toLowerCase()] || 0,
+    }));
+
+    // If there are post categories not in allCategories, add them
+    postCategoryCounts.forEach((c: { _id: string; count: number }) => {
+      if (c._id && !categoryList.some((cat: any) => cat.name.toLowerCase() === c._id.toLowerCase())) {
+        categoryList.push({
+          name: c._id,
+          slug: c._id.toLowerCase().replace(/\s+/g, "-"),
+          count: c.count,
+        });
+      }
+    });
+
+    // Merge tags from BlogTag collection and any tags attached to posts
+    const tagSet = new Map<string, { name: string; slug: string; count: number }>();
+    allTags.forEach((t: any) => {
+      tagSet.set(t.name.toLowerCase(), {
+        name: t.name,
+        slug: t.slug,
+        count: 0,
+      });
+    });
+    postTagAgg.forEach((pt: { _id: string; count: number }) => {
+      if (!pt._id) return;
+      const key = pt._id.toLowerCase();
+      if (tagSet.has(key)) {
+        tagSet.get(key)!.count = pt.count;
+      } else {
+        tagSet.set(key, {
+          name: pt._id,
+          slug: pt._id.toLowerCase().replace(/\s+/g, "-"),
+          count: pt.count,
+        });
+      }
+    });
+
+    const tagList = Array.from(tagSet.values());
 
     ok(res, {
       blogs,
+      recentPosts,
+      categories: categoryList,
+      tags: tagList,
       pagination: {
         page,
         limit,
@@ -96,19 +188,61 @@ export const publicController = {
 
   async getBlogBySlug(req: Request, res: Response) {
     const { slug } = req.params;
-    const blog = await BlogPost.findOne({ slug, status: "PUBLISHED" }).populate("author");
+    const blog = await (BlogPost as any).findOne({ slug, status: "PUBLISHED" }).populate("author");
     if (!blog) throw HttpError.notFound("Blog post not found");
 
-    // Related posts in same category
-    const related = await BlogPost.find({
-      _id: { $ne: blog._id },
-      categoryName: blog.categoryName,
-      status: "PUBLISHED",
-    })
-      .limit(3)
-      .select("title slug excerpt featuredImage publishDate readTime");
+    // Related posts, recent posts, categories with counts, and tags for sidebar
+    const [related, recentPosts, allCategories, allTags, postCategoryCounts] = await Promise.all([
+      (BlogPost as any).find({
+        _id: { $ne: blog._id },
+        categoryName: blog.categoryName,
+        status: "PUBLISHED",
+      })
+        .limit(3)
+        .select("title slug excerpt featuredImage publishDate readTime categoryName"),
+      (BlogPost as any).find({
+        _id: { $ne: blog._id },
+        status: "PUBLISHED",
+      })
+        .sort({ publishDate: -1, createdAt: -1 })
+        .limit(5)
+        .select("title slug excerpt featuredImage publishDate readTime categoryName"),
+      (BlogCategory as any).find().sort({ name: 1 }).select("name slug"),
+      (BlogTag as any).find().sort({ name: 1 }).select("name slug"),
+      BlogPost.aggregate([
+        { $match: { status: "PUBLISHED" } },
+        { $group: { _id: "$categoryName", count: { $sum: 1 } } },
+      ]),
+    ]);
 
-    ok(res, { blog, related });
+    const countMap: Record<string, number> = {};
+    postCategoryCounts.forEach((c: { _id: string; count: number }) => {
+      if (c._id) countMap[c._id.toLowerCase()] = c.count;
+    });
+
+    const categoryList = allCategories.map((c: any) => ({
+      name: c.name,
+      slug: c.slug,
+      count: countMap[c.name.toLowerCase()] || 0,
+    }));
+
+    postCategoryCounts.forEach((c: { _id: string; count: number }) => {
+      if (c._id && !categoryList.some((cat: any) => cat.name.toLowerCase() === c._id.toLowerCase())) {
+        categoryList.push({
+          name: c._id,
+          slug: c._id.toLowerCase().replace(/\s+/g, "-"),
+          count: c.count,
+        });
+      }
+    });
+
+    ok(res, {
+      blog,
+      related,
+      recentPosts,
+      categories: categoryList,
+      tags: allTags.map((t: any) => ({ name: t.name, slug: t.slug })),
+    });
   },
 
   // ─── Public Books ───
@@ -192,8 +326,8 @@ export const publicController = {
     let subtotal = 0;
 
     for (const item of items) {
-      const book = await (Book as any).findById(item.bookId);
-      if (!book) throw HttpError.badRequest(`Book with ID ${item.bookId} not found`);
+      const book = await findBookByIdOrSlug(item.bookId);
+      if (!book) throw HttpError.badRequest(`Book with ID or slug "${item.bookId}" not found`);
 
       if (book.stockQuantity < item.quantity) {
         throw HttpError.badRequest(`Only ${book.stockQuantity} copies of "${book.title}" are in stock`);
@@ -303,18 +437,22 @@ export const publicController = {
 
     // Create Payment Record
     const isRazorpay = !!razorpayPaymentId || paymentMethod?.toLowerCase().includes("razorpay");
+    const isStripe = paymentMethod?.toLowerCase().includes("stripe");
     const transactionId = razorpayPaymentId || `txn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const gateway = isStripe ? "stripe" : isRazorpay ? "razorpay" : "simulated_gateway";
     const payment = await Payment.create({
       order: order._id,
       orderNumber,
       transactionId,
-      paymentGateway: isRazorpay ? "razorpay" : "simulated_gateway",
+      paymentGateway: gateway,
       amount: total,
       currency: orderCurrency,
       status: "SUCCESSFUL",
-      paymentMethod: isRazorpay ? "Razorpay" : paymentMethod || "Credit Card",
+      paymentMethod: isStripe ? "Stripe" : isRazorpay ? "Razorpay" : paymentMethod || "Credit Card",
       gatewayResponse: isRazorpay
         ? { razorpay_order_id: razorpayOrderId, razorpay_payment_id: razorpayPaymentId }
+        : isStripe
+        ? { stripe: true, approved: true }
         : {
             approved: true,
             authCode: `AUTH-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -368,8 +506,8 @@ export const publicController = {
 
     let subtotal = 0;
     for (const item of items) {
-      const book = await (Book as any).findById(item.bookId);
-      if (!book) throw HttpError.badRequest("Book not found");
+      const book = await findBookByIdOrSlug(item.bookId);
+      if (!book) throw HttpError.badRequest(`Book with ID or slug "${item.bookId}" not found`);
       const itemPrice = resolveBookPrice(book, requestedCurrency);
       subtotal += itemPrice * item.quantity;
     }
@@ -425,6 +563,292 @@ export const publicController = {
       total,
       receipt,
     });
+  },
+
+  // ─── Public Stripe Book Order Session Creation ───
+  async createBookStripeSession(req: Request, res: Response) {
+    const { items, customerInfo, couponCode, currency } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      throw HttpError.badRequest("No items in cart");
+    }
+
+    const requestedCurrency: "USD" | "INR" = currency === "INR" ? "INR" : "USD";
+
+    const resolvedItems: any[] = [];
+    let subtotal = 0;
+    for (const item of items) {
+      const book = await findBookByIdOrSlug(item.bookId);
+      if (!book) throw HttpError.badRequest(`Book with ID or slug "${item.bookId}" not found`);
+      if (book.stockQuantity < item.quantity) {
+        throw HttpError.badRequest(`Only ${book.stockQuantity} copies of "${book.title}" are in stock`);
+      }
+      const itemPrice = resolveBookPrice(book, requestedCurrency);
+      subtotal += itemPrice * item.quantity;
+      resolvedItems.push({
+        bookId: book._id.toString(),
+        title: book.title,
+        price: itemPrice,
+        quantity: item.quantity,
+        format: item.format || book.format || "Paperback",
+        coverImage: book.coverImage,
+      });
+    }
+
+    let discount = 0;
+    let appliedCouponCode = "";
+    if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+      try {
+        const discountResult = await calculateCouponDiscount(couponCode, "CHECKOUT", subtotal, requestedCurrency);
+        discount = discountResult.discountAmount;
+        appliedCouponCode = discountResult.code;
+      } catch (err: any) {
+        throw HttpError.badRequest(err.message || "Invalid coupon code");
+      }
+    }
+
+    const shippingSettings = await getGroupSetting("shipping", DEFAULT_SHIPPING);
+    let shipping = 0;
+    if (shippingSettings.enableShipping) {
+      const isFree = shippingSettings.enableFreeDelivery && (
+        requestedCurrency === "INR"
+          ? subtotal >= (shippingSettings.freeDeliveryThresholdINR || 0)
+          : subtotal >= (shippingSettings.freeDeliveryThresholdUSD || 0)
+      );
+      shipping = isFree ? 0 : (requestedCurrency === "INR" ? (shippingSettings.standardShippingFeeINR || 0) : (shippingSettings.standardShippingFeeUSD || 0));
+    }
+    const taxableSubtotal = Math.max(0, subtotal - discount);
+    const taxRate = shippingSettings.enableSalesTax ? (shippingSettings.salesTaxPercentage || 0) / 100 : 0;
+    const tax = Number((taxableSubtotal * taxRate).toFixed(2));
+    const total = Math.max(0, Number((subtotal - discount + shipping + tax).toFixed(2)));
+
+    const orderNumber = `ORD-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+
+    const origin =
+      (req.headers.origin as string) ||
+      (req.headers.referer ? new URL(req.headers.referer).origin : "") ||
+      env.APP_URL;
+
+    const returnUrl = `${origin}/order-success/${orderNumber}?session_id={CHECKOUT_SESSION_ID}`;
+    const successUrl = returnUrl;
+    const cancelUrl = `${origin}/checkout?stripe_cancelled=true`;
+
+    const session = await stripeService.createBookCheckoutSession({
+      orderNumber,
+      items: resolvedItems,
+      customerInfo: customerInfo || { name: "Valued Reader", email: "reader@arriveatorigin.com" },
+      subtotal,
+      discount,
+      shipping,
+      tax,
+      total,
+      currency: requestedCurrency,
+      couponCode: appliedCouponCode,
+      successUrl,
+      cancelUrl,
+      returnUrl,
+      uiMode: req.body.uiMode || "embedded",
+    });
+
+    ok(res, {
+      orderNumber,
+      sessionId: session.id,
+      clientSecret: session.client_secret,
+      sessionUrl: session.url,
+      total,
+      currency: requestedCurrency,
+      subtotal,
+      discount,
+      shipping,
+      tax,
+      publishableKey: env.STRIPE_PUBLISHABLE_KEY,
+    });
+  },
+
+  // ─── Public Stripe Book Order Verification ───
+  async verifyBookStripeSession(req: Request, res: Response) {
+    const {
+      sessionId,
+      orderNumber,
+      customerInfo,
+      items,
+      shippingAddress,
+      billingAddress,
+      couponCode,
+      currency,
+    } = req.body;
+
+    if (!sessionId) {
+      throw HttpError.badRequest("Stripe session ID is required");
+    }
+
+    const session = await stripeService.retrieveSession(sessionId);
+    if (session.payment_status !== "paid") {
+      throw HttpError.badRequest(`Stripe payment not completed (status: ${session.payment_status})`);
+    }
+
+    const targetOrderNumber = session.client_reference_id || orderNumber || session.metadata?.orderNumber;
+
+    // Check if order already created
+    let existingOrder = await (Order as any).findOne({
+      $or: [{ orderNumber: targetOrderNumber }, { notes: { $regex: sessionId } }],
+    }).populate("customer");
+
+    if (existingOrder) {
+      const customerToken = existingOrder.customer ? generateCustomerToken(existingOrder.customer as any) : undefined;
+      return ok(res, {
+        orderNumber: existingOrder.orderNumber,
+        total: existingOrder.total,
+        orderId: existingOrder._id,
+        items: existingOrder.items,
+        customerInfo: existingOrder.customerInfo,
+        customerToken,
+        customer: existingOrder.customer,
+      });
+    }
+
+    const orderCurrency: "USD" | "INR" = (session.metadata?.currency === "INR" || currency === "INR") ? "INR" : "USD";
+    const orderItems: IOrderItem[] = [];
+    let subtotal = 0;
+
+    const itemsToProcess = items && Array.isArray(items) && items.length > 0 ? items : [];
+
+    for (const item of itemsToProcess) {
+      const book = await findBookByIdOrSlug(item.bookId);
+      if (!book) continue;
+
+      const itemPrice = resolveBookPrice(book, orderCurrency);
+      const itemSubtotal = itemPrice * item.quantity;
+      subtotal += itemSubtotal;
+
+      orderItems.push({
+        book: book._id as any,
+        title: book.title,
+        sku: book.sku,
+        format: item.format || book.format || "Paperback",
+        price: itemPrice,
+        quantity: item.quantity,
+        coverImage: book.coverImage,
+        subtotal: itemSubtotal,
+      });
+
+      book.stockQuantity = Math.max(0, book.stockQuantity - item.quantity);
+      book.salesCount += item.quantity;
+      book.revenue += itemSubtotal;
+      if (book.stockQuantity <= 0) {
+        book.status = "OUT_OF_STOCK";
+      }
+      await book.save();
+    }
+
+    const finalCustomerInfo = customerInfo || {
+      name: session.metadata?.customerName || session.customer_details?.name || "Valued Reader",
+      email: session.metadata?.customerEmail || session.customer_details?.email || "customer@arriveatorigin.com",
+      phone: session.metadata?.customerPhone || session.customer_details?.phone || "",
+    };
+
+    const appliedCouponCode = session.metadata?.couponCode || couponCode || "";
+    let discount = 0;
+    if (appliedCouponCode) {
+      try {
+        const discountResult = await calculateCouponDiscount(appliedCouponCode, "CHECKOUT", subtotal, orderCurrency);
+        discount = discountResult.discountAmount;
+        await (Coupon as any).updateOne({ code: appliedCouponCode }, { $inc: { usedCount: 1 } });
+      } catch (_) {}
+    }
+
+    const total = Number(session.metadata?.totalAmount) || (session.amount_total ? session.amount_total / 100 : subtotal - discount);
+
+    let customer = await (Customer as any).findOne({ email: finalCustomerInfo.email.toLowerCase() });
+    if (!customer) {
+      customer = await Customer.create({
+        name: finalCustomerInfo.name,
+        email: finalCustomerInfo.email.toLowerCase(),
+        phone: finalCustomerInfo.phone || "",
+        shippingAddress: shippingAddress || {},
+        billingAddress: billingAddress || shippingAddress || {},
+        totalOrders: 1,
+        totalSpent: total,
+        lastOrderDate: new Date(),
+      });
+    } else {
+      customer.totalOrders += 1;
+      customer.totalSpent += total;
+      customer.lastOrderDate = new Date();
+      if (shippingAddress) customer.shippingAddress = shippingAddress;
+      await customer.save();
+    }
+
+    const resolvedOrderNumber = targetOrderNumber || `ORD-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+
+    const order = await Order.create({
+      orderNumber: resolvedOrderNumber,
+      orderType: "BOOK_ORDER",
+      customer: customer._id,
+      customerInfo: {
+        name: finalCustomerInfo.name,
+        email: finalCustomerInfo.email.toLowerCase(),
+        phone: finalCustomerInfo.phone || "",
+      },
+      items: orderItems,
+      subtotal,
+      shipping: 0,
+      tax: 0,
+      discount,
+      couponCode: appliedCouponCode,
+      total,
+      currency: orderCurrency,
+      paymentStatus: "PAID",
+      orderStatus: "PAYMENT_CONFIRMED",
+      shippingAddress: shippingAddress || {},
+      billingAddress: billingAddress || shippingAddress || {},
+      notes: `Stripe Checkout paid (Session: ${sessionId}). ${appliedCouponCode ? `Coupon: ${appliedCouponCode}` : ""}`,
+    });
+
+    const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id || session.id;
+
+    const payment = await Payment.create({
+      order: order._id,
+      orderNumber: resolvedOrderNumber,
+      transactionId: paymentIntentId,
+      paymentGateway: "stripe",
+      amount: total,
+      currency: orderCurrency,
+      status: "SUCCESSFUL",
+      paymentMethod: "Stripe",
+      gatewayResponse: {
+        stripeSessionId: session.id,
+        paymentIntentId,
+        customerDetails: session.customer_details,
+      },
+    });
+
+    order.payment = payment._id as any;
+    await order.save();
+
+    const customerToken = generateCustomerToken(customer);
+    const origin =
+      (req.headers.origin as string) ||
+      (req.headers.referer ? new URL(req.headers.referer).origin : "") ||
+      undefined;
+
+    sendOrderConfirmationEmail(order, origin, customerToken).catch((err) =>
+      logger.error({ err: err?.message }, "Failed to send order confirmation email")
+    );
+
+    return ok(res, {
+      orderNumber: order.orderNumber,
+      total: order.total,
+      orderId: order._id,
+      items: order.items,
+      customerInfo: order.customerInfo,
+      customerToken,
+      customer: {
+        id: customer._id,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+      },
+    }, "Order verified and placed successfully", 201);
   },
 
   // ─── IP-Based Geo Location & Currency Detection ───
