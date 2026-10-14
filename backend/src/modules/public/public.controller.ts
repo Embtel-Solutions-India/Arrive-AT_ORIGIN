@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
+import fs from "fs";
+import path from "path";
 import mongoose from "mongoose";
+import { uploadDir } from "../../middleware/upload.js";
 import { BlogPost } from "../../models/BlogPost.js";
 import { BlogCategory } from "../../models/BlogCategory.js";
 import { BlogTag } from "../../models/BlogTag.js";
@@ -38,7 +41,40 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export const USD_TO_INR_RATE = 96.79;
 
-export function resolveBookPrice(book: any, targetCurrency: "USD" | "INR"): number {
+export function resolveBookPrice(book: any, targetCurrency: "USD" | "INR", requestedFormat?: string): number {
+  if (requestedFormat && Array.isArray(book.formats) && book.formats.length > 0) {
+    const cleanFmt = requestedFormat.trim().toLowerCase();
+    const fmtObj = book.formats.find((f: any) => {
+      const fName = (f.format || "").trim().toLowerCase();
+      if (fName === cleanFmt) return true;
+      if ((cleanFmt.includes("kindle") || cleanFmt.includes("ebook") || cleanFmt.includes("e-book")) && (fName.includes("kindle") || fName.includes("ebook") || fName.includes("e-book"))) {
+        return true;
+      }
+      return false;
+    });
+
+    if (fmtObj && fmtObj.isAvailable !== false) {
+      if (targetCurrency === "INR") {
+        if (typeof fmtObj.priceINR === "number" && fmtObj.priceINR > 0) return fmtObj.priceINR;
+        if (typeof fmtObj.priceUSD === "number" && fmtObj.priceUSD > 0) {
+          return Number((fmtObj.priceUSD * USD_TO_INR_RATE).toFixed(2));
+        }
+        if (typeof fmtObj.price === "number" && fmtObj.price > 0) {
+          return fmtObj.price >= 50 ? fmtObj.price : Number((fmtObj.price * USD_TO_INR_RATE).toFixed(2));
+        }
+      } else {
+        // USD
+        if (typeof fmtObj.priceUSD === "number" && fmtObj.priceUSD > 0) return fmtObj.priceUSD;
+        if (typeof fmtObj.priceINR === "number" && fmtObj.priceINR > 0) {
+          return Number((fmtObj.priceINR / USD_TO_INR_RATE).toFixed(2));
+        }
+        if (typeof fmtObj.price === "number" && fmtObj.price > 0) {
+          return fmtObj.price < 50 ? fmtObj.price : Number((fmtObj.price / USD_TO_INR_RATE).toFixed(2));
+        }
+      }
+    }
+  }
+
   if (targetCurrency === "INR") {
     if (typeof book.salePriceINR === "number" && book.salePriceINR > 0) return book.salePriceINR;
     if (typeof book.priceINR === "number" && book.priceINR > 0) return book.priceINR;
@@ -333,19 +369,24 @@ export const publicController = {
         throw HttpError.badRequest(`Only ${book.stockQuantity} copies of "${book.title}" are in stock`);
       }
 
-      const itemPrice = resolveBookPrice(book, orderCurrency);
+      const itemPrice = resolveBookPrice(book, orderCurrency, item.format);
       const itemSubtotal = itemPrice * item.quantity;
       subtotal += itemSubtotal;
+
+      const matchedFmt = Array.isArray(book.formats)
+        ? book.formats.find((f: any) => f.format?.toLowerCase() === (item.format || "").toLowerCase())
+        : null;
 
       orderItems.push({
         book: book._id as any,
         title: book.title,
-        sku: book.sku,
-        format: item.format || book.format || "Paperback",
+        sku: matchedFmt?.sku || book.sku,
+        format: item.format || book.format || "E-Book",
         price: itemPrice,
         quantity: item.quantity,
         coverImage: book.coverImage,
         subtotal: itemSubtotal,
+        pdfUrl: matchedFmt?.pdfUrl || book.pdfUrl || "",
       });
 
       // Update inventory and sales count
@@ -508,7 +549,7 @@ export const publicController = {
     for (const item of items) {
       const book = await findBookByIdOrSlug(item.bookId);
       if (!book) throw HttpError.badRequest(`Book with ID or slug "${item.bookId}" not found`);
-      const itemPrice = resolveBookPrice(book, requestedCurrency);
+      const itemPrice = resolveBookPrice(book, requestedCurrency, item.format);
       subtotal += itemPrice * item.quantity;
     }
 
@@ -582,14 +623,14 @@ export const publicController = {
       if (book.stockQuantity < item.quantity) {
         throw HttpError.badRequest(`Only ${book.stockQuantity} copies of "${book.title}" are in stock`);
       }
-      const itemPrice = resolveBookPrice(book, requestedCurrency);
+      const itemPrice = resolveBookPrice(book, requestedCurrency, item.format);
       subtotal += itemPrice * item.quantity;
       resolvedItems.push({
         bookId: book._id.toString(),
         title: book.title,
         price: itemPrice,
         quantity: item.quantity,
-        format: item.format || book.format || "Paperback",
+        format: item.format || book.format || "E-Book",
         coverImage: book.coverImage,
       });
     }
@@ -689,9 +730,13 @@ export const publicController = {
     const targetOrderNumber = session.client_reference_id || orderNumber || session.metadata?.orderNumber;
 
     // Check if order already created
-    let existingOrder = await (Order as any).findOne({
-      $or: [{ orderNumber: targetOrderNumber }, { notes: { $regex: sessionId } }],
-    }).populate("customer");
+    const searchFilter: any[] = [];
+    if (targetOrderNumber) searchFilter.push({ orderNumber: targetOrderNumber });
+    if (sessionId) searchFilter.push({ notes: { $regex: sessionId } });
+
+    let existingOrder = searchFilter.length > 0
+      ? await (Order as any).findOne({ $or: searchFilter }).populate("customer")
+      : null;
 
     if (existingOrder) {
       const customerToken = existingOrder.customer ? generateCustomerToken(existingOrder.customer as any) : undefined;
@@ -703,7 +748,7 @@ export const publicController = {
         customerInfo: existingOrder.customerInfo,
         customerToken,
         customer: existingOrder.customer,
-      });
+      }, "Order verified");
     }
 
     const orderCurrency: "USD" | "INR" = (session.metadata?.currency === "INR" || currency === "INR") ? "INR" : "USD";
@@ -716,19 +761,24 @@ export const publicController = {
       const book = await findBookByIdOrSlug(item.bookId);
       if (!book) continue;
 
-      const itemPrice = resolveBookPrice(book, orderCurrency);
+      const itemPrice = resolveBookPrice(book, orderCurrency, item.format);
       const itemSubtotal = itemPrice * item.quantity;
       subtotal += itemSubtotal;
+
+      const matchedFmt = Array.isArray(book.formats)
+        ? book.formats.find((f: any) => f.format?.toLowerCase() === (item.format || "").toLowerCase())
+        : null;
 
       orderItems.push({
         book: book._id as any,
         title: book.title,
-        sku: book.sku,
-        format: item.format || book.format || "Paperback",
+        sku: matchedFmt?.sku || book.sku,
+        format: item.format || book.format || "E-Book",
         price: itemPrice,
         quantity: item.quantity,
         coverImage: book.coverImage,
         subtotal: itemSubtotal,
+        pdfUrl: matchedFmt?.pdfUrl || book.pdfUrl || "",
       });
 
       book.stockQuantity = Math.max(0, book.stockQuantity - item.quantity);
@@ -780,47 +830,76 @@ export const publicController = {
 
     const resolvedOrderNumber = targetOrderNumber || `ORD-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
 
-    const order = await Order.create({
-      orderNumber: resolvedOrderNumber,
-      orderType: "BOOK_ORDER",
-      customer: customer._id,
-      customerInfo: {
-        name: finalCustomerInfo.name,
-        email: finalCustomerInfo.email.toLowerCase(),
-        phone: finalCustomerInfo.phone || "",
-      },
-      items: orderItems,
-      subtotal,
-      shipping: 0,
-      tax: 0,
-      discount,
-      couponCode: appliedCouponCode,
-      total,
-      currency: orderCurrency,
-      paymentStatus: "PAID",
-      orderStatus: "PAYMENT_CONFIRMED",
-      shippingAddress: shippingAddress || {},
-      billingAddress: billingAddress || shippingAddress || {},
-      notes: `Stripe Checkout paid (Session: ${sessionId}). ${appliedCouponCode ? `Coupon: ${appliedCouponCode}` : ""}`,
-    });
+    let order: any;
+    try {
+      order = await Order.create({
+        orderNumber: resolvedOrderNumber,
+        orderType: "BOOK_ORDER",
+        customer: customer._id,
+        customerInfo: {
+          name: finalCustomerInfo.name,
+          email: finalCustomerInfo.email.toLowerCase(),
+          phone: finalCustomerInfo.phone || "",
+        },
+        items: orderItems,
+        subtotal,
+        shipping: 0,
+        tax: 0,
+        discount,
+        couponCode: appliedCouponCode,
+        total,
+        currency: orderCurrency,
+        paymentStatus: "PAID",
+        orderStatus: "PAYMENT_CONFIRMED",
+        shippingAddress: shippingAddress || {},
+        billingAddress: billingAddress || shippingAddress || {},
+        notes: `Stripe Checkout paid (Session: ${sessionId}). ${appliedCouponCode ? `Coupon: ${appliedCouponCode}` : ""}`,
+      });
+    } catch (createErr: any) {
+      if (createErr?.code === 11000 || createErr?.message?.includes("E11000 duplicate key")) {
+        const raceOrder = await (Order as any).findOne({
+          $or: [{ orderNumber: resolvedOrderNumber }, { notes: { $regex: sessionId } }],
+        }).populate("customer");
+        if (raceOrder) {
+          const customerToken = raceOrder.customer ? generateCustomerToken(raceOrder.customer as any) : undefined;
+          return ok(res, {
+            orderNumber: raceOrder.orderNumber,
+            total: raceOrder.total,
+            orderId: raceOrder._id,
+            items: raceOrder.items,
+            customerInfo: raceOrder.customerInfo,
+            customerToken,
+            customer: raceOrder.customer,
+          }, "Order already verified");
+        }
+      }
+      throw createErr;
+    }
 
     const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id || session.id;
 
-    const payment = await Payment.create({
-      order: order._id,
-      orderNumber: resolvedOrderNumber,
-      transactionId: paymentIntentId,
-      paymentGateway: "stripe",
-      amount: total,
-      currency: orderCurrency,
-      status: "SUCCESSFUL",
-      paymentMethod: "Stripe",
-      gatewayResponse: {
-        stripeSessionId: session.id,
-        paymentIntentId,
-        customerDetails: session.customer_details,
-      },
-    });
+    try {
+      const payment = await Payment.create({
+        order: order._id,
+        orderNumber: resolvedOrderNumber,
+        transactionId: paymentIntentId,
+        paymentGateway: "stripe",
+        amount: total,
+        currency: orderCurrency,
+        status: "SUCCESSFUL",
+        paymentMethod: "Stripe",
+        gatewayResponse: {
+          stripeSessionId: session.id,
+          paymentIntentId,
+          customerDetails: session.customer_details,
+        },
+      });
+
+      order.payment = payment._id as any;
+      await order.save();
+    } catch (payErr: any) {
+      logger.warn({ payErr: payErr?.message }, "Payment record already created or skipped in concurrency");
+    }
 
     order.payment = payment._id as any;
     await order.save();
@@ -935,5 +1014,51 @@ export const publicController = {
   async getShippingSettings(_req: Request, res: Response) {
     const shipping = await getGroupSetting("shipping", DEFAULT_SHIPPING);
     ok(res, { shipping });
+  },
+
+  // ─── Download / View Book Soft Copy PDF ───
+  async downloadBookPdf(req: Request, res: Response) {
+    const idOrSlug = (req.params.idOrSlug as string) || "";
+    if (!idOrSlug) throw HttpError.badRequest("Publication identifier is required");
+    const book = await findBookByIdOrSlug(idOrSlug);
+    if (!book) throw HttpError.notFound("Publication not found");
+
+    const pdfFilename: string = book.pdfUrl
+      ? path.basename(book.pdfUrl)
+      : `${book.slug || "book"}.pdf`;
+
+    const candidatePaths = [
+      path.resolve(uploadDir, "ebooks", pdfFilename),
+      path.resolve(uploadDir, pdfFilename),
+      path.resolve(process.cwd(), "uploads/ebooks", pdfFilename),
+      path.resolve(process.cwd(), "../frontend/public/ebooks", pdfFilename),
+    ];
+
+    let foundPath = candidatePaths.find((p) => fs.existsSync(p));
+
+    if (!foundPath) {
+      // Fallback to first available ebook in uploads/ebooks
+      const fallbackDir = path.resolve(uploadDir, "ebooks");
+      if (fs.existsSync(fallbackDir)) {
+        const files = fs.readdirSync(fallbackDir).filter((f) => f.endsWith(".pdf"));
+        if (files.length > 0 && files[0]) {
+          foundPath = path.join(fallbackDir, files[0]);
+        }
+      }
+    }
+
+    if (!foundPath || !fs.existsSync(foundPath)) {
+      throw HttpError.notFound("Digital copy file is not currently available for this publication");
+    }
+
+    const isDownload = req.query.download === "true";
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `${isDownload ? "attachment" : "inline"}; filename="${pdfFilename}"`
+    );
+
+    const stream = fs.createReadStream(foundPath);
+    stream.pipe(res);
   },
 };

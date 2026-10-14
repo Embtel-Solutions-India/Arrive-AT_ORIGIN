@@ -52,7 +52,7 @@ function Books() {
 
             {/* Format Filter */}
             <div className="flex flex-wrap gap-2 text-xs">
-              {["all", "Paperback", "Hardcover", "E-book"].map((fmt) => (
+              {["all", "E-Book", "Paperback", "Hardcover"].map((fmt) => (
                 <button
                   key={fmt}
                   onClick={() => setSelectedFormat(fmt)}
@@ -114,9 +114,34 @@ function Books() {
                         </h2>
                       </Link>
 
-                      <p className="text-sm text-[#A9B0C2] leading-relaxed line-clamp-3 mb-4">
+                      <p className="text-sm text-[#A9B0C2] leading-relaxed line-clamp-2 mb-3">
                         {book.shortDescription || book.description}
                       </p>
+
+                      {/* Available format badges */}
+                      <div className="flex flex-wrap items-center gap-1.5 mb-4">
+                        {["E-Book", "Paperback", "Hardcover"].map((fmtKey) => {
+                          const fmtMatch = book.formats?.find((f) => {
+                            const fn = (f.format || "").toLowerCase();
+                            const sf = fmtKey.toLowerCase();
+                            const isEbookMatch = (sf.includes("ebook") || sf.includes("e-book")) && (fn.includes("ebook") || fn.includes("e-book") || fn.includes("kindle"));
+                            return fn === sf || isEbookMatch;
+                          });
+                          const isAvail = fmtMatch && fmtMatch.isAvailable !== false && fmtMatch.price > 0;
+                          return (
+                            <span
+                              key={fmtKey}
+                              className={`text-[0.65rem] px-2 py-0.5 rounded-md font-medium ${
+                                isAvail
+                                  ? "bg-halo/10 text-halo border border-halo/25"
+                                  : "bg-white/[0.03] text-dim/40 border border-white/5"
+                              }`}
+                            >
+                              {fmtKey}: {isAvail ? "✓" : "—"}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div className="border-t border-[rgba(237,231,218,0.1)] pt-4 mt-2">
@@ -148,7 +173,7 @@ function Books() {
                         <button
                           type="button"
                           disabled={isOutOfStock}
-                          onClick={() => addToCart(book)}
+                          onClick={() => addToCart(book, 1, "E-Book")}
                           className="rounded-full bg-halo py-2.5 px-3 text-xs font-bold text-void transition-colors hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed text-center"
                         >
                           Add to Cart

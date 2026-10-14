@@ -14,6 +14,7 @@ export interface CartItem {
   format: string;
   coverImage: string;
   quantity: number;
+  pdfUrl?: string;
 }
 
 interface CartContextType {
@@ -95,22 +96,55 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
     [currency]
   );
-
   const addToCart = (book: any, quantity = 1, format?: string) => {
-    const itemFormat = format || book.format || "Paperback";
+    const itemFormat = format || (book.format === "Kindle" ? "E-Book" : (book.format || "E-Book"));
 
-    // Extract both USD and INR discrete pricing
-    const resolvedPricing = getProductPrice(book);
-    const bookPriceINR = typeof book.priceINR === "number" && book.priceINR > 0
-      ? book.priceINR
-      : (typeof book.price === "number" && book.price >= 50 ? book.price : undefined);
-    const bookPriceUSD = typeof book.priceUSD === "number" && book.priceUSD > 0
-      ? book.priceUSD
-      : (bookPriceINR ? convertInrToUsd(bookPriceINR) : (typeof book.price === "number" && book.price < 50 ? book.price : undefined));
-    const bookSaleINR = typeof book.salePriceINR === "number" ? book.salePriceINR : undefined;
-    const bookSaleUSD = typeof book.salePriceUSD === "number"
-      ? book.salePriceUSD
-      : (bookSaleINR ? convertInrToUsd(bookSaleINR) : undefined);
+    // Lookup format in book.formats if available
+    const fmtObj = Array.isArray(book.formats)
+      ? book.formats.find((f: any) => {
+          const fName = (f.format || "").trim().toLowerCase();
+          const target = itemFormat.trim().toLowerCase();
+          const isEbookMatch =
+            (target.includes("kindle") || target.includes("ebook") || target.includes("e-book")) &&
+            (fName.includes("kindle") || fName.includes("ebook") || fName.includes("e-book"));
+          return fName === target || isEbookMatch;
+        })
+      : null;
+
+    // Extract format-specific resolved price
+    const resolvedPricing = getProductPrice(book, itemFormat);
+
+    let bookPriceUSD: number | undefined;
+    let bookPriceINR: number | undefined;
+
+    if (fmtObj && fmtObj.isAvailable !== false) {
+      if (typeof fmtObj.priceUSD === "number" && fmtObj.priceUSD > 0) {
+        bookPriceUSD = fmtObj.priceUSD;
+      } else if (typeof fmtObj.price === "number" && fmtObj.price < 50) {
+        bookPriceUSD = fmtObj.price;
+      }
+
+      if (typeof fmtObj.priceINR === "number" && fmtObj.priceINR > 0) {
+        bookPriceINR = fmtObj.priceINR;
+      } else if (bookPriceUSD) {
+        bookPriceINR = convertUsdToInr(bookPriceUSD);
+      }
+    }
+
+    if (bookPriceUSD === undefined) {
+      bookPriceUSD =
+        typeof book.priceUSD === "number" && book.priceUSD > 0
+          ? book.priceUSD
+          : (typeof book.price === "number" && book.price < 50 ? book.price : undefined);
+    }
+    if (bookPriceINR === undefined) {
+      bookPriceINR =
+        typeof book.priceINR === "number" && book.priceINR > 0
+          ? book.priceINR
+          : (bookPriceUSD ? convertUsdToInr(bookPriceUSD) : undefined);
+    }
+
+    const pdfUrl = fmtObj?.pdfUrl || book.pdfUrl || (book.slug ? `/uploads/ebooks/${book.slug}.pdf` : "");
 
     setItems((prev) => {
       const existingIdx = prev.findIndex(
@@ -120,11 +154,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (existingIdx > -1) {
         const next = [...prev];
         next[existingIdx].quantity += quantity;
-        // Keep discrete prices updated if they changed
         if (bookPriceINR !== undefined) next[existingIdx].priceINR = bookPriceINR;
         if (bookPriceUSD !== undefined) next[existingIdx].priceUSD = bookPriceUSD;
-        if (bookSaleINR !== undefined) next[existingIdx].salePriceINR = bookSaleINR;
-        if (bookSaleUSD !== undefined) next[existingIdx].salePriceUSD = bookSaleUSD;
+        if (pdfUrl) next[existingIdx].pdfUrl = pdfUrl;
         return next;
       } else {
         return [
@@ -136,11 +168,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             price: resolvedPricing.effectivePrice,
             priceUSD: bookPriceUSD,
             priceINR: bookPriceINR,
-            salePriceUSD: bookSaleUSD,
-            salePriceINR: bookSaleINR,
             format: itemFormat,
             coverImage: book.coverImage || "/aao-part-one.png",
             quantity,
+            pdfUrl,
           },
         ];
       }

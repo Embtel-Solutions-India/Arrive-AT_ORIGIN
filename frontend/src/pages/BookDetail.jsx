@@ -20,7 +20,7 @@ function BookDetail() {
   const [book, setBook] = useState(null);
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFormat, setSelectedFormat] = useState("Paperback");
+  const [selectedFormat, setSelectedFormat] = useState("E-Book");
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
@@ -31,11 +31,32 @@ function BookDetail() {
       .then((res) => res.json())
       .then((json) => {
         if (json.success && json.data?.book) {
-          setBook(json.data.book);
+          const b = json.data.book;
+          setBook(b);
           setRelated(json.data.related || []);
-          if (json.data.book.format) {
-            setSelectedFormat(json.data.book.format);
+
+          // Find first available format to select by default (prefer E-Book, then Paperback, then Hardcover)
+          const priority = ["E-Book", "Paperback", "Hardcover"];
+          let defaultFormat = "E-Book";
+          if (Array.isArray(b.formats) && b.formats.length > 0) {
+            for (const p of priority) {
+              const match = b.formats.find(
+                (f) => {
+                  const fn = (f.format || "").toLowerCase();
+                  const target = p.toLowerCase();
+                  const isEbookMatch = (target.includes("ebook") || target.includes("e-book")) && (fn.includes("ebook") || fn.includes("e-book") || fn.includes("kindle"));
+                  return (fn === target || isEbookMatch) && f.isAvailable !== false && f.price > 0;
+                }
+              );
+              if (match) {
+                defaultFormat = p;
+                break;
+              }
+            }
+          } else if (b.format) {
+            defaultFormat = b.format === "Kindle" ? "E-Book" : b.format;
           }
+          setSelectedFormat(defaultFormat);
         } else {
           setBook(null);
         }
@@ -54,13 +75,60 @@ function BookDetail() {
 
   if (!book) return <NotFound />;
 
-  const isOutOfStock = book.stockQuantity <= 0;
-  const pricing = getProductPrice(book);
+  // Resolve price according to the currently selected format
+  const pricing = getProductPrice(book, selectedFormat);
+
+  // Check if current format is available
+  const currentFormatObj = Array.isArray(book.formats)
+    ? book.formats.find((f) => {
+        const fn = (f.format || "").toLowerCase();
+        const sf = selectedFormat.toLowerCase();
+        const isEbookMatch = (sf.includes("ebook") || sf.includes("e-book")) && (fn.includes("ebook") || fn.includes("e-book") || fn.includes("kindle"));
+        return fn === sf || isEbookMatch;
+      })
+    : null;
+
+  const isCurrentFormatAvailable = currentFormatObj
+    ? currentFormatObj.isAvailable !== false && currentFormatObj.price > 0
+    : true;
+
+  const isOutOfStock = book.stockQuantity <= 0 || !isCurrentFormatAvailable;
 
   const handleBuyNow = () => {
+    if (!isCurrentFormatAvailable) return;
     addToCart(book, quantity, selectedFormat);
     navigate("/checkout");
   };
+
+  // The 3 standard Amazon US format types
+  const formatOptions = [
+    {
+      key: "E-Book",
+      title: "E-Book",
+      badge: "e-Book Soft Copy",
+      icon: "📱",
+      description: "Instant digital soft copy delivered to your user account upon purchase",
+    },
+    {
+      key: "Paperback",
+      title: "Paperback",
+      badge: "Printed Book",
+      icon: "📖",
+      description: "Quality printed paperback edition delivered to your doorstep",
+    },
+    {
+      key: "Hardcover",
+      title: "Hardcover",
+      badge: "Collector Edition",
+      icon: "📕",
+      description: "Durable casebound collector hardback volume",
+    },
+  ];
+
+  const isEbookSelected =
+    selectedFormat.toLowerCase().includes("ebook") ||
+    selectedFormat.toLowerCase().includes("e-book") ||
+    selectedFormat.toLowerCase().includes("kindle");
 
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.7] selection:bg-gold selection:text-void">
@@ -110,54 +178,147 @@ function BookDetail() {
               {/* Price & Stock Badge */}
               <div className="flex flex-wrap items-baseline gap-4 border-y border-[rgba(237,231,218,0.12)] py-4">
                 <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-halo">{formatPrice(pricing.effectivePrice)}</span>
-                  {pricing.isSale && (
-                    <span className="text-lg text-dim line-through">{formatPrice(pricing.price)}</span>
-                  )}
-                  {pricing.isSale && (
-                    <span className="rounded-full bg-rose-500/20 border border-rose-500/40 px-2.5 py-0.5 text-xs font-bold text-rose-300">
-                      Save {formatPrice(pricing.price - pricing.effectivePrice)}
+                  {isCurrentFormatAvailable ? (
+                    <>
+                      <span className="text-3xl font-bold text-halo">{formatPrice(pricing.effectivePrice)}</span>
+                      <span className="text-xs uppercase font-mono text-dim tracking-wider">
+                        ({selectedFormat} Edition)
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-2xl font-semibold text-rose-400">
+                      Not Available in {selectedFormat}
                     </span>
+                  )}
+                  {pricing.isSale && isCurrentFormatAvailable && (
+                    <span className="text-lg text-dim line-through">{formatPrice(pricing.price)}</span>
                   )}
                 </div>
 
                 <div className="ml-auto">
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      isOutOfStock
+                      !isCurrentFormatAvailable
+                        ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                        : isOutOfStock
                         ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
                         : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                     }`}
                   >
-                    {isOutOfStock ? "Out of Stock" : "In Stock & Ready to Ship"}
+                    {!isCurrentFormatAvailable
+                      ? "Format Not Available"
+                      : isEbookSelected
+                      ? "⚡ Instant Soft Copy Access"
+                      : "In Stock & Ready to Ship"}
                   </span>
                 </div>
               </div>
 
-              {/* Format Selector */}
+              {/* 3 Book Format Types as per Amazon US Pricing */}
               <div>
-                <label className="block text-xs font-semibold text-dim uppercase tracking-wider mb-2">
-                  Select Edition / Format
-                </label>
-                <div className="flex flex-wrap gap-2.5">
-                  {(book.formats?.length ? book.formats.map((f) => f.format) : ["Paperback", "Hardcover", "E-book"]).map(
-                    (fmt) => (
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-xs font-semibold text-dim uppercase tracking-wider">
+                    Select Edition / Format (Amazon US Pricing)
+                  </label>
+                  <span className="text-[0.72rem] text-halo font-mono">
+                    3 Formats Available
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {formatOptions.map((opt) => {
+                    const fmtData = book.formats?.find((f) => {
+                      const fn = (f.format || "").toLowerCase();
+                      const sf = opt.key.toLowerCase();
+                      const isEbookMatch = (sf.includes("ebook") || sf.includes("e-book")) && (fn.includes("ebook") || fn.includes("e-book") || fn.includes("kindle"));
+                      return fn === sf || isEbookMatch;
+                    });
+
+                    const isAvailable = Boolean(fmtData && fmtData.isAvailable !== false && fmtData.price > 0);
+                    const isSelected = selectedFormat === opt.key;
+                    const formatPriceResult = isAvailable ? getProductPrice(book, opt.key) : null;
+
+                    return (
                       <button
-                        key={fmt}
+                        key={opt.key}
                         type="button"
-                        onClick={() => setSelectedFormat(fmt)}
-                        className={`rounded-xl border px-4 py-2 text-xs font-semibold tracking-wider transition-all uppercase ${
-                          selectedFormat === fmt
-                            ? "border-halo bg-halo text-void"
-                            : "border-[rgba(237,231,218,0.2)] text-vellum hover:border-vellum"
+                        disabled={!isAvailable}
+                        onClick={() => setSelectedFormat(opt.key)}
+                        className={`relative rounded-2xl p-4 text-left transition-all border ${
+                          isSelected
+                            ? "border-halo bg-halo/15 shadow-[0_0_24px_rgba(201,168,106,0.25)] ring-2 ring-halo"
+                            : isAvailable
+                            ? "border-[rgba(237,231,218,0.18)] bg-white/[0.03] hover:border-vellum hover:bg-white/[0.06] cursor-pointer"
+                            : "border-dashed border-white/10 bg-black/30 opacity-45 cursor-not-allowed"
                         }`}
                       >
-                        {fmt}
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-semibold text-sm text-vellum flex items-center gap-1.5">
+                            <span>{opt.icon}</span>
+                            <span>{opt.title}</span>
+                          </span>
+                          {isSelected && (
+                            <span className="h-4 w-4 rounded-full bg-halo text-void flex items-center justify-center text-[0.65rem] font-bold">
+                              ✓
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="block text-[0.68rem] text-dim font-medium uppercase tracking-wider mb-3">
+                          {opt.badge}
+                        </span>
+
+                        <div className="pt-2 border-t border-white/10 flex items-baseline justify-between">
+                          <span
+                            className={
+                              isAvailable
+                                ? "font-bold text-base text-halo"
+                                : "text-xs text-rose-300 font-semibold"
+                            }
+                          >
+                            {isAvailable && formatPriceResult
+                              ? formatPrice(formatPriceResult.effectivePrice)
+                              : "Not Available"}
+                          </span>
+                          <span
+                            className={`text-[0.65rem] font-bold px-2 py-0.5 rounded-full ${
+                              isAvailable
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                : "bg-white/5 text-dim border border-white/5"
+                            }`}
+                          >
+                            {isAvailable ? "Available" : "Unavailable"}
+                          </span>
+                        </div>
                       </button>
-                    )
-                  )}
+                    );
+                  })}
                 </div>
               </div>
+
+              {/* Instant Soft Copy Notice if E-Book selected */}
+              {isEbookSelected && (
+                <div className="rounded-2xl border border-halo/30 bg-gradient-to-r from-halo/10 via-black/40 to-halo/5 p-4 space-y-2">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-halo/20 text-halo text-lg shadow">
+                      📱
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-halo">
+                          Instant E-Book Soft Copy (PDF)
+                        </h4>
+                        <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[0.65rem] font-bold text-emerald-300 border border-emerald-500/30">
+                          Included With Purchase
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#C6CBD8] mt-1 leading-relaxed">
+                        After purchasing this book, your e-book soft copy will appear automatically in your User Account. You can read it online anytime or download the complete PDF to your tablet, phone, or computer.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Quantity Stepper & Actions */}
               <div className="space-y-4">
@@ -187,9 +348,9 @@ function BookDetail() {
                     type="button"
                     disabled={isOutOfStock}
                     onClick={() => addToCart(book, quantity, selectedFormat)}
-                    className="rounded-full bg-halo py-3.5 px-6 text-sm font-bold text-void transition-colors hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed text-center"
+                    className="rounded-full bg-halo py-3.5 px-6 text-sm font-bold text-void transition-colors hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed text-center shadow-[0_4px_20px_rgba(201,168,106,0.25)]"
                   >
-                    Add to Cart
+                    {!isCurrentFormatAvailable ? "Format Not Available" : "Add to Cart"}
                   </button>
                   <button
                     type="button"
@@ -197,7 +358,7 @@ function BookDetail() {
                     onClick={handleBuyNow}
                     className="rounded-full border border-[rgba(237,231,218,0.3)] bg-white/[0.04] py-3.5 px-6 text-sm font-bold text-vellum transition-colors hover:border-halo hover:bg-white/10 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed text-center"
                   >
-                    Buy Now →
+                    {!isCurrentFormatAvailable ? "Unavailable" : "Buy Now →"}
                   </button>
                 </div>
 
@@ -209,7 +370,7 @@ function BookDetail() {
                       rel="noopener noreferrer"
                       className="block text-center rounded-full border border-[rgba(237,231,218,0.15)] py-2 text-xs text-dim hover:text-vellum hover:border-halo transition-colors"
                     >
-                      Prefer buying from Amazon? View Amazon / KDP Listing ↗
+                      Prefer buying from Amazon? View Amazon US Listing ↗
                     </a>
                   </div>
                 )}

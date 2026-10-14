@@ -10,13 +10,18 @@ export interface IBook extends Document {
   publicationDate?: Date;
   language: string;
   pages?: number;
-  format: "Hardcover" | "Paperback" | "E-book" | "Other";
+  format: "Hardcover" | "Paperback" | "E-book" | "E-Book" | "ebook" | "Kindle" | "Other";
   formats?: Array<{
     format: string;
     price: number;
+    priceUSD?: number;
+    priceINR?: number;
     sku?: string;
     stockQuantity?: number;
+    isAvailable?: boolean;
+    pdfUrl?: string;
   }>;
+  pdfUrl?: string;
   description: string;
   shortDescription?: string;
   coverImage: string;
@@ -66,17 +71,22 @@ const BookSchema = new Schema<IBook>(
     pages: { type: Number, default: 200 },
     format: {
       type: String,
-      enum: ["Hardcover", "Paperback", "E-book", "Other"],
-      default: "Paperback",
+      enum: ["Hardcover", "Paperback", "E-book", "E-Book", "ebook", "Kindle", "Other"],
+      default: "E-Book",
     },
     formats: [
       {
         format: { type: String },
         price: { type: Number },
+        priceUSD: { type: Number },
+        priceINR: { type: Number },
         sku: { type: String },
-        stockQuantity: { type: Number },
+        stockQuantity: { type: Number, default: 50 },
+        isAvailable: { type: Boolean, default: true },
+        pdfUrl: { type: String, default: "" },
       },
     ],
+    pdfUrl: { type: String, default: "" },
     description: { type: String, required: true },
     shortDescription: { type: String, default: "" },
     coverImage: { type: String, required: true },

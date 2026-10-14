@@ -166,9 +166,56 @@ export const currencyService = {
    * Seamlessly converts between INR and USD using the official rate (1 USD = 96.79 INR)
    * whenever discrete prices are not pre-calculated.
    */
-  getProductPrice(product: any, currency: CurrencyCode): ProductPriceResult {
+  getProductPrice(product: any, currency: CurrencyCode, selectedFormat?: string): ProductPriceResult {
     if (!product) {
       return { price: 0, isSale: false, effectivePrice: 0 };
+    }
+
+    // Check if a specific format was selected
+    if (selectedFormat && Array.isArray(product.formats) && product.formats.length > 0) {
+      const cleanFmt = selectedFormat.trim().toLowerCase();
+      const fmtObj = product.formats.find((f: any) => {
+        const fName = (f.format || "").trim().toLowerCase();
+        if (fName === cleanFmt) return true;
+        if (
+          (cleanFmt.includes("kindle") || cleanFmt.includes("ebook") || cleanFmt.includes("e-book")) &&
+          (fName.includes("kindle") || fName.includes("ebook") || fName.includes("e-book"))
+        ) {
+          return true;
+        }
+        return false;
+      });
+
+      if (fmtObj && fmtObj.isAvailable !== false) {
+        let fmtPrice = 0;
+        if (currency === "INR") {
+          if (typeof fmtObj.priceINR === "number" && fmtObj.priceINR > 0) {
+            fmtPrice = fmtObj.priceINR;
+          } else if (typeof fmtObj.priceUSD === "number" && fmtObj.priceUSD > 0) {
+            fmtPrice = convertUsdToInr(fmtObj.priceUSD);
+          } else if (typeof fmtObj.price === "number" && fmtObj.price > 0) {
+            fmtPrice = fmtObj.price >= 50 ? fmtObj.price : convertUsdToInr(fmtObj.price);
+          }
+        } else {
+          // USD
+          if (typeof fmtObj.priceUSD === "number" && fmtObj.priceUSD > 0) {
+            fmtPrice = fmtObj.priceUSD;
+          } else if (typeof fmtObj.priceINR === "number" && fmtObj.priceINR > 0) {
+            fmtPrice = convertInrToUsd(fmtObj.priceINR);
+          } else if (typeof fmtObj.price === "number" && fmtObj.price > 0) {
+            fmtPrice = fmtObj.price < 50 ? fmtObj.price : convertInrToUsd(fmtObj.price);
+          }
+        }
+
+        if (fmtPrice > 0) {
+          return {
+            price: fmtPrice,
+            salePrice: undefined,
+            isSale: false,
+            effectivePrice: fmtPrice,
+          };
+        }
+      }
     }
 
     let price = 0;

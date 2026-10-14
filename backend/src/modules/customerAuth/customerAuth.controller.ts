@@ -4,6 +4,7 @@ import argon2 from "argon2";
 import { Customer, ICustomer } from "../../models/Customer.js";
 import { Consultation } from "../../models/Consultation.js";
 import { Order } from "../../models/Order.js";
+import { Book } from "../../models/Book.js";
 import { env } from "../../config/env.js";
 import { ok } from "../../utils/response.js";
 import { HttpError } from "../../utils/httpError.js";
@@ -243,6 +244,55 @@ export const customerAuthController = {
       orderType: { $ne: "CONSULTATION" },
     }).sort({ createdAt: -1 });
 
+    // 4. Construct digital library / e-books soft copies from customer's orders
+    const allBooks = await Book.find({});
+    const bookMap = new Map<string, any>();
+    allBooks.forEach((b: any) => {
+      bookMap.set(b._id.toString(), b);
+      bookMap.set(b.slug, b);
+      bookMap.set(b.title.toLowerCase(), b);
+    });
+
+    const ebooksMap = new Map<string, any>();
+    for (const ord of orders) {
+      for (const item of ord.items) {
+        const matchedBook =
+          (item.book ? bookMap.get(item.book.toString()) : null) ||
+          bookMap.get(item.sku) ||
+          bookMap.get(item.title.toLowerCase()) ||
+          Array.from(bookMap.values()).find(
+            (b: any) => b.title.toLowerCase().includes(item.title.toLowerCase()) || item.title.toLowerCase().includes(b.title.toLowerCase())
+          );
+
+        const pdfUrl =
+          item.pdfUrl ||
+          matchedBook?.pdfUrl ||
+          (matchedBook?.slug ? `/uploads/ebooks/${matchedBook.slug}.pdf` : "/uploads/ebooks/arrive-at-origin-part-one.pdf");
+
+        // Back-populate item.pdfUrl for the response if not already set
+        if (!item.pdfUrl) {
+          item.pdfUrl = pdfUrl;
+        }
+
+        const key = matchedBook?._id?.toString() || item.title;
+        if (!ebooksMap.has(key)) {
+          ebooksMap.set(key, {
+            bookId: matchedBook?._id || item.book,
+            title: matchedBook?.title || item.title,
+            slug: matchedBook?.slug || "",
+            coverImage: item.coverImage || matchedBook?.coverImage || "/aao-part-one.png",
+            format: item.format || "E-Book",
+            authorName: matchedBook?.authorName || "Dr. Alka Chopra Madan",
+            pdfUrl,
+            downloadUrl: matchedBook?.slug ? `/api/public/books/${matchedBook.slug}/download-pdf` : pdfUrl,
+            orderNumber: ord.orderNumber,
+            purchasedAt: ord.createdAt,
+          });
+        }
+      }
+    }
+    const ebooks = Array.from(ebooksMap.values());
+
     ok(res, {
       customer: {
         id: customer._id,
@@ -256,9 +306,11 @@ export const customerAuthController = {
       },
       sessions,
       orders,
+      ebooks,
       stats: {
         sessionsCount: sessions.length,
         ordersCount: orders.length,
+        ebooksCount: ebooks.length,
         totalSpent: customer.totalSpent,
       },
     });

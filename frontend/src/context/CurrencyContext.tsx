@@ -16,7 +16,7 @@ export interface CurrencyContextType {
   setCurrency: (currency: CurrencyCode | null) => void;
   resetToAutoDetect: () => void;
   formatPrice: (amount: number, options?: { forceDecimals?: boolean }) => string;
-  getProductPrice: (product: any) => ProductPriceResult;
+  getProductPrice: (product: any, selectedFormat?: string) => ProductPriceResult;
   shippingRules: {
     fee: number;
     freeThreshold: number;
@@ -135,8 +135,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   );
 
   const getProductPrice = useCallback(
-    (product: any) => {
-      return currencyService.getProductPrice(product, currency);
+    (product: any, selectedFormat?: string) => {
+      return currencyService.getProductPrice(product, currency, selectedFormat);
     },
     [currency]
   );

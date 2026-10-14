@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
@@ -24,13 +24,15 @@ function AccountPortal() {
   const urlEmail = searchParams.get("email") || "";
 
   const initialTab =
-    urlTab === "orders" || !!urlOrder
+    urlTab === "ebooks"
+      ? "ebooks"
+      : urlTab === "orders" || !!urlOrder
       ? "orders"
       : urlTab === "sessions" || !!urlBooking
       ? "sessions"
-      : "sessions";
+      : "ebooks";
 
-  const [activeTab, setActiveTab] = useState(initialTab); // "sessions" | "orders" | "profile"
+  const [activeTab, setActiveTab] = useState(initialTab); // "ebooks" | "sessions" | "orders" | "profile"
   const [authMode, setAuthMode] = useState(isResetFlow ? "reset" : "login"); // "login" | "signup" | "forgot" | "reset"
 
   useEffect(() => {
@@ -40,7 +42,9 @@ function AccountPortal() {
   }, [urlMode, resetToken, navigate]);
 
   useEffect(() => {
-    if (urlTab === "orders" || urlOrder) {
+    if (urlTab === "ebooks") {
+      setActiveTab("ebooks");
+    } else if (urlTab === "orders" || urlOrder) {
       setActiveTab("orders");
     } else if (urlTab === "sessions" || urlBooking) {
       setActiveTab("sessions");
@@ -173,7 +177,31 @@ function AccountPortal() {
 
   const sessions = portalData?.sessions || [];
   const orders = portalData?.orders || [];
-  const stats = portalData?.stats || { sessionsCount: 0, ordersCount: 0, totalSpent: 0 };
+  const serverEbooks = portalData?.ebooks || [];
+  const stats = portalData?.stats || { sessionsCount: 0, ordersCount: 0, ebooksCount: 0, totalSpent: 0 };
+
+  // Derive ebooks from orders as well as server response for 100% resilience
+  const ebooks = useMemo(() => {
+    if (serverEbooks && serverEbooks.length > 0) return serverEbooks;
+    const list = [];
+    orders.forEach((ord) => {
+      ord.items?.forEach((item) => {
+        const isDigital = item.format === "Kindle" || item.format === "E-book" || item.format === "E-Book" || item.pdfUrl;
+        if (isDigital) {
+          list.push({
+            title: item.title,
+            slug: item.slug,
+            coverImage: item.coverImage,
+            format: item.format === "Kindle" ? "E-Book" : (item.format || "E-Book"),
+            pdfUrl: item.pdfUrl || `/uploads/ebooks/${item.slug || 'ebook'}.pdf`,
+            orderNumber: ord.orderNumber,
+            purchaseDate: ord.createdAt,
+          });
+        }
+      });
+    });
+    return list;
+  }, [serverEbooks, orders]);
 
   useEffect(() => {
     if (urlOrder && orders.length > 0) {
@@ -696,21 +724,27 @@ function AccountPortal() {
                 </div>
 
                 {/* Metrics Summary Strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-6 mt-6 border-t border-white/10">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 mt-6 border-t border-white/10">
+                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-left">
+                    <span className="block text-[0.72rem] text-dim uppercase tracking-wider">My E-Books</span>
+                    <span className="font-display text-xl sm:text-2xl text-halo font-semibold">
+                      {ebooks.length}
+                    </span>
+                  </div>
                   <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-left">
                     <span className="block text-[0.72rem] text-dim uppercase tracking-wider">Booked Sessions</span>
-                    <span className="font-display text-xl sm:text-2xl text-halo font-semibold">
+                    <span className="font-display text-xl sm:text-2xl text-vellum font-semibold">
                       {stats.sessionsCount}
                     </span>
                   </div>
                   <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-left">
-                    <span className="block text-[0.72rem] text-dim uppercase tracking-wider">Book Store Orders</span>
+                    <span className="block text-[0.72rem] text-dim uppercase tracking-wider">Book Orders</span>
                     <span className="font-display text-xl sm:text-2xl text-vellum font-semibold">
                       {stats.ordersCount}
                     </span>
                   </div>
-                  <div className="col-span-2 sm:col-span-1 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-left">
-                    <span className="block text-[0.72rem] text-dim uppercase tracking-wider">Total Health Investment</span>
+                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-left">
+                    <span className="block text-[0.72rem] text-dim uppercase tracking-wider">Total Investment</span>
                     <span className="font-display text-xl sm:text-2xl text-emerald-400 font-semibold">
                       ${stats.totalSpent} USD
                     </span>
@@ -720,6 +754,17 @@ function AccountPortal() {
 
               {/* Navigation Tabs */}
               <div className="flex items-center gap-2 border-b border-[rgba(237,231,218,0.12)] pb-3 mb-6 overflow-x-auto whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("ebooks")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                    activeTab === "ebooks"
+                      ? "bg-halo text-void shadow-sm"
+                      : "text-dim hover:text-vellum hover:bg-white/5"
+                  }`}
+                >
+                  <span>📖 My E-Books & Soft Copies ({ebooks.length})</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("sessions")}
@@ -743,6 +788,125 @@ function AccountPortal() {
                   <span>📦 Book Orders ({orders.length})</span>
                 </button>
               </div>
+
+              {/* Tab: My E-Books & Soft Copies */}
+              {activeTab === "ebooks" && (
+                <div className="space-y-6">
+                  {loading && ebooks.length === 0 ? (
+                    <div className="py-12 text-center text-dim text-sm">Loading your digital library…</div>
+                  ) : ebooks.length === 0 ? (
+                    <div className="rounded-3xl border border-dashed border-white/15 p-12 text-center">
+                      <span className="text-4xl block mb-2">📖</span>
+                      <h3 className="font-display text-xl text-vellum mb-1">No E-Books in Your Library Yet</h3>
+                      <p className="text-sm text-dim max-w-md mx-auto mb-6">
+                        When you purchase E-Book editions or digital soft copies from our book store, your books appear here instantly for direct online reading and PDF download.
+                      </p>
+                      <Link
+                        to="/books"
+                        className="inline-block rounded-full bg-halo px-6 py-2.5 text-xs font-bold text-void hover:bg-white transition-colors"
+                      >
+                        Explore E-Book & Book Store Editions
+                      </Link>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[rgba(232,206,140,0.06)] border border-[rgba(232,206,140,0.2)] rounded-2xl p-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">✨</span>
+                            <h2 className="text-lg font-display text-vellum font-semibold">Your Digital E-Book Library</h2>
+                          </div>
+                          <p className="text-xs text-dim mt-0.5">
+                            Direct reading access & PDF soft copy downloads for all your E-Book editions and digital publications.
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-xs text-halo font-bold bg-halo/10 border border-halo/30 px-3 py-1 rounded-full">
+                          {ebooks.length} {ebooks.length === 1 ? "Soft Copy Available" : "Soft Copies Available"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {ebooks.map((bk, idx) => {
+                          const downloadUrl = bk.slug 
+                            ? `/api/public/books/${bk.slug}/download-pdf` 
+                            : (bk.pdfUrl || "#");
+                          const viewUrl = bk.pdfUrl || downloadUrl;
+
+                          return (
+                            <div
+                              key={idx}
+                              className="rounded-2xl border border-[rgba(232,206,140,0.22)] bg-[#0E1630]/90 p-5 backdrop-blur-md shadow-lg flex flex-col justify-between hover:border-halo/50 transition-all group"
+                            >
+                              <div>
+                                <div className="flex gap-4 mb-4">
+                                  {bk.coverImage ? (
+                                    <img
+                                      src={bk.coverImage}
+                                      alt={bk.title}
+                                      className="h-28 w-20 object-cover rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.5)] border border-white/10 group-hover:scale-105 transition-transform"
+                                    />
+                                  ) : (
+                                    <div className="h-28 w-20 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center text-3xl shadow">
+                                      📖
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <span className="inline-block text-[0.68rem] font-bold uppercase tracking-wider text-halo bg-halo/10 border border-halo/20 px-2 py-0.5 rounded mb-1">
+                                      {bk.format === "Kindle" ? "E-Book Soft Copy" : (bk.format || "E-Book Soft Copy")}
+                                    </span>
+                                    <h3 className="font-semibold text-base text-vellum line-clamp-2 leading-snug">
+                                      {bk.title}
+                                    </h3>
+                                    {bk.orderNumber && (
+                                      <p className="text-[0.72rem] text-dim mt-1.5">
+                                        Order: <span className="font-mono text-vellum/80">{bk.orderNumber}</span>
+                                      </p>
+                                    )}
+                                    {bk.purchaseDate && (
+                                      <p className="text-[0.72rem] text-dim">
+                                        Added: {new Date(bk.purchaseDate).toLocaleDateString()}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="pt-3 border-t border-white/10 space-y-2">
+                                <a
+                                  href={viewUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-halo px-4 py-2.5 text-xs font-bold text-void hover:bg-white transition-all shadow-[0_0_15px_rgba(201,168,106,0.25)] no-underline"
+                                >
+                                  <span>📖 Read Online (PDF)</span>
+                                </a>
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={downloadUrl}
+                                    download={`${(bk.slug || "ebook").replace(/[^a-z0-9_-]/gi, "_")}.pdf`}
+                                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-[rgba(237,231,218,0.2)] bg-white/5 px-3 py-2 text-xs font-medium text-vellum hover:text-halo hover:border-halo transition-colors no-underline"
+                                  >
+                                    <span>⬇ Download PDF</span>
+                                  </a>
+                                  {bk.slug && (
+                                    <Link
+                                      to={`/books/${bk.slug}`}
+                                      className="rounded-xl border border-white/10 px-3 py-2 text-xs text-dim hover:text-vellum transition-colors"
+                                      title="Book Details"
+                                    >
+                                      ℹ Details
+                                    </Link>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Tab 1: Booked Sessions / Consultations */}
               {activeTab === "sessions" && (
@@ -899,32 +1063,68 @@ function AccountPortal() {
 
                           {/* Items List */}
                           <div className="divide-y divide-white/5">
-                            {ord.items.map((item, idx) => (
-                              <div key={idx} className="flex items-center justify-between py-2 text-xs">
-                                <div className="flex items-center gap-3">
-                                  {item.coverImage ? (
-                                    <img
-                                      src={item.coverImage}
-                                      alt={item.title}
-                                      className="h-10 w-8 object-cover rounded shadow"
-                                    />
-                                  ) : (
-                                    <div className="h-10 w-8 rounded bg-white/5 flex items-center justify-center text-dim">
-                                      📖
+                            {ord.items.map((item, idx) => {
+                              const isDigital = item.format === "Kindle" || item.format === "E-book" || item.format === "E-Book" || item.pdfUrl;
+                              const pdfLink = item.pdfUrl || (item.slug ? `/uploads/ebooks/${item.slug}.pdf` : null);
+                              const downloadLink = item.slug ? `/api/public/books/${item.slug}/download-pdf` : pdfLink;
+
+                              return (
+                                <div key={idx} className="py-3 text-xs">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      {item.coverImage ? (
+                                        <img
+                                          src={item.coverImage}
+                                          alt={item.title}
+                                          className="h-12 w-9 object-cover rounded shadow border border-white/10"
+                                        />
+                                      ) : (
+                                        <div className="h-12 w-9 rounded bg-white/5 flex items-center justify-center text-dim">
+                                          📖
+                                        </div>
+                                      )}
+                                      <div>
+                                        <span className="font-medium text-vellum text-sm block">{item.title}</span>
+                                        <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                                          <span className="text-dim">
+                                            Format: <strong className="text-vellum">{item.format || "Paperback"}</strong> • Qty: {item.quantity}
+                                          </span>
+                                          {isDigital && (
+                                            <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-2 py-0.2 text-[0.68rem] font-bold">
+                                              ✨ Soft Copy Included
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                  )}
-                                  <div>
-                                    <span className="font-medium text-vellum text-sm block">{item.title}</span>
-                                    <span className="text-dim">
-                                      Format: {item.format || "Paperback"} • Qty: {item.quantity}
+                                    <span className="font-medium text-vellum text-sm">
+                                      {currencyService.formatPrice(item.price * item.quantity, ord.currency || "USD")}
                                     </span>
                                   </div>
+
+                                  {/* Direct E-book Access Buttons for Digital Orders */}
+                                  {isDigital && (pdfLink || downloadLink) && (
+                                    <div className="mt-2.5 ml-12 flex items-center gap-3 pt-2 border-t border-white/5">
+                                      <a
+                                        href={pdfLink || downloadLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 rounded-lg bg-halo/20 border border-halo/40 px-3 py-1 text-[0.75rem] font-semibold text-halo hover:bg-halo hover:text-void transition-colors"
+                                      >
+                                        <span>📖 Read E-Book Soft Copy</span>
+                                      </a>
+                                      <a
+                                        href={downloadLink || pdfLink}
+                                        download
+                                        className="inline-flex items-center gap-1 text-[0.75rem] text-dim hover:text-vellum transition-colors"
+                                      >
+                                        <span>⬇ Download PDF</span>
+                                      </a>
+                                    </div>
+                                  )}
                                 </div>
-                                <span className="font-medium text-vellum">
-                                  {currencyService.formatPrice(item.price * item.quantity, ord.currency || "USD")}
-                                </span>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       );

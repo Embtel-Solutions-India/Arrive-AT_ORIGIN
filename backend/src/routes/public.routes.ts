@@ -15,6 +15,7 @@ publicRouter.get("/blogs/:slug", asyncHandler(publicController.getBlogBySlug));
 // Public Books
 publicRouter.get("/books", asyncHandler(publicController.getBooks));
 publicRouter.get("/books/:slug", asyncHandler(publicController.getBookBySlug));
+publicRouter.get("/books/:idOrSlug/download-pdf", asyncHandler(publicController.downloadBookPdf));
 
 // Public Checkout & Coupons & Geo
 publicRouter.get("/geo", asyncHandler(publicController.getGeoLocation));

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
@@ -17,13 +17,15 @@ function OrderSuccess() {
   const { autoLogin } = useCustomerAuth();
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState("");
+  const verifiedRef = useRef(false);
 
   useEffect(() => {
     // Clear cart immediately upon successful order landing
     clearCart();
 
     const sessionId = searchParams.get("session_id");
-    if (sessionId) {
+    if (sessionId && !verifiedRef.current) {
+      verifiedRef.current = true;
       setVerifying(true);
       let pendingData = {};
       try {
@@ -50,7 +52,13 @@ function OrderSuccess() {
               localStorage.removeItem("aao_pending_order");
             } catch (_) {}
           } else {
-            setVerifyError(json.message || "Payment verification note");
+            // Check if this was just a benign duplicate verification race
+            const msg = json.message || "";
+            if (msg.includes("duplicate key") || msg.includes("E11000") || msg.includes("already verified")) {
+              setVerifyError("");
+            } else {
+              setVerifyError(msg);
+            }
           }
         })
         .catch((err) => {
@@ -105,6 +113,32 @@ function OrderSuccess() {
             <div className="flex items-center justify-between">
               <span className="text-xs text-dim">Estimated Dispatch</span>
               <span className="text-xs text-vellum">1–2 business days via Priority Mail</span>
+            </div>
+          </div>
+
+          {/* Digital E-Book Library Callout */}
+          <div className="rounded-2xl border border-[rgba(232,206,140,0.35)] bg-[rgba(232,206,140,0.08)] p-5 mb-6 text-left backdrop-blur-sm shadow-[0_0_25px_rgba(232,206,140,0.12)]">
+            <div className="flex items-start gap-3.5">
+              <span className="text-2xl">📖</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-bold text-halo">E-Book Soft Copy Ready in Your Account</h3>
+                  <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[0.65rem] font-bold px-2 py-0.5">
+                    Instant Soft Copy
+                  </span>
+                </div>
+                <p className="text-xs text-vellum/90 mt-1 leading-relaxed">
+                  Purchased E-Book editions and digital publications are instantly accessible in your user account. Read online anytime or download your PDF soft copy.
+                </p>
+                <div className="mt-3">
+                  <Link
+                    to="/account?tab=ebooks"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-halo px-4 py-2 text-xs font-bold text-void hover:bg-white transition-all shadow-[0_0_15px_rgba(201,168,106,0.3)] no-underline"
+                  >
+                    <span>📖 Read & Download E-Book in User Account →</span>
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
 

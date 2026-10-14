@@ -10,6 +10,7 @@ export interface IOrderItem {
   quantity: number;
   coverImage?: string;
   subtotal: number;
+  pdfUrl?: string;
 }
 
 export interface IOrder extends Document {
@@ -57,6 +58,7 @@ const OrderItemSchema = new Schema<IOrderItem>(
     quantity: { type: Number, required: true, min: 1 },
     coverImage: { type: String, default: "" },
     subtotal: { type: Number, required: true },
+    pdfUrl: { type: String, default: "" },
   },
   { _id: false }
 );
