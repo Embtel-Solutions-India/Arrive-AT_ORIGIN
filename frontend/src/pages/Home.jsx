@@ -771,7 +771,7 @@ function Home() {
             </Reveal>
             <Reveal className="mt-11 flex flex-wrap gap-3">
               {[
-                { name: "Google reviews", icon: "google", href: "https://g.page/r/CVDKnf9pk9KdEBM/review" },
+                { name: "Google reviews", icon: "google", href: "https://www.google.com/maps/place//@46.423669,-129.9427085,3z/data=!3m1!4b1!4m3!3m2!1s0x6613bd4da2da38c7:0x44d81f84a5ec0c06!12e1?entry=ttu&g_ep=EgoyMDI2MTAxMi4wIKXMDSoASAFQAw%3D%3D" },
                 { name: "Facebook recommendations", icon: "facebook", href: "https://www.facebook.com/soulbodyhealingcenter" },
                 { name: "Yelp", icon: "yelp", href: "https://www.yelp.com/biz/soul-body-healing-center-fremont-2" },
                 { name: "Thumbtack" },
