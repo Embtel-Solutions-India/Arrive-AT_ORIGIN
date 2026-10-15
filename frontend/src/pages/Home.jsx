@@ -10,6 +10,7 @@ import FrameworkTabs from "../components/landing/FrameworkTabs";
 import Reveal from "../components/landing/Reveal";
 import { useCart } from "../context/CartContext";
 import { useCurrency } from "../context/CurrencyContext";
+import { apiUrl } from "../utils/api";
 
 const shell = "mx-auto w-full max-w-[1240px] px-[clamp(20px,5vw,64px)]";
 const heading =
@@ -59,6 +60,11 @@ const books = [
     image: "/keeping-it-simple.png",
     alt: "Keeping It Simple book cover",
     text: "Soul, body and mind do not require life to be made more complicated than it already is.",
+    formats: [
+      { format: "E-Book", priceUSD: 2.99, priceINR: 289.55, isAvailable: true },
+      { format: "Paperback", priceUSD: 0, priceINR: 0, isAvailable: false },
+      { format: "Hardcover", priceUSD: 0, priceINR: 0, isAvailable: false },
+    ],
   },
   {
     tagline: "Earlier work",
@@ -70,6 +76,11 @@ const books = [
     image: "/your-path-to-peace.png",
     alt: "Your Path to Peace book cover",
     text: "A journey beyond calmness — toward the peace that remains when what is unfinished is no longer veiled.",
+    formats: [
+      { format: "E-Book", priceUSD: 3.99, priceINR: 386.39, isAvailable: true },
+      { format: "Paperback", priceUSD: 0, priceINR: 0, isAvailable: false },
+      { format: "Hardcover", priceUSD: 0, priceINR: 0, isAvailable: false },
+    ],
   },
   {
     tagline: "Earlier work",
@@ -81,6 +92,11 @@ const books = [
     image: "/life-force-lost-and-found.png",
     alt: "Life Force: Lost and Found book cover",
     text: "Energy, wholeness, and reconnecting with the vitality of being alive.",
+    formats: [
+      { format: "E-Book", priceUSD: 2.99, priceINR: 289.55, isAvailable: true },
+      { format: "Paperback", priceUSD: 0, priceINR: 0, isAvailable: false },
+      { format: "Hardcover", priceUSD: 0, priceINR: 0, isAvailable: false },
+    ],
   },
   {
     tagline: "AAO series · Part One",
@@ -93,6 +109,11 @@ const books = [
     alt: "Arrive at Origin, Part One book cover",
     text: "The central work. Origin as the position that remains when you stop moving away from yourself, and the method for returning to it.",
     series: true,
+    formats: [
+      { format: "E-Book", priceUSD: 4.99, priceINR: 483.23, isAvailable: true },
+      { format: "Paperback", priceUSD: 10.99, priceINR: 1063.72, isAvailable: true },
+      { format: "Hardcover", priceUSD: 0, priceINR: 0, isAvailable: false },
+    ],
   },
   {
     tagline: "AAO series · Part Two",
@@ -105,6 +126,11 @@ const books = [
     alt: "Arrive at Origin, Part Two book cover",
     text: "The elaboration: Concept Clearing as gateway, the four movements in depth, and living from Origin inside ordinary obligation.",
     series: true,
+    formats: [
+      { format: "E-Book", priceUSD: 4.99, priceINR: 483.23, isAvailable: true },
+      { format: "Paperback", priceUSD: 0, priceINR: 0, isAvailable: false },
+      { format: "Hardcover", priceUSD: 0, priceINR: 0, isAvailable: false },
+    ],
   },
   {
     tagline: "Earlier work",
@@ -116,6 +142,11 @@ const books = [
     image: "/your-path-to-transformation.png",
     alt: "Your Path to Transformation book cover",
     text: "Change, unpredictability, and the way we meet a life that does not consult us first.",
+    formats: [
+      { format: "E-Book", priceUSD: 5.00, priceINR: 484.20, isAvailable: true },
+      { format: "Paperback", priceUSD: 5.00, priceINR: 484.20, isAvailable: true },
+      { format: "Hardcover", priceUSD: 12.00, priceINR: 1161.48, isAvailable: true },
+    ],
   },
   {
     tagline: "Earlier work",
@@ -127,6 +158,11 @@ const books = [
     image: "/your-path-to-spirituality.png",
     alt: "Your Path to Spirituality book cover",
     text: "A return to what spirituality is underneath the labels it has collected.",
+    formats: [
+      { format: "E-Book", priceUSD: 3.00, priceINR: 290.52, isAvailable: true },
+      { format: "Paperback", priceUSD: 4.00, priceINR: 387.16, isAvailable: true },
+      { format: "Hardcover", priceUSD: 0, priceINR: 0, isAvailable: false },
+    ],
   },
   {
     tagline: "Earlier work",
@@ -138,47 +174,106 @@ const books = [
     image: "/your-path-to-healing.png",
     alt: "Your Path to Healing book cover",
     text: "What healing means across living, loss and recovery — held as inquiry rather than instruction.",
+    formats: [
+      { format: "E-Book", priceUSD: 4.99, priceINR: 483.23, isAvailable: true },
+      { format: "Paperback", priceUSD: 4.99, priceINR: 483.23, isAvailable: true },
+      { format: "Hardcover", priceUSD: 0, priceINR: 0, isAvailable: false },
+    ],
   },
 ];
 
-function BookCard({ book, hidden }) {
-  const { addToCart } = useCart();
-  const { formatPrice, getProductPrice, currency } = useCurrency();
-  const [added, setAdded] = useState(false);
+function resolveFormatInfo(book, formatKey, currency, formatPrice) {
+  const target = formatKey.toLowerCase();
+  const fmtObj = Array.isArray(book.formats)
+    ? book.formats.find((f) => {
+        const fn = (f.format || "").toLowerCase();
+        const isEbookMatch =
+          (target.includes("ebook") || target.includes("e-book")) &&
+          (fn.includes("ebook") || fn.includes("e-book") || fn.includes("kindle"));
+        return fn === target || isEbookMatch;
+      })
+    : null;
 
-  const pricing = getProductPrice(book);
+  if (!fmtObj && !Array.isArray(book.formats)) {
+    if (formatKey === "E-Book") {
+      const p = currency === "INR" ? (book.priceINR || (book.priceUSD ? book.priceUSD * 96.79 : 483.23)) : (book.priceUSD || 4.99);
+      return { isAvailable: true, price: formatPrice(p), rawPrice: p };
+    }
+    return { isAvailable: false, price: null, rawPrice: 0 };
+  }
 
-  const handleAddToCart = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    addToCart({
-      _id: book.slug,
-      id: book.slug,
-      title: book.title,
-      slug: book.slug,
-      price: pricing.effectivePrice,
-      priceUSD: book.priceUSD,
-      priceINR: book.priceINR,
-      currency,
-      format: "Paperback",
-      coverImage: book.image,
-    });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1600);
+  const isAvailable = Boolean(
+    fmtObj &&
+    fmtObj.isAvailable !== false &&
+    ((typeof fmtObj.priceUSD === "number" && fmtObj.priceUSD > 0) ||
+     (typeof fmtObj.priceINR === "number" && fmtObj.priceINR > 0) ||
+     (typeof fmtObj.price === "number" && fmtObj.price > 0))
+  );
+
+  if (!isAvailable || !fmtObj) {
+    return { isAvailable: false, price: null, rawPrice: 0 };
+  }
+
+  let rawPrice = 0;
+  if (currency === "INR") {
+    if (typeof fmtObj.priceINR === "number" && fmtObj.priceINR > 0) {
+      rawPrice = fmtObj.priceINR;
+    } else if (typeof fmtObj.priceUSD === "number" && fmtObj.priceUSD > 0) {
+      rawPrice = Number((fmtObj.priceUSD * 96.79).toFixed(2));
+    } else if (typeof fmtObj.price === "number" && fmtObj.price > 0) {
+      rawPrice = fmtObj.price >= 50 ? fmtObj.price : Number((fmtObj.price * 96.79).toFixed(2));
+    }
+  } else {
+    // USD
+    if (typeof fmtObj.priceUSD === "number" && fmtObj.priceUSD > 0) {
+      rawPrice = fmtObj.priceUSD;
+    } else if (typeof fmtObj.priceINR === "number" && fmtObj.priceINR > 0) {
+      rawPrice = Number((fmtObj.priceINR / 96.79).toFixed(2));
+    } else if (typeof fmtObj.price === "number" && fmtObj.price > 0) {
+      rawPrice = fmtObj.price < 50 ? fmtObj.price : Number((fmtObj.price / 96.79).toFixed(2));
+    }
+  }
+
+  return {
+    isAvailable: true,
+    price: formatPrice(rawPrice),
+    rawPrice,
   };
+}
+
+function BookCard({ book, hidden }) {
+  const { formatPrice, currency } = useCurrency();
+
+  const formatsList = [
+    { key: "E-Book", label: "E-Book" },
+    { key: "Paperback", label: "Paperback" },
+    { key: "Hardcover", label: "Hardcover" },
+  ].map((fmt) => {
+    const info = resolveFormatInfo(book, fmt.key, currency, formatPrice);
+    return {
+      ...fmt,
+      ...info,
+    };
+  });
+
+  const availableFormats = formatsList.filter((f) => f.isAvailable && f.rawPrice > 0);
+  const minPrice =
+    availableFormats.length > 0
+      ? Math.min(...availableFormats.map((f) => f.rawPrice))
+      : (currency === "INR" ? (book.priceINR || 483.23) : (book.priceUSD || 4.99));
 
   return (
     <article
       aria-hidden={hidden || undefined}
-      className="group relative flex h-[560px] w-[260px] sm:w-[270px] shrink-0 flex-col rounded-2xl border border-[rgba(237,231,218,0.14)] p-4 pb-5 text-vellum transition-all duration-300 hover:border-halo/70 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)] select-none"
+      className="group relative flex h-[570px] w-[260px] sm:w-[270px] shrink-0 flex-col rounded-2xl border border-[rgba(237,231,218,0.14)] p-4 pb-5 text-vellum transition-all duration-300 hover:border-halo/70 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)] select-none"
       style={{ background: "linear-gradient(165deg, #0E1630 0%, #1A1832 55%, #2A1F40 100%)" }}
     >
       {/* Centered Gallery Book Cover */}
-      <div className="relative flex items-center justify-center w-full h-[220px] mb-3 flex-shrink-0">
+      <div className="relative flex items-center justify-center w-full h-[215px] mb-3 flex-shrink-0">
         <Link
           to={`/books/${book.slug}`}
           tabIndex={hidden ? -1 : undefined}
-          aria-label={`${book.title} — view publication details`}
+          aria-label={`${book.title} — view book details`}
           className="relative block h-full aspect-[2/3] overflow-hidden rounded-lg shadow-[0_8px_20px_rgba(0,0,0,0.45)] group-hover:shadow-[0_14px_30px_rgba(0,0,0,0.65)] group-hover:scale-[1.03] transition-all duration-300"
         >
           {book.image ? (
@@ -221,38 +316,65 @@ function BookCard({ book, hidden }) {
         )}
       </div>
 
-      {/* Bottom Actions Cluster: Guaranteed clearance & fixed positions */}
+      {/* Bottom Actions Cluster */}
       <div className="mt-auto pt-3 border-t border-[rgba(237,231,218,0.12)] flex-shrink-0">
-        {/* Price & Website Details link */}
-        <div className="mb-2.5 flex items-center justify-between">
-          <span className="font-display text-[1.08rem] font-semibold text-halo tracking-tight">
-            {formatPrice(pricing.effectivePrice)}
-          </span>
+        {/* Available Formats & Pricing Grid */}
+        <div className="mb-3">
+          <div className="mb-1.5 flex items-center justify-between text-[0.64rem] font-mono uppercase tracking-wider text-[#A9B0C2]">
+            <span>Available Formats</span>
+            <span className="text-halo font-semibold text-[0.68rem] tracking-tight">
+              From {formatPrice(minPrice)}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {formatsList.map((fmt) => {
+              if (fmt.isAvailable) {
+                return (
+                  <Link
+                    key={fmt.key}
+                    to={`/books/${book.slug}`}
+                    tabIndex={hidden ? -1 : undefined}
+                    aria-label={`${book.title} — ${fmt.label} at ${fmt.price}`}
+                    className="flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg border border-halo/30 bg-halo/[0.08] text-vellum hover:border-halo hover:bg-halo/20 hover:scale-[1.02] transition-all no-underline text-center shadow-xs"
+                  >
+                    <span className="text-[0.60rem] font-medium tracking-tight text-[#E2E6EE] truncate w-full text-center">
+                      {fmt.label}
+                    </span>
+                    <span className="text-[0.74rem] font-bold text-halo mt-0.5 truncate w-full text-center">
+                      {fmt.price}
+                    </span>
+                  </Link>
+                );
+              }
+              return (
+                <div
+                  key={fmt.key}
+                  className="flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg border border-white/5 bg-white/[0.02] text-dim/35 text-center select-none opacity-50"
+                  title={`${fmt.label} is currently unavailable`}
+                >
+                  <span className="text-[0.60rem] font-medium tracking-tight text-dim/50 truncate w-full text-center">
+                    {fmt.label}
+                  </span>
+                  <span className="text-[0.74rem] text-dim/40 mt-0.5 truncate w-full text-center font-normal">
+                    —
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Action Buttons: View Book & Buy on Amazon */}
+        <div className="flex flex-col gap-2">
           <Link
             to={`/books/${book.slug}`}
             tabIndex={hidden ? -1 : undefined}
-            className="text-[0.72rem] text-dim hover:text-halo transition-colors no-underline font-medium"
+            aria-label={`${book.title} — view publication details and purchase options`}
+            className="w-full h-9 rounded-full bg-halo px-3 text-[0.78rem] font-bold text-void transition-all duration-200 hover:bg-white hover:shadow-md active:scale-[0.98] cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm no-underline"
           >
-            Details →
+            <span>View Book</span>
+            <span aria-hidden="true" className="text-[0.82rem]">→</span>
           </Link>
-        </div>
-
-        {/* Action Buttons: Add to Cart & Buy on Amazon */}
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            tabIndex={hidden ? -1 : undefined}
-            onClick={handleAddToCart}
-            className="w-full h-9 rounded-full bg-halo px-3 text-[0.76rem] font-bold text-void transition-all duration-200 hover:bg-white hover:shadow-md active:scale-[0.98] cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm"
-          >
-            {added ? (
-              <>
-                <span className="text-emerald-800 font-bold">✓</span> Added to Cart
-              </>
-            ) : (
-              <>Add to Cart</>
-            )}
-          </button>
 
           {book.href && (
             <a
@@ -275,6 +397,32 @@ function BookCard({ book, hidden }) {
 
 function Home() {
   const [isBooksPaused, setIsBooksPaused] = useState(false);
+  const [liveBooks, setLiveBooks] = useState(books);
+
+  useEffect(() => {
+    fetch(apiUrl("/public/books"))
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && Array.isArray(json.data?.books) && json.data.books.length > 0) {
+          setLiveBooks((prev) =>
+            prev.map((staticBk) => {
+              const remote = json.data.books.find(
+                (b) => b.slug === staticBk.slug || b.title?.toLowerCase() === staticBk.title?.toLowerCase()
+              );
+              if (!remote) return staticBk;
+              return {
+                ...staticBk,
+                formats: Array.isArray(remote.formats) && remote.formats.length > 0 ? remote.formats : staticBk.formats,
+                priceINR: remote.priceINR || staticBk.priceINR,
+                priceUSD: remote.priceUSD || staticBk.priceUSD,
+                href: remote.amazonUrl || staticBk.href,
+              };
+            })
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const existing = document.querySelector('script[src="https://elfsightcdn.com/platform.js"]');
@@ -581,8 +729,8 @@ function Home() {
                 className="book-track"
                 style={{ animationPlayState: isBooksPaused ? "paused" : undefined }}
               >
-                {[...books, ...books].map((book, i) => (
-                  <BookCard key={`${book.title}-${i}`} book={book} hidden={i >= books.length} />
+                {[...liveBooks, ...liveBooks].map((book, i) => (
+                  <BookCard key={`${book.title}-${i}`} book={book} hidden={i >= liveBooks.length} />
                 ))}
               </div>
             </Reveal>

@@ -118,7 +118,7 @@ function Books() {
                         {book.shortDescription || book.description}
                       </p>
 
-                      {/* Available format badges */}
+                      {/* Available format badges with prices */}
                       <div className="flex flex-wrap items-center gap-1.5 mb-4">
                         {["E-Book", "Paperback", "Hardcover"].map((fmtKey) => {
                           const fmtMatch = book.formats?.find((f) => {
@@ -128,6 +128,7 @@ function Books() {
                             return fn === sf || isEbookMatch;
                           });
                           const isAvail = fmtMatch && fmtMatch.isAvailable !== false && fmtMatch.price > 0;
+                          const fmtPricing = isAvail ? getProductPrice(book, fmtKey) : null;
                           return (
                             <span
                               key={fmtKey}
@@ -137,7 +138,7 @@ function Books() {
                                   : "bg-white/[0.03] text-dim/40 border border-white/5"
                               }`}
                             >
-                              {fmtKey}: {isAvail ? "✓" : "—"}
+                              {fmtKey}: {isAvail && fmtPricing ? formatPrice(fmtPricing.effectivePrice) : "—"}
                             </span>
                           );
                         })}
