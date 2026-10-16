@@ -901,9 +901,6 @@ export const publicController = {
       logger.warn({ payErr: payErr?.message }, "Payment record already created or skipped in concurrency");
     }
 
-    order.payment = payment._id as any;
-    await order.save();
-
     const customerToken = generateCustomerToken(customer);
     const origin =
       (req.headers.origin as string) ||

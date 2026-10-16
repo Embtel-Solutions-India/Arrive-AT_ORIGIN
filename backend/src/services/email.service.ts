@@ -98,7 +98,7 @@ export function resolveBaseUrl(appUrl?: string): string {
 }
 
 // ─── Shared Email Shell ───
-function wrapEmailShell(title: string, badgeText: string, contentHtml: string, baseUrl?: string): string {
+export function wrapEmailShell(title: string, badgeText: string, contentHtml: string, baseUrl?: string): string {
   const websiteUrl = baseUrl || resolveBaseUrl();
   return `
 <!DOCTYPE html>
