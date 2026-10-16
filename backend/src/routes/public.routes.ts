@@ -35,6 +35,7 @@ publicRouter.post("/consultations/stripe/verify", asyncHandler(consultationContr
 // Public Customer Account & Portal
 publicRouter.post("/customer/login", asyncHandler(customerAuthController.login));
 publicRouter.post("/customer/signup", asyncHandler(customerAuthController.signup));
+publicRouter.post("/customer/google", asyncHandler(customerAuthController.googleAuth));
 publicRouter.post("/customer/forgot-password", asyncHandler(customerAuthController.forgotPassword));
 publicRouter.post("/customer/reset-password", asyncHandler(customerAuthController.resetPassword));
 publicRouter.get("/customer/portal", asyncHandler(customerAuthController.getPortal));

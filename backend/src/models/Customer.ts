@@ -12,6 +12,9 @@ export interface ICustomer extends Document {
   name: string;
   email: string;
   phone?: string;
+  googleId?: string;
+  avatar?: string;
+  authProvider?: "local" | "google";
   passwordHash?: string;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
@@ -41,6 +44,9 @@ const CustomerSchema = new Schema<ICustomer>(
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
     phone: { type: String, default: "" },
+    googleId: { type: String, sparse: true, index: true },
+    avatar: { type: String, default: "" },
+    authProvider: { type: String, enum: ["local", "google"], default: "local" },
     passwordHash: { type: String },
     resetPasswordToken: { type: String, index: true },
     resetPasswordExpires: { type: Date },

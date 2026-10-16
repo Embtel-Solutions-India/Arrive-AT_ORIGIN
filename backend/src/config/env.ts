@@ -73,6 +73,10 @@ const schema = z.object({
   ADMIN_NOTIFICATION_EMAILS: z
     .string()
     .default("info@soulbodyhealingcenter.com,info@arriveatorigin.com"),
+
+  // Google OAuth Configuration
+  GOOGLE_CLIENT_ID: z.string().optional().default(""),
+  GOOGLE_CLIENT_SECRET: z.string().optional().default(""),
 });
 
 const parsed = schema.safeParse(process.env);

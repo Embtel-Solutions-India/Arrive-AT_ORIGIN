@@ -239,7 +239,7 @@ async function seed() {
       language: "English",
       pages: 210,
       format: "Kindle",
-      pdfUrl: "/uploads/ebooks/your-path-to-peace.pdf",
+      pdfUrl: "",
       formats: [
         {
           format: "Kindle",
@@ -247,9 +247,9 @@ async function seed() {
           priceUSD: 3.99,
           priceINR: 386.39,
           sku: "AAO-BK-007-KINDLE",
-          stockQuantity: 9999,
-          isAvailable: true,
-          pdfUrl: "/uploads/ebooks/your-path-to-peace.pdf",
+          stockQuantity: 0,
+          isAvailable: false,
+          pdfUrl: "",
         },
         {
           format: "Paperback",
@@ -355,7 +355,7 @@ async function seed() {
       language: "English",
       pages: 312,
       format: "Kindle",
-      pdfUrl: "/uploads/ebooks/arrive-at-origin-part-two.pdf",
+      pdfUrl: "",
       formats: [
         {
           format: "Kindle",
@@ -363,9 +363,9 @@ async function seed() {
           priceUSD: 4.99,
           priceINR: 483.23,
           sku: "AAO-BK-002-KINDLE",
-          stockQuantity: 9999,
-          isAvailable: true,
-          pdfUrl: "/uploads/ebooks/arrive-at-origin-part-two.pdf",
+          stockQuantity: 0,
+          isAvailable: false,
+          pdfUrl: "",
         },
         {
           format: "Paperback",
@@ -525,6 +525,64 @@ async function seed() {
       revenue: 35.88,
       amazonUrl: "https://www.amazon.com/dp/B07VRKSC9P",
     },
+    {
+      title: "Life Force: Lost and Found",
+      slug: "life-force-lost-and-found",
+      authorName: "Dr. Alka Chopra Madan",
+      sku: "AAO-BK-008",
+      isbn: "979-8877665518",
+      publisher: "Soul Body Publishing",
+      language: "English",
+      pages: 46,
+      format: "E-Book",
+      pdfUrl: "/uploads/ebooks/life-force-lost-and-found.pdf",
+      formats: [
+        {
+          format: "E-Book",
+          price: 2.99,
+          priceUSD: 2.99,
+          priceINR: 289.55,
+          sku: "AAO-BK-008-EBOOK",
+          stockQuantity: 9999,
+          isAvailable: true,
+          pdfUrl: "/uploads/ebooks/life-force-lost-and-found.pdf",
+        },
+        {
+          format: "Paperback",
+          price: 2.99,
+          priceUSD: 2.99,
+          priceINR: 289.55,
+          sku: "AAO-BK-008-PB",
+          stockQuantity: 45,
+          isAvailable: true,
+        },
+        {
+          format: "Hardcover",
+          price: 0,
+          priceUSD: 0,
+          priceINR: 0,
+          sku: "AAO-BK-008-HC",
+          stockQuantity: 0,
+          isAvailable: false,
+        },
+      ],
+      description: "Energy, wholeness, and reconnecting with the vitality of being alive.",
+      shortDescription: "Energy, wholeness, and reconnecting with the vitality of being alive.",
+      coverImage: "/life-force-lost-and-found.png",
+      categoryName: "Earlier Work",
+      tags: ["Energy", "Vitality", "Healing"],
+      price: 2.99,
+      priceUSD: 2.99,
+      priceINR: 289.55,
+      currency: "USD",
+      stockQuantity: 45,
+      lowStockThreshold: 5,
+      status: "PUBLISHED",
+      isFeatured: false,
+      salesCount: 0,
+      revenue: 0,
+      amazonUrl: "https://www.amazon.com/Life-Force-Alka-Chopra-Madan-ebook/dp/B07VQDY6VP",
+    },
   ];
 
   for (const b of books) {
@@ -624,6 +682,8 @@ async function seed() {
     await sampleOrder.save();
     console.log("✅ Seeded Sample Customer & Order");
   }
+
+
 
   // 9. SEO & Site Settings
   const defaultSettings = [

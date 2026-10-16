@@ -6,6 +6,8 @@ interface CustomerProfile {
   name: string;
   email: string;
   phone?: string;
+  avatar?: string;
+  authProvider?: "local" | "google";
   shippingAddress?: {
     street?: string;
     city?: string;
@@ -73,6 +75,7 @@ interface CustomerAuthContextValue {
   loading: boolean;
   login: (email: string, password?: string, name?: string) => Promise<void>;
   signup: (data: { name: string; email: string; password: string; phone?: string }) => Promise<void>;
+  loginWithGoogle: (data: { credential?: string; email?: string; name?: string; googleId?: string; avatar?: string }) => Promise<void>;
   forgotPassword: (email: string) => Promise<string>;
   resetPassword: (token: string, password: string) => Promise<void>;
   autoLogin: (customer: CustomerProfile, token: string) => void;
@@ -216,6 +219,39 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithGoogle = async (data: {
+    credential?: string;
+    email?: string;
+    name?: string;
+    googleId?: string;
+    avatar?: string;
+  }) => {
+    setLoading(true);
+    try {
+      const res = await fetch(apiUrl("/public/customer/google"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "Google sign-in failed");
+      }
+
+      const receivedToken = json.data.token;
+      const receivedCustomer = json.data.customer;
+
+      setToken(receivedToken);
+      setCustomer(receivedCustomer);
+      localStorage.setItem(STORAGE_TOKEN_KEY, receivedToken);
+      localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(receivedCustomer));
+
+      await fetchPortalData(receivedToken);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const forgotPassword = async (email: string): Promise<string> => {
     setLoading(true);
     try {
@@ -293,6 +329,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
         loading,
         login,
         signup,
+        loginWithGoogle,
         forgotPassword,
         resetPassword,
         autoLogin,

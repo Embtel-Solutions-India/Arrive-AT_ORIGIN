@@ -41,6 +41,19 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export const USD_TO_INR_RATE = 96.79;
 
+export function isEbookFormat(format?: string): boolean {
+  if (!format) return false;
+  const clean = format.toLowerCase().trim();
+  return (
+    clean.includes("ebook") ||
+    clean.includes("e-book") ||
+    clean.includes("kindle") ||
+    clean.includes("digital") ||
+    clean.includes("soft copy") ||
+    clean.includes("pdf")
+  );
+}
+
 export function resolveBookPrice(book: any, targetCurrency: "USD" | "INR", requestedFormat?: string): number {
   if (requestedFormat && Array.isArray(book.formats) && book.formats.length > 0) {
     const cleanFmt = requestedFormat.trim().toLowerCase();
@@ -377,16 +390,17 @@ export const publicController = {
         ? book.formats.find((f: any) => f.format?.toLowerCase() === (item.format || "").toLowerCase())
         : null;
 
+      const isDigital = isEbookFormat(item.format);
       orderItems.push({
         book: book._id as any,
         title: book.title,
         sku: matchedFmt?.sku || book.sku,
-        format: item.format || book.format || "E-Book",
+        format: item.format || (isDigital ? "E-Book" : (book.format || "Paperback")),
         price: itemPrice,
         quantity: item.quantity,
         coverImage: book.coverImage,
         subtotal: itemSubtotal,
-        pdfUrl: matchedFmt?.pdfUrl || book.pdfUrl || "",
+        pdfUrl: isDigital ? (matchedFmt?.pdfUrl || book.pdfUrl || `/uploads/ebooks/${book.slug}.pdf`) : "",
       });
 
       // Update inventory and sales count
@@ -769,16 +783,17 @@ export const publicController = {
         ? book.formats.find((f: any) => f.format?.toLowerCase() === (item.format || "").toLowerCase())
         : null;
 
+      const isDigital = isEbookFormat(item.format);
       orderItems.push({
         book: book._id as any,
         title: book.title,
         sku: matchedFmt?.sku || book.sku,
-        format: item.format || book.format || "E-Book",
+        format: item.format || (isDigital ? "E-Book" : (book.format || "Paperback")),
         price: itemPrice,
         quantity: item.quantity,
         coverImage: book.coverImage,
         subtotal: itemSubtotal,
-        pdfUrl: matchedFmt?.pdfUrl || book.pdfUrl || "",
+        pdfUrl: isDigital ? (matchedFmt?.pdfUrl || book.pdfUrl || `/uploads/ebooks/${book.slug}.pdf`) : "",
       });
 
       book.stockQuantity = Math.max(0, book.stockQuantity - item.quantity);
@@ -1026,23 +1041,15 @@ export const publicController = {
 
     const candidatePaths = [
       path.resolve(uploadDir, "ebooks", pdfFilename),
+      path.resolve(uploadDir, "ebooks", `${book.slug}.pdf`),
       path.resolve(uploadDir, pdfFilename),
       path.resolve(process.cwd(), "uploads/ebooks", pdfFilename),
+      path.resolve(process.cwd(), "uploads/ebooks", `${book.slug}.pdf`),
       path.resolve(process.cwd(), "../frontend/public/ebooks", pdfFilename),
+      path.resolve(process.cwd(), "../frontend/public/ebooks", `${book.slug}.pdf`),
     ];
 
-    let foundPath = candidatePaths.find((p) => fs.existsSync(p));
-
-    if (!foundPath) {
-      // Fallback to first available ebook in uploads/ebooks
-      const fallbackDir = path.resolve(uploadDir, "ebooks");
-      if (fs.existsSync(fallbackDir)) {
-        const files = fs.readdirSync(fallbackDir).filter((f) => f.endsWith(".pdf"));
-        if (files.length > 0 && files[0]) {
-          foundPath = path.join(fallbackDir, files[0]);
-        }
-      }
-    }
+    const foundPath = candidatePaths.find((p) => fs.existsSync(p));
 
     if (!foundPath || !fs.existsSync(foundPath)) {
       throw HttpError.notFound("Digital copy file is not currently available for this publication");

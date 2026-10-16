@@ -1,4 +1,6 @@
 import type { Request, Response } from "express";
+import fs from "fs";
+import path from "path";
 import jwt from "jsonwebtoken";
 import argon2 from "argon2";
 import { Customer, ICustomer } from "../../models/Customer.js";
@@ -244,7 +246,7 @@ export const customerAuthController = {
       orderType: { $ne: "CONSULTATION" },
     }).sort({ createdAt: -1 });
 
-    // 4. Construct digital library / e-books soft copies from customer's orders
+    // 4. Construct digital library / e-books soft copies ONLY from customer's purchased E-Books
     const allBooks = await Book.find({});
     const bookMap = new Map<string, any>();
     allBooks.forEach((b: any) => {
@@ -253,41 +255,91 @@ export const customerAuthController = {
       bookMap.set(b.title.toLowerCase(), b);
     });
 
+    const isEbookFormat = (fmt?: string): boolean => {
+      if (!fmt) return false;
+      const clean = fmt.toLowerCase().trim();
+      return (
+        clean.includes("ebook") ||
+        clean.includes("e-book") ||
+        clean.includes("kindle") ||
+        clean.includes("digital") ||
+        clean.includes("soft copy") ||
+        clean.includes("pdf")
+      );
+    };
+
     const ebooksMap = new Map<string, any>();
     for (const ord of orders) {
+      // Must be a valid and paid/confirmed order
+      const isPaidOrder =
+        ord.paymentStatus === "PAID" ||
+        ord.orderStatus === "PAYMENT_CONFIRMED" ||
+        ord.orderStatus === "PROCESSING" ||
+        ord.orderStatus === "SHIPPED" ||
+        ord.orderStatus === "DELIVERED";
+
+      if (!isPaidOrder) continue;
+
       for (const item of ord.items) {
+        const isDigital = isEbookFormat(item.format);
+
+        // ONLY include in digital library if the purchased format was an E-Book
+        if (!isDigital) {
+          // Explicitly clear pdfUrl from physical items so client UI never exposes digital downloads
+          item.pdfUrl = "";
+          continue;
+        }
+
         const matchedBook =
           (item.book ? bookMap.get(item.book.toString()) : null) ||
           bookMap.get(item.sku) ||
           bookMap.get(item.title.toLowerCase()) ||
           Array.from(bookMap.values()).find(
-            (b: any) => b.title.toLowerCase().includes(item.title.toLowerCase()) || item.title.toLowerCase().includes(b.title.toLowerCase())
+            (b: any) =>
+              b.title.toLowerCase().includes(item.title.toLowerCase()) ||
+              item.title.toLowerCase().includes(b.title.toLowerCase())
           );
 
-        const pdfUrl =
+        const candidatePdfUrl =
           item.pdfUrl ||
           matchedBook?.pdfUrl ||
-          (matchedBook?.slug ? `/uploads/ebooks/${matchedBook.slug}.pdf` : "/uploads/ebooks/arrive-at-origin-part-one.pdf");
+          (matchedBook?.slug ? `/uploads/ebooks/${matchedBook.slug}.pdf` : "");
 
-        // Back-populate item.pdfUrl for the response if not already set
-        if (!item.pdfUrl) {
-          item.pdfUrl = pdfUrl;
+        const pdfFilename = candidatePdfUrl ? path.basename(candidatePdfUrl) : "";
+        const uploadDir = env.UPLOAD_DIR || path.resolve(process.cwd(), "uploads");
+        const candidatePaths = [
+          path.resolve(uploadDir, "ebooks", pdfFilename),
+          path.resolve(uploadDir, pdfFilename),
+          path.resolve(process.cwd(), "uploads/ebooks", pdfFilename),
+          path.resolve(process.cwd(), "../frontend/public/ebooks", pdfFilename),
+        ];
+
+        const hasRealPdf = Boolean(pdfFilename && candidatePaths.some((p) => fs.existsSync(p)));
+        const pdfUrl = hasRealPdf ? candidatePdfUrl : "";
+
+        item.pdfUrl = pdfUrl;
+        if (matchedBook?.slug && !(item as any).slug) {
+          (item as any).slug = matchedBook.slug;
         }
 
-        const key = matchedBook?._id?.toString() || item.title;
-        if (!ebooksMap.has(key)) {
-          ebooksMap.set(key, {
-            bookId: matchedBook?._id || item.book,
-            title: matchedBook?.title || item.title,
-            slug: matchedBook?.slug || "",
-            coverImage: item.coverImage || matchedBook?.coverImage || "/aao-part-one.png",
-            format: item.format || "E-Book",
-            authorName: matchedBook?.authorName || "Dr. Alka Chopra Madan",
-            pdfUrl,
-            downloadUrl: matchedBook?.slug ? `/api/public/books/${matchedBook.slug}/download-pdf` : pdfUrl,
-            orderNumber: ord.orderNumber,
-            purchasedAt: ord.createdAt,
-          });
+        // Only add to digital library if a valid real PDF exists
+        if (pdfUrl) {
+          const key = matchedBook?._id?.toString() || item.title;
+          if (!ebooksMap.has(key)) {
+            ebooksMap.set(key, {
+              bookId: matchedBook?._id || item.book,
+              title: matchedBook?.title || item.title,
+              slug: matchedBook?.slug || "",
+              coverImage: item.coverImage || matchedBook?.coverImage || "/aao-part-one.png",
+              format: item.format || "E-Book",
+              authorName: matchedBook?.authorName || "Dr. Alka Chopra Madan",
+              pdfUrl,
+              downloadUrl: matchedBook?.slug ? `/api/public/books/${matchedBook.slug}/download-pdf` : pdfUrl,
+              orderNumber: ord.orderNumber,
+              purchasedAt: ord.createdAt,
+              purchaseDate: ord.createdAt,
+            });
+          }
         }
       }
     }
@@ -438,5 +490,123 @@ export const customerAuthController = {
       },
       "Password reset successfully. You are now logged in."
     );
+  },
+
+  /**
+   * Google OAuth Sign-in & Sign-up for Customers
+   */
+  async googleAuth(req: Request, res: Response) {
+    try {
+      const { credential, email, name, googleId } = req.body;
+
+      let verifiedEmail = "";
+      let verifiedName = "";
+      let verifiedSub = "";
+      let verifiedPicture = "";
+
+      if (credential && typeof credential === "string") {
+        // Verify with Google OAuth2 tokeninfo endpoint
+        const googleRes = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`
+        );
+        const payload = (await googleRes.json()) as any;
+
+        if (!googleRes.ok || payload.error) {
+          logger.warn({ error: payload.error_description || payload.error }, "Google token verification failed");
+          throw HttpError.unauthorized("Google token validation failed. Please try signing in again.");
+        }
+
+        if (env.GOOGLE_CLIENT_ID && payload.aud !== env.GOOGLE_CLIENT_ID) {
+          logger.warn({ aud: payload.aud, expected: env.GOOGLE_CLIENT_ID }, "Google token audience mismatch");
+          throw HttpError.unauthorized("Google token audience mismatch");
+        }
+
+        verifiedEmail = payload.email?.toLowerCase().trim();
+        verifiedName = payload.name?.trim() || verifiedEmail.split("@")[0];
+        verifiedSub = payload.sub;
+        verifiedPicture = payload.picture || "";
+      } else if (env.NODE_ENV !== "production" && email && typeof email === "string" && email.includes("@")) {
+        // Development / testing fallback when Google Client ID has not been provisioned yet
+        verifiedEmail = email.toLowerCase().trim();
+        verifiedName = (typeof name === "string" && name.trim()) || verifiedEmail.split("@")[0];
+        verifiedSub = (typeof googleId === "string" && googleId.trim()) || `google_demo_${Date.now()}`;
+        verifiedPicture = "";
+        logger.info({ email: verifiedEmail }, "Using development mock Google authentication");
+      } else {
+        throw HttpError.badRequest("Missing Google authentication credential");
+      }
+
+      if (!verifiedEmail) {
+        throw HttpError.badRequest("Unable to retrieve verified email from Google");
+      }
+
+      let customer = await Customer.findOne({
+        $or: [{ googleId: verifiedSub }, { email: verifiedEmail }],
+      } as any);
+
+      let isNewAccount = false;
+
+      if (!customer) {
+        isNewAccount = true;
+        // Check past booking or order
+        const pastConsultation = await Consultation.findOne({ clientEmail: verifiedEmail } as any);
+        const pastOrder = await Order.findOne({ "customerInfo.email": verifiedEmail } as any);
+
+        const resolvedPhone = pastConsultation?.clientPhone || pastOrder?.customerInfo?.phone || "";
+
+        customer = await Customer.create({
+          name: verifiedName,
+          email: verifiedEmail,
+          phone: resolvedPhone,
+          googleId: verifiedSub,
+          avatar: verifiedPicture,
+          authProvider: "google",
+          lastLogin: new Date(),
+        });
+        logger.info({ email: verifiedEmail, name: verifiedName }, "New customer account created via Google");
+
+        const origin =
+          (req.headers.origin as string) ||
+          (req.headers.referer ? new URL(req.headers.referer).origin : "") ||
+          undefined;
+
+        sendWelcomeEmail(customer.email, customer.name, origin).catch((err) =>
+          logger.error({ err: err?.message }, "Failed to send welcome email after Google signup")
+        );
+      } else {
+        // Update customer with Google ID and avatar if missing
+        if (!customer.googleId && verifiedSub) customer.googleId = verifiedSub;
+        if (!customer.avatar && verifiedPicture) customer.avatar = verifiedPicture;
+        if (customer.authProvider === "local" && !customer.googleId) customer.authProvider = "google";
+        customer.lastLogin = new Date();
+        await customer.save();
+        logger.info({ email: verifiedEmail }, "Existing customer signed in with Google");
+      }
+
+      const token = generateCustomerToken(customer);
+
+      ok(
+        res,
+        {
+          token,
+          isNewAccount,
+          customer: {
+            id: customer._id,
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone || "",
+            avatar: customer.avatar || verifiedPicture || "",
+            shippingAddress: customer.shippingAddress,
+            totalOrders: customer.totalOrders,
+            totalSpent: customer.totalSpent,
+            createdAt: customer.createdAt,
+          },
+        },
+        isNewAccount ? "Account created successfully with Google" : "Signed in with Google successfully"
+      );
+    } catch (err: any) {
+      logger.error({ err: err?.message || err }, "Google authentication failed");
+      throw err;
+    }
   },
 };

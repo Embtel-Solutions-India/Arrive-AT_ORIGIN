@@ -180,20 +180,42 @@ function AccountPortal() {
   const serverEbooks = portalData?.ebooks || [];
   const stats = portalData?.stats || { sessionsCount: 0, ordersCount: 0, ebooksCount: 0, totalSpent: 0 };
 
-  // Derive ebooks from orders as well as server response for 100% resilience
+  const isEbookFormat = (format) => {
+    if (!format) return false;
+    const f = format.toLowerCase().trim();
+    return (
+      f.includes("ebook") ||
+      f.includes("e-book") ||
+      f.includes("kindle") ||
+      f.includes("digital") ||
+      f.includes("soft copy") ||
+      f.includes("pdf")
+    );
+  };
+
+  // Derive ebooks from orders as well as server response for 100% resilience - ONLY for purchased E-books
   const ebooks = useMemo(() => {
     if (serverEbooks && serverEbooks.length > 0) return serverEbooks;
     const list = [];
     orders.forEach((ord) => {
+      const isPaid =
+        ord.paymentStatus === "PAID" ||
+        ord.orderStatus === "PAYMENT_CONFIRMED" ||
+        ord.orderStatus === "PROCESSING" ||
+        ord.orderStatus === "SHIPPED" ||
+        ord.orderStatus === "DELIVERED";
+      if (!isPaid) return;
+
       ord.items?.forEach((item) => {
-        const isDigital = item.format === "Kindle" || item.format === "E-book" || item.format === "E-Book" || item.pdfUrl;
+        const isDigital = isEbookFormat(item.format);
         if (isDigital) {
           list.push({
             title: item.title,
             slug: item.slug,
             coverImage: item.coverImage,
             format: item.format === "Kindle" ? "E-Book" : (item.format || "E-Book"),
-            pdfUrl: item.pdfUrl || `/uploads/ebooks/${item.slug || 'ebook'}.pdf`,
+            pdfUrl: item.pdfUrl || (item.slug ? `/uploads/ebooks/${item.slug}.pdf` : ""),
+            downloadUrl: item.slug ? `/api/public/books/${item.slug}/download-pdf` : (item.pdfUrl || ""),
             orderNumber: ord.orderNumber,
             purchaseDate: ord.createdAt,
           });
@@ -244,274 +266,8 @@ function AccountPortal() {
                   User Account
                 </span>
 
-                {/* Tab Switcher - only when in login or signup mode */}
-                {(authMode === "login" || authMode === "signup") && (
-                  <div className="my-5 flex rounded-2xl bg-white/5 p-1 border border-white/10">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthMode("login");
-                        setFormError("");
-                        setSuccessMsg("");
-                      }}
-                      className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                        authMode === "login"
-                          ? "bg-halo text-void shadow-md"
-                          : "text-dim hover:text-vellum"
-                      }`}
-                    >
-                      Log In
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthMode("signup");
-                        setFormError("");
-                        setSuccessMsg("");
-                      }}
-                      className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                        authMode === "signup"
-                          ? "bg-halo text-void shadow-md"
-                          : "text-dim hover:text-vellum"
-                      }`}
-                    >
-                      Sign Up
-                    </button>
-                  </div>
-                )}
-
-                {authMode === "login" ? (
-                  /* Option 1: Log In */
-                  <>
-                    {urlOrder && (
-                      <div className="mb-5 rounded-2xl border border-[rgba(232,206,140,0.3)] bg-[rgba(232,206,140,0.08)] p-4 text-left">
-                        <div className="flex items-center gap-1.5 text-halo text-xs font-bold uppercase tracking-wider mb-1">
-                          <span>📦 Tracking Order #{urlOrder}</span>
-                        </div>
-                        <p className="text-xs text-vellum/90">
-                          Sign in below to view your real-time fulfillment status, tracking link, and receipt.
-                        </p>
-                      </div>
-                    )}
-                    {urlBooking && !urlOrder && (
-                      <div className="mb-5 rounded-2xl border border-[rgba(232,206,140,0.3)] bg-[rgba(232,206,140,0.08)] p-4 text-left">
-                        <div className="flex items-center gap-1.5 text-halo text-xs font-bold uppercase tracking-wider mb-1">
-                          <span>✦ Appointment #{urlBooking}</span>
-                        </div>
-                        <p className="text-xs text-vellum/90">
-                          Sign in below to view your scheduled consultation date, time, and session access link.
-                        </p>
-                      </div>
-                    )}
-
-                    <h1 className={`${heading} text-2xl sm:text-3xl text-vellum mb-2`}>
-                      Welcome Back
-                    </h1>
-                    <p className="text-[0.86rem] text-dim mb-6 leading-relaxed">
-                      Sign in to view your scheduled sessions, book orders, and profile details.
-                    </p>
-
-                    <form onSubmit={handleSignIn} className="space-y-4 text-left">
-                      <div>
-                        <label htmlFor="portal-email" className="block text-xs font-semibold text-vellum mb-1.5">
-                          Email Address *
-                        </label>
-                        <input
-                          id="portal-email"
-                          type="email"
-                          placeholder="e.g. client@example.com"
-                          value={emailInput}
-                          onChange={(e) => setEmailInput(e.target.value)}
-                          required
-                          className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-4 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label htmlFor="portal-password" className="block text-xs font-semibold text-vellum">
-                            Password
-                          </label>
-                          <span className="text-[0.72rem] text-dim">
-                            (Optional if booked previously)
-                          </span>
-                        </div>
-                        <input
-                          id="portal-password"
-                          type="password"
-                          placeholder="••••••••"
-                          value={passwordInput}
-                          onChange={(e) => setPasswordInput(e.target.value)}
-                          className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-4 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
-                        />
-                        <div className="flex items-center justify-between mt-1.5">
-                          <span className="text-[0.72rem] text-dim/75">
-                            Leave empty if booked without password
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAuthMode("forgot");
-                              setFormError("");
-                              setSuccessMsg("");
-                            }}
-                            className="text-[0.75rem] text-halo hover:underline cursor-pointer font-medium"
-                          >
-                            Forgot password?
-                          </button>
-                        </div>
-                      </div>
-
-                      {formError && (
-                        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-300">
-                          ⚠️ {formError}
-                        </div>
-                      )}
-
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full rounded-full border border-halo bg-halo py-3 text-sm font-bold text-void hover:bg-white hover:border-white transition-all shadow-[0_4px_20px_rgba(232,206,140,0.3)] disabled:opacity-60 cursor-pointer"
-                      >
-                        {isSubmitting ? "Signing in…" : "Log In to My Account"}
-                      </button>
-                    </form>
-
-                    <p className="mt-5 text-xs text-dim">
-                      Don't have an account yet?{" "}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAuthMode("signup");
-                          setFormError("");
-                        }}
-                        className="text-halo font-semibold hover:underline cursor-pointer"
-                      >
-                        Create an account →
-                      </button>
-                    </p>
-                  </>
-                ) : authMode === "signup" ? (
-                  /* Option 2: Sign Up */
-                  <>
-                    <h1 className={`${heading} text-2xl sm:text-3xl text-vellum mb-2`}>
-                      Create Your Account
-                    </h1>
-                    <p className="text-[0.86rem] text-dim mb-6 leading-relaxed">
-                      Create a client account to manage your wellness sessions and book orders.
-                    </p>
-
-                    <form onSubmit={handleSignUp} className="space-y-4 text-left">
-                      <div>
-                        <label htmlFor="signup-name" className="block text-xs font-semibold text-vellum mb-1.5">
-                          Full Name *
-                        </label>
-                        <input
-                          id="signup-name"
-                          type="text"
-                          placeholder="Your Name"
-                          value={signupName}
-                          onChange={(e) => setSignupName(e.target.value)}
-                          required
-                          className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-4 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label htmlFor="signup-email" className="block text-xs font-semibold text-vellum mb-1.5">
-                          Email Address *
-                        </label>
-                        <input
-                          id="signup-email"
-                          type="email"
-                          placeholder="client@example.com"
-                          value={signupEmail}
-                          onChange={(e) => setSignupEmail(e.target.value)}
-                          required
-                          className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-4 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label htmlFor="signup-phone" className="block text-xs font-semibold text-vellum mb-1.5">
-                          Phone Number (Optional)
-                        </label>
-                        <input
-                          id="signup-phone"
-                          type="tel"
-                          placeholder="+1 (555) 000-0000"
-                          value={signupPhone}
-                          onChange={(e) => setSignupPhone(e.target.value)}
-                          className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-4 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label htmlFor="signup-pass" className="block text-xs font-semibold text-vellum mb-1.5">
-                            Password *
-                          </label>
-                          <input
-                            id="signup-pass"
-                            type="password"
-                            placeholder="Min 6 characters"
-                            value={signupPassword}
-                            onChange={(e) => setSignupPassword(e.target.value)}
-                            required
-                            minLength={6}
-                            className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-3.5 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
-                          />
-                        </div>
-
-                        <div>
-                          <label htmlFor="signup-confirm" className="block text-xs font-semibold text-vellum mb-1.5">
-                            Confirm Password *
-                          </label>
-                          <input
-                            id="signup-confirm"
-                            type="password"
-                            placeholder="Re-enter password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                            minLength={6}
-                            className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-3.5 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      {formError && (
-                        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-300">
-                          ⚠️ {formError}
-                        </div>
-                      )}
-
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full rounded-full border border-halo bg-halo py-3 text-sm font-bold text-void hover:bg-white hover:border-white transition-all shadow-[0_4px_20px_rgba(232,206,140,0.3)] disabled:opacity-60 cursor-pointer"
-                      >
-                        {isSubmitting ? "Creating Account…" : "Create Client Account"}
-                      </button>
-                    </form>
-
-                    <p className="mt-5 text-xs text-dim">
-                      Already have an account?{" "}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAuthMode("login");
-                          setFormError("");
-                          setSuccessMsg("");
-                        }}
-                        className="text-halo font-semibold hover:underline cursor-pointer"
-                      >
-                        Sign in here →
-                      </button>
-                    </p>
-                  </>
-                ) : authMode === "forgot" ? (
-                  /* Option 3: Forgot Password */
+                {authMode === "forgot" ? (
+                  /* Option 1: Forgot Password */
                   <>
                     <h1 className={`${heading} text-2xl sm:text-3xl text-vellum mb-2 mt-2`}>
                       Reset Your Password
@@ -582,8 +338,8 @@ function AccountPortal() {
                       </button>
                     </div>
                   </>
-                ) : (
-                  /* Option 4: Reset Password (via URL Token) */
+                ) : authMode === "reset" || isResetFlow ? (
+                  /* Option 2: Reset Password (via URL Token) */
                   <>
                     <h1 className={`${heading} text-2xl sm:text-3xl text-vellum mb-2 mt-2`}>
                       Set New Password
@@ -668,6 +424,275 @@ function AccountPortal() {
                       </button>
                     </div>
                   </>
+                ) : (
+                  /* Standard Email & Password Auth */
+                  <div>
+                    {/* Tab Switcher */}
+                    <div className="my-5 flex rounded-2xl bg-white/5 p-1 border border-white/10">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode("login");
+                          setFormError("");
+                          setSuccessMsg("");
+                        }}
+                        className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                          authMode === "login"
+                            ? "bg-halo text-void shadow-md"
+                            : "text-dim hover:text-vellum"
+                        }`}
+                      >
+                        Log In
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode("signup");
+                          setFormError("");
+                          setSuccessMsg("");
+                        }}
+                        className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                          authMode === "signup"
+                            ? "bg-halo text-void shadow-md"
+                            : "text-dim hover:text-vellum"
+                        }`}
+                      >
+                        Sign Up
+                      </button>
+                    </div>
+
+                    {authMode === "signup" ? (
+                      /* Signup Form */
+                      <>
+                        <h1 className={`${heading} text-2xl sm:text-3xl text-vellum mb-2`}>
+                          Create Your Account
+                        </h1>
+                        <p className="text-[0.86rem] text-dim mb-6 leading-relaxed">
+                          Create a client account to manage your wellness sessions and book orders.
+                        </p>
+
+                        <form onSubmit={handleSignUp} className="space-y-4 text-left">
+                          <div>
+                            <label htmlFor="signup-name" className="block text-xs font-semibold text-vellum mb-1.5">
+                              Full Name *
+                            </label>
+                            <input
+                              id="signup-name"
+                              name="name"
+                              type="text"
+                              autoComplete="name"
+                              enterKeyHint="next"
+                              placeholder="Your Name"
+                              value={signupName}
+                              onChange={(e) => setSignupName(e.target.value)}
+                              required
+                              className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-4 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label htmlFor="signup-email" className="block text-xs font-semibold text-vellum mb-1.5">
+                              Email Address *
+                            </label>
+                            <input
+                              id="signup-email"
+                              name="email"
+                              type="email"
+                              autoComplete="username"
+                              enterKeyHint="next"
+                              placeholder="client@example.com"
+                              value={signupEmail}
+                              onChange={(e) => setSignupEmail(e.target.value)}
+                              required
+                              className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-4 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label htmlFor="signup-phone" className="block text-xs font-semibold text-vellum mb-1.5">
+                              Phone Number (Optional)
+                            </label>
+                            <input
+                              id="signup-phone"
+                              name="tel"
+                              type="tel"
+                              autoComplete="tel"
+                              enterKeyHint="next"
+                              placeholder="+1 (555) 000-0000"
+                              value={signupPhone}
+                              onChange={(e) => setSignupPhone(e.target.value)}
+                              className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-4 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label htmlFor="signup-pass" className="block text-xs font-semibold text-vellum mb-1.5">
+                                Password *
+                              </label>
+                              <input
+                                id="signup-pass"
+                                name="new-password"
+                                type="password"
+                                autoComplete="new-password"
+                                enterKeyHint="next"
+                                placeholder="Min 6 characters"
+                                value={signupPassword}
+                                onChange={(e) => setSignupPassword(e.target.value)}
+                                required
+                                minLength={6}
+                                className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-3.5 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
+                              />
+                            </div>
+
+                            <div>
+                              <label htmlFor="signup-confirm" className="block text-xs font-semibold text-vellum mb-1.5">
+                                Confirm Password *
+                              </label>
+                              <input
+                                id="signup-confirm"
+                                name="confirm-password"
+                                type="password"
+                                autoComplete="new-password"
+                                enterKeyHint="done"
+                                placeholder="Re-enter password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                                minLength={6}
+                                className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-3.5 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          {formError && (
+                            <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-300">
+                              ⚠️ {formError}
+                            </div>
+                          )}
+
+                          <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full rounded-full border border-halo bg-halo py-3 text-sm font-bold text-void hover:bg-white hover:border-white transition-all shadow-[0_4px_20px_rgba(232,206,140,0.3)] disabled:opacity-60 cursor-pointer"
+                          >
+                            {isSubmitting ? "Creating Account…" : "Create Client Account"}
+                          </button>
+                        </form>
+
+                        <p className="mt-5 text-xs text-dim">
+                          Already have an account?{" "}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAuthMode("login");
+                              setFormError("");
+                              setSuccessMsg("");
+                            }}
+                            className="text-halo font-semibold hover:underline cursor-pointer"
+                          >
+                            Sign in here →
+                          </button>
+                        </p>
+                      </>
+                    ) : (
+                      /* Login Form */
+                      <>
+                        <h1 className={`${heading} text-2xl sm:text-3xl text-vellum mb-2`}>
+                          Welcome Back
+                        </h1>
+                        <p className="text-[0.86rem] text-dim mb-6 leading-relaxed">
+                          Sign in to view your scheduled sessions, book orders, and profile details.
+                        </p>
+
+                        <form onSubmit={handleSignIn} className="space-y-4 text-left">
+                          <div>
+                            <label htmlFor="portal-email" className="block text-xs font-semibold text-vellum mb-1.5">
+                              Email Address *
+                            </label>
+                            <input
+                              id="portal-email"
+                              name="email"
+                              type="email"
+                              autoComplete="username"
+                              enterKeyHint="next"
+                              placeholder="e.g. client@example.com"
+                              value={emailInput}
+                              onChange={(e) => setEmailInput(e.target.value)}
+                              required
+                              className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-4 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label htmlFor="portal-password" className="block text-xs font-semibold text-vellum">
+                                Password
+                              </label>
+                              <span className="text-[0.72rem] text-dim">
+                                (Optional if booked previously)
+                              </span>
+                            </div>
+                            <input
+                              id="portal-password"
+                              name="password"
+                              type="password"
+                              autoComplete="current-password"
+                              enterKeyHint="done"
+                              placeholder="••••••••"
+                              value={passwordInput}
+                              onChange={(e) => setPasswordInput(e.target.value)}
+                              className="w-full rounded-xl border border-[rgba(237,231,218,0.18)] bg-white/5 px-4 py-2.5 text-sm text-vellum placeholder-dim/50 focus:border-halo focus:outline-none"
+                            />
+                            <div className="flex items-center justify-between mt-1.5">
+                              <span className="text-[0.72rem] text-dim/75">
+                                Leave empty if booked without password
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAuthMode("forgot");
+                                  setFormError("");
+                                  setSuccessMsg("");
+                                }}
+                                className="text-[0.75rem] text-halo hover:underline cursor-pointer font-medium"
+                              >
+                                Forgot password?
+                              </button>
+                            </div>
+                          </div>
+
+                          {formError && (
+                            <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-300">
+                              ⚠️ {formError}
+                            </div>
+                          )}
+
+                          <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full rounded-full border border-halo bg-halo py-3 text-sm font-bold text-void hover:bg-white hover:border-white transition-all shadow-[0_4px_20px_rgba(232,206,140,0.3)] disabled:opacity-60 cursor-pointer"
+                          >
+                            {isSubmitting ? "Signing in…" : "Log In to My Account"}
+                          </button>
+                        </form>
+
+                        <p className="mt-5 text-xs text-dim">
+                          Don't have an account yet?{" "}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAuthMode("signup");
+                              setFormError("");
+                            }}
+                            className="text-halo font-semibold hover:underline cursor-pointer"
+                          >
+                            Create an account →
+                          </button>
+                        </p>
+                      </>
+                    )}
+                  </div>
                 )}
 
                 <div className="mt-6 pt-5 border-t border-white/10 text-xs text-dim">
@@ -1064,9 +1089,9 @@ function AccountPortal() {
                           {/* Items List */}
                           <div className="divide-y divide-white/5">
                             {ord.items.map((item, idx) => {
-                              const isDigital = item.format === "Kindle" || item.format === "E-book" || item.format === "E-Book" || item.pdfUrl;
-                              const pdfLink = item.pdfUrl || (item.slug ? `/uploads/ebooks/${item.slug}.pdf` : null);
-                              const downloadLink = item.slug ? `/api/public/books/${item.slug}/download-pdf` : pdfLink;
+                              const isDigital = isEbookFormat(item.format);
+                              const pdfLink = isDigital ? (item.pdfUrl || (item.slug ? `/uploads/ebooks/${item.slug}.pdf` : null)) : null;
+                              const downloadLink = isDigital ? (item.slug ? `/api/public/books/${item.slug}/download-pdf` : pdfLink) : null;
 
                               return (
                                 <div key={idx} className="py-3 text-xs">
