@@ -22,6 +22,9 @@ interface BookItem {
   salesCount: number;
   coverImage: string;
   categoryName: string;
+  pdfUrl?: string;
+  hasPdf?: boolean;
+  pdfFilename?: string;
 }
 
 interface BookListResponse {
@@ -109,6 +112,11 @@ export function BookListPage() {
               </button>
             </div>
 
+            <Link to="/admin/books/purchased">
+              <Button size="sm" variant="outline">
+                📖 Purchased Books
+              </Button>
+            </Link>
             <Link to="/admin/books/inventory">
               <Button size="sm" variant="outline">
                 📦 Quick Inventory
@@ -194,6 +202,7 @@ export function BookListPage() {
                   <th className="pb-3 font-semibold">Price</th>
                   <th className="pb-3 font-semibold">Stock</th>
                   <th className="pb-3 font-semibold">Sales</th>
+                  <th className="pb-3 font-semibold">E-Book PDF</th>
                   <th className="pb-3 font-semibold">Status</th>
                   <th className="pb-3 font-semibold text-right">Actions</th>
                 </tr>
@@ -255,6 +264,13 @@ export function BookListPage() {
                     </td>
                     <td className="py-3 text-xs font-semibold text-[var(--admin-text-secondary)]">
                       {bk.salesCount || 0}
+                    </td>
+                    <td className="py-3">
+                      {bk.hasPdf ? (
+                        <Badge tone="good">✓ PDF Ready</Badge>
+                      ) : (
+                        <Badge tone="warn">⚠️ No PDF</Badge>
+                      )}
                     </td>
                     <td className="py-3">
                       <Badge tone={bk.status === "PUBLISHED" ? "good" : bk.status === "DRAFT" ? "neutral" : "bad"}>

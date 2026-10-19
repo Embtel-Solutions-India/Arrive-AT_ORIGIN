@@ -7,6 +7,8 @@ import { Customer, ICustomer } from "../../models/Customer.js";
 import { Consultation } from "../../models/Consultation.js";
 import { Order } from "../../models/Order.js";
 import { Book } from "../../models/Book.js";
+import { PurchasedBook } from "../../models/PurchasedBook.js";
+import { syncCustomerPurchasedBooks, resolveBookPdfFile } from "../../services/ebookAccess.service.js";
 import { env } from "../../config/env.js";
 import { ok } from "../../utils/response.js";
 import { HttpError } from "../../utils/httpError.js";
@@ -246,7 +248,18 @@ export const customerAuthController = {
       orderType: { $ne: "CONSULTATION" },
     }).sort({ createdAt: -1 });
 
-    // 4. Construct digital library / e-books soft copies ONLY from customer's purchased E-Books
+    // 4. Ensure customer's purchased e-books are synced from all paid orders (Requirement 2, 8)
+    await syncCustomerPurchasedBooks(customer.email).catch((err) =>
+      logger.error({ err: err?.message, email: customer.email }, "Failed to sync purchased books for customer")
+    );
+
+    const customerToken = generateCustomerToken(customer);
+
+    // Fetch customer's assigned e-books from PurchasedBook
+    const purchasedRecords = await PurchasedBook.find({
+      customerEmail: customer.email.toLowerCase(),
+    }).sort({ purchasedAt: -1 });
+
     const allBooks = await Book.find({});
     const bookMap = new Map<string, any>();
     allBooks.forEach((b: any) => {
@@ -269,8 +282,41 @@ export const customerAuthController = {
     };
 
     const ebooksMap = new Map<string, any>();
+
+    // 4a. Load from PurchasedBook collection first (primary source of truth)
+    for (const pb of purchasedRecords) {
+      const matchedBook = bookMap.get(pb.book?.toString()) || bookMap.get(pb.slug) || null;
+      const targetSlug = pb.slug || matchedBook?.slug || "";
+      const pdfResolution = resolveBookPdfFile(pb.pdfUrl || matchedBook?.pdfUrl || "", matchedBook);
+
+      const downloadUrl = (pdfResolution.exists && targetSlug)
+        ? `/api/public/books/${targetSlug}/download-pdf?download=true&token=${customerToken}`
+        : "";
+      const readUrl = (pdfResolution.exists && targetSlug)
+        ? `/api/public/books/${targetSlug}/read-pdf?token=${customerToken}`
+        : "";
+
+      const key = pb.book?.toString() || pb.slug;
+      ebooksMap.set(key, {
+        bookId: pb.book,
+        title: pb.title || matchedBook?.title,
+        slug: targetSlug,
+        coverImage: pb.coverImage || matchedBook?.coverImage || "/aao-part-one.png",
+        format: pb.format || "E-Book",
+        authorName: pb.authorName || matchedBook?.authorName || "Dr. Alka Chopra Madan",
+        hasPdf: pdfResolution.exists,
+        pdfFilename: pdfResolution.filename,
+        pdfUrl: pdfResolution.exists ? (matchedBook?.pdfUrl || pb.pdfUrl) : "",
+        downloadUrl,
+        readUrl,
+        orderNumber: pb.orderNumber,
+        purchasedAt: pb.purchasedAt,
+        purchaseDate: pb.purchasedAt,
+      });
+    }
+
+    // 4b. Secondary pass over paid orders to ensure 100% coverage
     for (const ord of orders) {
-      // Must be a valid and paid/confirmed order
       const isPaidOrder =
         ord.paymentStatus === "PAID" ||
         ord.orderStatus === "PAYMENT_CONFIRMED" ||
@@ -282,10 +328,7 @@ export const customerAuthController = {
 
       for (const item of ord.items) {
         const isDigital = isEbookFormat(item.format);
-
-        // ONLY include in digital library if the purchased format was an E-Book
         if (!isDigital) {
-          // Explicitly clear pdfUrl from physical items so client UI never exposes digital downloads
           item.pdfUrl = "";
           continue;
         }
@@ -300,49 +343,38 @@ export const customerAuthController = {
               item.title.toLowerCase().includes(b.title.toLowerCase())
           );
 
-        const candidatePdfUrl =
-          item.pdfUrl ||
-          matchedBook?.pdfUrl ||
-          (matchedBook?.slug ? `/uploads/ebooks/${matchedBook.slug}.pdf` : "");
+        const key = matchedBook?._id?.toString() || item.title;
+        if (!ebooksMap.has(key)) {
+          const targetSlug = matchedBook?.slug || "";
+          const pdfResolution = resolveBookPdfFile(item.pdfUrl || matchedBook?.pdfUrl || "", matchedBook);
 
-        const pdfFilename = candidatePdfUrl ? path.basename(candidatePdfUrl) : "";
-        const uploadDir = env.UPLOAD_DIR || path.resolve(process.cwd(), "uploads");
-        const candidatePaths = [
-          path.resolve(uploadDir, "ebooks", pdfFilename),
-          path.resolve(uploadDir, pdfFilename),
-          path.resolve(process.cwd(), "uploads/ebooks", pdfFilename),
-          path.resolve(process.cwd(), "../frontend/public/ebooks", pdfFilename),
-        ];
+          const downloadUrl = (pdfResolution.exists && targetSlug)
+            ? `/api/public/books/${targetSlug}/download-pdf?download=true&token=${customerToken}`
+            : "";
+          const readUrl = (pdfResolution.exists && targetSlug)
+            ? `/api/public/books/${targetSlug}/read-pdf?token=${customerToken}`
+            : "";
 
-        const hasRealPdf = Boolean(pdfFilename && candidatePaths.some((p) => fs.existsSync(p)));
-        const pdfUrl = hasRealPdf ? candidatePdfUrl : "";
-
-        item.pdfUrl = pdfUrl;
-        if (matchedBook?.slug && !(item as any).slug) {
-          (item as any).slug = matchedBook.slug;
-        }
-
-        // Only add to digital library if a valid real PDF exists
-        if (pdfUrl) {
-          const key = matchedBook?._id?.toString() || item.title;
-          if (!ebooksMap.has(key)) {
-            ebooksMap.set(key, {
-              bookId: matchedBook?._id || item.book,
-              title: matchedBook?.title || item.title,
-              slug: matchedBook?.slug || "",
-              coverImage: item.coverImage || matchedBook?.coverImage || "/aao-part-one.png",
-              format: item.format || "E-Book",
-              authorName: matchedBook?.authorName || "Dr. Alka Chopra Madan",
-              pdfUrl,
-              downloadUrl: matchedBook?.slug ? `/api/public/books/${matchedBook.slug}/download-pdf` : pdfUrl,
-              orderNumber: ord.orderNumber,
-              purchasedAt: ord.createdAt,
-              purchaseDate: ord.createdAt,
-            });
-          }
+          ebooksMap.set(key, {
+            bookId: matchedBook?._id || item.book,
+            title: matchedBook?.title || item.title,
+            slug: targetSlug,
+            coverImage: item.coverImage || matchedBook?.coverImage || "/aao-part-one.png",
+            format: item.format || "E-Book",
+            authorName: matchedBook?.authorName || "Dr. Alka Chopra Madan",
+            hasPdf: pdfResolution.exists,
+            pdfFilename: pdfResolution.filename,
+            pdfUrl: pdfResolution.exists ? (matchedBook?.pdfUrl || item.pdfUrl) : "",
+            downloadUrl,
+            readUrl,
+            orderNumber: ord.orderNumber,
+            purchasedAt: ord.createdAt,
+            purchaseDate: ord.createdAt,
+          });
         }
       }
     }
+
     const ebooks = Array.from(ebooksMap.values());
 
     ok(res, {

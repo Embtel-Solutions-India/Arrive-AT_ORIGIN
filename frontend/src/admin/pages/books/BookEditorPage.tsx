@@ -33,6 +33,9 @@ export function BookEditorPage() {
   const [shortDescription, setShortDescription] = useState("");
   const [coverImage, setCoverImage] = useState("/aao-part-one.png");
   const [amazonUrl, setAmazonUrl] = useState("");
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfUploading, setPdfUploading] = useState(false);
+  const [pdfError, setPdfError] = useState("");
 
   // Pricing & Inventory
   const [price, setPrice] = useState<number>(4.99);
@@ -129,6 +132,7 @@ export function BookEditorPage() {
       setCategoryName(b.categoryName || "AAO Series");
       setStatus(b.status || "DRAFT");
       setIsFeatured(Boolean(b.isFeatured));
+      setPdfUrl(b.pdfUrl || "");
       if (b.seo) {
         setSeoTitle(b.seo.seoTitle || "");
         setMetaDescription(b.seo.metaDescription || "");
@@ -171,6 +175,7 @@ export function BookEditorPage() {
         categoryName,
         status: targetStatus || status,
         isFeatured,
+        pdfUrl,
         seo: {
           seoTitle: seoTitle || title,
           metaDescription: metaDescription || shortDescription,
@@ -190,6 +195,51 @@ export function BookEditorPage() {
       navigate("/admin/books");
     },
   });
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      setPdfError("Please select a valid PDF file (.pdf)");
+      return;
+    }
+
+    setPdfUploading(true);
+    setPdfError("");
+
+    try {
+      if (isEditing) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await api.post<{ pdfUrl: string }>(`/admin/books/${id}/upload-pdf`, formData);
+        setPdfUrl(res.pdfUrl);
+        queryClient.invalidateQueries({ queryKey: ["admin", "book", id] });
+        queryClient.invalidateQueries({ queryKey: ["admin", "books"] });
+      } else {
+        setPdfUrl(`/uploads/ebooks/${file.name.toLowerCase().replace(/[^a-z0-9.]/g, "-")}`);
+      }
+    } catch (err: any) {
+      setPdfError(err.message || "Failed to upload e-book PDF file");
+    } finally {
+      setPdfUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemovePdf = async () => {
+    if (!confirm("Are you sure you want to detach this e-book PDF file from the book?")) return;
+    try {
+      if (isEditing) {
+        await api.delete(`/admin/books/${id}/ebook-file`);
+        queryClient.invalidateQueries({ queryKey: ["admin", "book", id] });
+        queryClient.invalidateQueries({ queryKey: ["admin", "books"] });
+      }
+      setPdfUrl("");
+    } catch (err: any) {
+      alert(err.message || "Failed to remove e-book PDF file");
+    }
+  };
 
   if (isEditing && isLoading) {
     return <div className="py-12 text-center text-[var(--admin-text-muted)]">Loading book details…</div>;
@@ -356,6 +406,89 @@ export function BookEditorPage() {
                 <option value="INR" className="bg-[#14161f]">INR (₹ Indian Rupee)</option>
                 <option value="USD" className="bg-[#14161f]">USD ($ US Dollar)</option>
               </Select>
+            </div>
+          </Card>
+
+          {/* E-Book PDF & Digital Soft Copy Management (Requirement 1, 10) */}
+          <Card title="E-Book PDF & Digital Edition">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-[var(--admin-border)]/70 bg-[var(--admin-background)] p-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📄</span>
+                    <span className="text-sm font-semibold text-[var(--admin-text-primary)]">
+                      PDF Document Status
+                    </span>
+                    {pdfUrl ? (
+                      <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[0.72rem] font-bold text-emerald-400">
+                        ✓ PDF Attached
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[0.72rem] font-bold text-amber-400">
+                        ⚠️ No PDF Uploaded
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[var(--admin-text-muted)] mt-1">
+                    {pdfUrl
+                      ? `Associated file: ${pdfUrl}`
+                      : "When users purchase the E-book edition, this PDF file is automatically granted in their account."}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {pdfUrl && (
+                    <>
+                      <a
+                        href={pdfUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--admin-text-primary)] hover:border-[var(--admin-accent)] transition-colors no-underline"
+                      >
+                        ↗ Preview PDF
+                      </a>
+                      <button
+                        type="button"
+                        onClick={handleRemovePdf}
+                        className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+                      >
+                        Detach PDF
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {pdfError && (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-400">
+                  ⚠️ {pdfError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                <Field
+                  label="E-Book PDF URL / Path"
+                  placeholder="/uploads/ebooks/my-book.pdf"
+                  value={pdfUrl}
+                  onChange={(e) => setPdfUrl(e.target.value)}
+                  helperText="Direct path or uploaded file location"
+                />
+
+                <div className="mb-4">
+                  <label className="mb-1 block text-[0.85rem] font-medium text-[var(--admin-text-secondary)]">
+                    Upload New PDF Document
+                  </label>
+                  <label className={`flex items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--admin-accent)]/50 bg-[var(--admin-accent)]/5 px-4 py-2 text-xs font-semibold text-[var(--admin-accent)] hover:bg-[var(--admin-accent)]/10 transition-colors cursor-pointer ${pdfUploading ? "opacity-60 pointer-events-none" : ""}`}>
+                    <span>{pdfUploading ? "Uploading PDF Document…" : "⬆️ Upload E-Book PDF (.pdf)"}</span>
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={handlePdfUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
           </Card>
 

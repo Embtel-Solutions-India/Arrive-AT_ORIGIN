@@ -524,6 +524,18 @@ export async function sendOrderConfirmationEmail(
   const portalUrl = `${baseUrl}/account?tab=orders&order=${encodeURIComponent(order.orderNumber)}${
     token ? `&token=${encodeURIComponent(token)}` : `&email=${encodeURIComponent(order.customerInfo.email)}`
   }`;
+  const myBooksUrl = `${baseUrl}/account?tab=ebooks${
+    token ? `&token=${encodeURIComponent(token)}` : `&email=${encodeURIComponent(order.customerInfo.email)}`
+  }`;
+
+  const isEbook = (fmt?: string) => {
+    if (!fmt) return false;
+    const f = fmt.toLowerCase().trim();
+    return f.includes("ebook") || f.includes("e-book") || f.includes("kindle") || f.includes("digital") || f.includes("soft copy") || f.includes("pdf");
+  };
+
+  const ebookItems = order.items.filter((it) => isEbook(it.format));
+  const hasEbooks = ebookItems.length > 0;
 
   const itemsRows = order.items
     .map(
@@ -532,6 +544,7 @@ export async function sendOrderConfirmationEmail(
         <td style="padding: 10px 0; color: #EDE7DA; font-size: 14px;">
           <strong>${it.title}</strong><br>
           <span style="color: #8A93A8; font-size: 12px;">${it.format || "Paperback"} × ${it.quantity}</span>
+          ${isEbook(it.format) ? `<span style="display: inline-block; margin-left: 6px; color: #E8CE8C; font-size: 11px; font-weight: 600; background: rgba(232, 206, 140, 0.15); border: 1px solid rgba(232, 206, 140, 0.3); border-radius: 4px; padding: 1px 6px;">✦ Instant Access</span>` : ""}
         </td>
         <td align="right" style="padding: 10px 0; color: #EDE7DA; font-weight: 600; font-size: 14px;">
           $${(it.price * it.quantity).toFixed(2)}
@@ -544,15 +557,54 @@ export async function sendOrderConfirmationEmail(
   const address = order.shippingAddress;
   const addressText = address?.street
     ? `${address.street}, ${address.city || ""}, ${address.state || ""} ${address.postalCode || ""}`
-    : "Digital Delivery / Pick-up on Record";
+    : "Digital Delivery / User Account Library";
+
+  const ebookCallout = hasEbooks
+    ? `
+    <!-- E-Book Digital Library Instant Access Callout (Requirement 7) -->
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background: rgba(232, 206, 140, 0.1); border: 1px solid rgba(232, 206, 140, 0.35); border-radius: 14px; margin: 20px 0;">
+      <tr>
+        <td style="padding: 20px 22px;">
+          <div style="font-size: 20px; line-height: 1; margin-bottom: 8px;">📖 ✨</div>
+          <div style="color: #E8CE8C; font-size: 15px; font-weight: 700; margin-bottom: 6px;">
+            Your Purchased E-Book is Ready in Your Account!
+          </div>
+          <p style="margin: 0 0 14px; color: #EDE7DA; font-size: 13.5px; line-height: 1.6;">
+            Your digital e-book soft copy has been automatically assigned to your account and is available to read online or download as PDF anytime.
+          </p>
+          <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom: 14px;">
+            ${ebookItems.map((eb) => `
+              <tr style="border-top: 1px solid rgba(232, 206, 140, 0.15);">
+                <td style="padding: 6px 0; color: #EDE7DA; font-size: 13px;">
+                  ✦ <strong style="color: #E8CE8C;">${eb.title}</strong> (${eb.format || "E-Book Soft Copy"})
+                </td>
+              </tr>
+            `).join("")}
+          </table>
+          <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+            <tr>
+              <td>
+                <a href="${myBooksUrl}" style="display: inline-block; background-color: #E8CE8C; color: #070B18; font-weight: 700; font-size: 13px; padding: 10px 24px; border-radius: 9999px; text-decoration: none; box-shadow: 0 2px 10px rgba(232, 206, 140, 0.25);">
+                  Open My Books / Read PDF →
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    `
+    : "";
 
   const content = `
     <p style="margin-top: 0; font-size: 16px; color: #EDE7DA;">
       Dear <strong style="color: #E8CE8C;">${order.customerInfo.name}</strong>,
     </p>
     <p>
-      Thank you for your order with <strong>Arrive at Origin Publications</strong>. Your payment has been received and your order is currently being prepared for dispatch.
+      Thank you for your order with <strong>Arrive at Origin Publications</strong>. Your payment has been received and confirmed.
     </p>
+
+    ${ebookCallout}
 
     <!-- Order Items Card -->
     <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background: rgba(7, 11, 24, 0.7); border: 1px solid rgba(232, 206, 140, 0.2); border-radius: 12px; margin: 20px 0;">

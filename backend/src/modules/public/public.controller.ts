@@ -3,6 +3,10 @@ import fs from "fs";
 import path from "path";
 import mongoose from "mongoose";
 import { uploadDir } from "../../middleware/upload.js";
+import jwt from "jsonwebtoken";
+import { ACCESS_COOKIE } from "../../config/cookies.js";
+import { User } from "../../models/User.js";
+import { assignEbooksForOrder, checkUserBookAccess, resolveBookPdfFile } from "../../services/ebookAccess.service.js";
 import { BlogPost } from "../../models/BlogPost.js";
 import { BlogCategory } from "../../models/BlogCategory.js";
 import { BlogTag } from "../../models/BlogTag.js";
@@ -21,6 +25,49 @@ import { logger } from "../../utils/logger.js";
 import { Coupon } from "../../models/Coupon.js";
 import { calculateCouponDiscount } from "../coupons/coupon.controller.js";
 import { getGroupSetting, DEFAULT_SHIPPING } from "../settings/settings.controller.js";
+
+async function authenticateEbookRequester(req: Request): Promise<{
+  isAdmin: boolean;
+  customerEmail?: string;
+  customerId?: string;
+}> {
+  let token = (req.query.token as string) || req.cookies?.[ACCESS_COOKIE];
+  const authHeader = req.headers.authorization;
+  if (!token && authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
+  }
+
+  if (!token) {
+    return { isAdmin: false };
+  }
+
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET) as any;
+    if (decoded?.customerId && decoded?.email) {
+      return {
+        isAdmin: false,
+        customerEmail: decoded.email.toLowerCase().trim(),
+        customerId: decoded.customerId,
+      };
+    }
+    if (decoded?.sub) {
+      const adminUser = await (User as any).findById(decoded.sub);
+      if (adminUser && adminUser.status === "ACTIVE") {
+        return { isAdmin: true, customerEmail: adminUser.email };
+      }
+    }
+    if (decoded?.email) {
+      return {
+        isAdmin: false,
+        customerEmail: decoded.email.toLowerCase().trim(),
+      };
+    }
+  } catch {
+    // Token invalid or expired
+  }
+
+  return { isAdmin: false };
+}
 
 // Helper to look up a book by either MongoDB ObjectId or URL slug
 export async function findBookByIdOrSlug(idOrSlug: string) {
@@ -518,6 +565,11 @@ export const publicController = {
     order.payment = payment._id as any;
     await order.save();
 
+    // Automatically assign purchased e-books to user's account (Requirement 2, 8)
+    assignEbooksForOrder(order).catch((err) =>
+      logger.error({ err: err?.message, orderNumber: order.orderNumber }, "Failed to auto-assign e-books after checkout")
+    );
+
     const customerToken = generateCustomerToken(customer);
     const origin =
       (req.headers.origin as string) ||
@@ -753,6 +805,8 @@ export const publicController = {
       : null;
 
     if (existingOrder) {
+      // Ensure e-books are assigned in case of concurrency/retries (Requirement 8)
+      assignEbooksForOrder(existingOrder).catch(() => {});
       const customerToken = existingOrder.customer ? generateCustomerToken(existingOrder.customer as any) : undefined;
       return ok(res, {
         orderNumber: existingOrder.orderNumber,
@@ -916,6 +970,11 @@ export const publicController = {
       logger.warn({ payErr: payErr?.message }, "Payment record already created or skipped in concurrency");
     }
 
+    // Automatically assign purchased e-books to user's account (Requirement 2, 8)
+    assignEbooksForOrder(order).catch((err) =>
+      logger.error({ err: err?.message, orderNumber: order.orderNumber }, "Failed to auto-assign e-books after stripe verification")
+    );
+
     const customerToken = generateCustomerToken(customer);
     const origin =
       (req.headers.origin as string) ||
@@ -1028,41 +1087,55 @@ export const publicController = {
     ok(res, { shipping });
   },
 
-  // ─── Download / View Book Soft Copy PDF ───
-  async downloadBookPdf(req: Request, res: Response) {
+  // ─── Secure E-Book Access: Download & Read Online (Requirements 3, 5, 6, 9) ───
+  async serveBookPdf(req: Request, res: Response, isDownload: boolean) {
     const idOrSlug = (req.params.idOrSlug as string) || "";
     if (!idOrSlug) throw HttpError.badRequest("Publication identifier is required");
     const book = await findBookByIdOrSlug(idOrSlug);
     if (!book) throw HttpError.notFound("Publication not found");
 
-    const pdfFilename: string = book.pdfUrl
-      ? path.basename(book.pdfUrl)
-      : `${book.slug || "book"}.pdf`;
+    // 1. Authenticate Requester (Customer or Admin)
+    const auth = await authenticateEbookRequester(req);
 
-    const candidatePaths = [
-      path.resolve(uploadDir, "ebooks", pdfFilename),
-      path.resolve(uploadDir, "ebooks", `${book.slug}.pdf`),
-      path.resolve(uploadDir, pdfFilename),
-      path.resolve(process.cwd(), "uploads/ebooks", pdfFilename),
-      path.resolve(process.cwd(), "uploads/ebooks", `${book.slug}.pdf`),
-      path.resolve(process.cwd(), "../frontend/public/ebooks", pdfFilename),
-      path.resolve(process.cwd(), "../frontend/public/ebooks", `${book.slug}.pdf`),
-    ];
+    // If not an admin, check that the user purchased the book (Requirement 5)
+    if (!auth.isAdmin) {
+      if (!auth.customerEmail) {
+        throw HttpError.unauthorized("Authentication required. Please sign in to your user account to access your purchased e-book.");
+      }
 
-    const foundPath = candidatePaths.find((p) => fs.existsSync(p));
-
-    if (!foundPath || !fs.existsSync(foundPath)) {
-      throw HttpError.notFound("Digital copy file is not currently available for this publication");
+      const access = await checkUserBookAccess(auth.customerEmail, book._id.toString());
+      if (!access.hasAccess) {
+        throw HttpError.forbidden("You do not have active purchase access to this e-book. Please purchase it to unlock your digital copy.");
+      }
     }
 
-    const isDownload = req.query.download === "true";
+    // 2. Validate physical file existence on disk (Requirement 9: no broken links)
+    const pdfResolution = resolveBookPdfFile(book.pdfUrl || "", book);
+
+    if (!pdfResolution.exists || !pdfResolution.filePath) {
+      throw HttpError.notFound("Digital copy file is not currently available for this publication. The publisher has been notified.");
+    }
+
+    const cleanFilename = `${(book.slug || "ebook").replace(/[^a-z0-9_-]/gi, "_")}.pdf`;
+
+    // 3. Security headers (Requirement 6: prevent unauthorized caching or leaking)
     res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Cache-Control", "private, no-store, max-age=0");
+    res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader(
       "Content-Disposition",
-      `${isDownload ? "attachment" : "inline"}; filename="${pdfFilename}"`
+      `${isDownload ? "attachment" : "inline"}; filename="${cleanFilename}"`
     );
 
-    const stream = fs.createReadStream(foundPath);
+    const stream = fs.createReadStream(pdfResolution.filePath);
     stream.pipe(res);
+  },
+
+  async downloadBookPdf(req: Request, res: Response) {
+    return publicController.serveBookPdf(req, res, true);
+  },
+
+  async readBookPdf(req: Request, res: Response) {
+    return publicController.serveBookPdf(req, res, false);
   },
 };

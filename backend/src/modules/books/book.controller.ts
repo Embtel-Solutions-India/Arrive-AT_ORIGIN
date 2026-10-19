@@ -1,6 +1,9 @@
+import fs from "fs";
 import type { Request, Response } from "express";
 import { Book } from "../../models/Book.js";
 import { BookCategory } from "../../models/BookCategory.js";
+import { PurchasedBook } from "../../models/PurchasedBook.js";
+import { resolveBookPdfFile } from "../../services/ebookAccess.service.js";
 import { ok } from "../../utils/response.js";
 import { HttpError } from "../../utils/httpError.js";
 
@@ -56,8 +59,17 @@ export const bookController = {
       Book.countDocuments(query),
     ]);
 
+    const booksWithPdfStatus = books.map((b) => {
+      const pdfStatus = resolveBookPdfFile(b.pdfUrl || "", b);
+      return {
+        ...b.toObject(),
+        hasPdf: pdfStatus.exists,
+        pdfFilename: pdfStatus.filename,
+      };
+    });
+
     ok(res, {
-      books,
+      books: booksWithPdfStatus,
       pagination: {
         page,
         limit,
@@ -105,6 +117,7 @@ export const bookController = {
       status,
       amazonUrl,
       isFeatured,
+      pdfUrl,
       seo,
     } = req.body;
 
@@ -163,6 +176,7 @@ export const bookController = {
       status: status || "DRAFT",
       amazonUrl: amazonUrl || "",
       isFeatured: !!isFeatured,
+      pdfUrl: pdfUrl || "",
       seo: seo || {},
     });
 
@@ -216,6 +230,7 @@ export const bookController = {
       "status",
       "amazonUrl",
       "isFeatured",
+      "pdfUrl",
     ];
 
     fields.forEach((f) => {
@@ -386,8 +401,165 @@ export const bookController = {
       return res.send(csvContent);
     }
 
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("Content-Disposition", 'attachment; filename="soulbody-books-export.json"');
     return res.send(JSON.stringify(books, null, 2));
+  },
+
+  // ─── E-Book PDF Upload & Digital Edition Management (Requirement 1, 10) ───
+  async uploadBookPdf(req: Request, res: Response) {
+    const { id } = req.params;
+    const book = await Book.findById(id);
+    if (!book) throw HttpError.notFound("Book not found");
+    if (!req.file) throw HttpError.badRequest("No PDF file uploaded. Please attach a valid PDF document.");
+
+    const pdfUrl = `/uploads/ebooks/${req.file.filename}`;
+    book.pdfUrl = pdfUrl;
+
+    // Update formats array if e-book format exists
+    if (Array.isArray(book.formats)) {
+      let updatedFormat = false;
+      book.formats = book.formats.map((fmt: any) => {
+        const f = (fmt.format || "").toLowerCase();
+        if (f.includes("ebook") || f.includes("e-book") || f.includes("kindle")) {
+          updatedFormat = true;
+          return { ...fmt, pdfUrl };
+        }
+        return fmt;
+      });
+
+      if (!updatedFormat) {
+        book.formats.push({
+          format: "E-Book",
+          price: book.priceUSD || book.price,
+          priceUSD: book.priceUSD || book.price,
+          priceINR: book.priceINR,
+          sku: `${book.sku}-EBOOK`,
+          stockQuantity: 9999,
+          isAvailable: true,
+          pdfUrl,
+        });
+      }
+    }
+
+    await book.save();
+
+    // Update all existing PurchasedBook records for this book so buyers immediately receive the file
+    await PurchasedBook.updateMany(
+      { book: book._id },
+      { $set: { pdfUrl } }
+    );
+
+    ok(res, { book, pdfUrl }, "E-book PDF file uploaded and associated successfully");
+  },
+
+  async removeBookPdf(req: Request, res: Response) {
+    const { id } = req.params;
+    const book = await Book.findById(id);
+    if (!book) throw HttpError.notFound("Book not found");
+
+    book.pdfUrl = "";
+    if (Array.isArray(book.formats)) {
+      book.formats = book.formats.map((fmt: any) => {
+        const f = (fmt.format || "").toLowerCase();
+        if (f.includes("ebook") || f.includes("e-book") || f.includes("kindle")) {
+          return { ...fmt, pdfUrl: "" };
+        }
+        return fmt;
+      });
+    }
+    await book.save();
+
+    // Update PurchasedBook records
+    await PurchasedBook.updateMany(
+      { book: book._id },
+      { $set: { pdfUrl: "" } }
+    );
+
+    ok(res, { book }, "E-book PDF unassociated successfully");
+  },
+
+  async getBookEbookDetails(req: Request, res: Response) {
+    const { id } = req.params;
+    const book = await Book.findById(id);
+    if (!book) throw HttpError.notFound("Book not found");
+
+    const pdfResolution = resolveBookPdfFile(book.pdfUrl || "", book);
+    let fileSize = 0;
+    if (pdfResolution.filePath && fs.existsSync(pdfResolution.filePath)) {
+      fileSize = fs.statSync(pdfResolution.filePath).size;
+    }
+
+    const totalPurchases = await PurchasedBook.countDocuments({ book: book._id });
+
+    ok(res, {
+      bookId: book._id,
+      title: book.title,
+      slug: book.slug,
+      pdfUrl: book.pdfUrl || "",
+      hasPdf: pdfResolution.exists,
+      filename: pdfResolution.filename,
+      fileSize,
+      totalPurchases,
+    });
+  },
+
+  // ─── Purchased Books Management for Admin (Requirement 10) ───
+  async getPurchasedBooks(req: Request, res: Response) {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit as string) || 20);
+    const search = (req.query.search as string) || "";
+    const bookId = req.query.bookId as string | undefined;
+
+    const query: Record<string, unknown> = {};
+    if (bookId) {
+      query.book = bookId;
+    }
+    if (search) {
+      query.$or = [
+        { customerName: { $regex: search, $options: "i" } },
+        { customerEmail: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } },
+        { orderNumber: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const [purchasedBooks, total, totalCount, allBooks] = await Promise.all([
+      PurchasedBook.find(query)
+        .sort({ purchasedAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate("customer", "name email phone")
+        .populate("book", "title slug coverImage format pdfUrl"),
+      PurchasedBook.countDocuments(query),
+      PurchasedBook.countDocuments({}),
+      Book.find({}).select("title slug coverImage pdfUrl"),
+    ]);
+
+    const bookMap = new Map<string, any>();
+    allBooks.forEach((b: any) => bookMap.set(b._id.toString(), b));
+
+    const enriched = purchasedBooks.map((item: any) => {
+      const parentBook = item.book?._id ? item.book : bookMap.get(item.book?.toString());
+      const pdfResolution = resolveBookPdfFile(item.pdfUrl || parentBook?.pdfUrl || "", parentBook);
+      return {
+        ...item.toObject(),
+        hasPdf: pdfResolution.exists,
+        pdfFilename: pdfResolution.filename,
+      };
+    });
+
+    ok(res, {
+      purchasedBooks: enriched,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+      stats: {
+        totalPurchases: totalCount,
+      },
+    });
   },
 };

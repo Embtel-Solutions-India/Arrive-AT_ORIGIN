@@ -11,7 +11,7 @@ const shell = "mx-auto w-full max-w-[1140px] px-[clamp(20px,4vw,48px)]";
 const heading = "font-display font-light leading-[1.05] tracking-[-0.015em]";
 
 function AccountPortal() {
-  const { customer, isAuthenticated, portalData, loading, login, signup, forgotPassword, resetPassword, logout } = useCustomerAuth();
+  const { customer, token, isAuthenticated, portalData, loading, login, signup, forgotPassword, resetPassword, logout } = useCustomerAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const resetToken = searchParams.get("token") || "";
@@ -23,8 +23,14 @@ function AccountPortal() {
   const urlBooking = searchParams.get("booking") || "";
   const urlEmail = searchParams.get("email") || "";
 
+  const isBooksTab =
+    urlTab === "ebooks" ||
+    urlTab === "my-books" ||
+    urlTab === "books" ||
+    urlTab === "purchased-books";
+
   const initialTab =
-    urlTab === "ebooks"
+    isBooksTab
       ? "ebooks"
       : urlTab === "orders" || !!urlOrder
       ? "orders"
@@ -34,6 +40,7 @@ function AccountPortal() {
 
   const [activeTab, setActiveTab] = useState(initialTab); // "ebooks" | "sessions" | "orders" | "profile"
   const [authMode, setAuthMode] = useState(isResetFlow ? "reset" : "login"); // "login" | "signup" | "forgot" | "reset"
+  const [readingBook, setReadingBook] = useState(null);
 
   useEffect(() => {
     if (urlMode === "reset" && resetToken) {
@@ -42,14 +49,14 @@ function AccountPortal() {
   }, [urlMode, resetToken, navigate]);
 
   useEffect(() => {
-    if (urlTab === "ebooks") {
+    if (isBooksTab) {
       setActiveTab("ebooks");
     } else if (urlTab === "orders" || urlOrder) {
       setActiveTab("orders");
     } else if (urlTab === "sessions" || urlBooking) {
       setActiveTab("sessions");
     }
-  }, [urlTab, urlOrder, urlBooking]);
+  }, [urlTab, urlOrder, urlBooking, isBooksTab]);
 
   // Login form state
   const [emailInput, setEmailInput] = useState(urlEmail || "");
@@ -193,9 +200,28 @@ function AccountPortal() {
     );
   };
 
-  // Derive ebooks from orders as well as server response for 100% resilience - ONLY for purchased E-books
+  // Derive ebooks from server response and orders for resilience
   const ebooks = useMemo(() => {
-    if (serverEbooks && serverEbooks.length > 0) return serverEbooks;
+    if (serverEbooks && serverEbooks.length > 0) {
+      return serverEbooks.map((bk) => {
+        const authedDownload = bk.downloadUrl?.includes("token=")
+          ? bk.downloadUrl
+          : bk.slug
+          ? `/api/public/books/${bk.slug}/download-pdf?download=true&token=${encodeURIComponent(token || "")}`
+          : "";
+        const authedRead = bk.readUrl?.includes("token=")
+          ? bk.readUrl
+          : bk.slug
+          ? `/api/public/books/${bk.slug}/read-pdf?token=${encodeURIComponent(token || "")}`
+          : "";
+        return {
+          ...bk,
+          downloadUrl: authedDownload,
+          readUrl: authedRead,
+        };
+      });
+    }
+
     const list = [];
     orders.forEach((ord) => {
       const isPaid =
@@ -209,13 +235,21 @@ function AccountPortal() {
       ord.items?.forEach((item) => {
         const isDigital = isEbookFormat(item.format);
         if (isDigital) {
+          const targetSlug = item.slug || (item.title ? item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "");
+          const hasPdf = Boolean(item.pdfUrl);
           list.push({
             title: item.title,
-            slug: item.slug,
+            slug: targetSlug,
             coverImage: item.coverImage,
             format: item.format === "Kindle" ? "E-Book" : (item.format || "E-Book"),
-            pdfUrl: item.pdfUrl || (item.slug ? `/uploads/ebooks/${item.slug}.pdf` : ""),
-            downloadUrl: item.slug ? `/api/public/books/${item.slug}/download-pdf` : (item.pdfUrl || ""),
+            hasPdf,
+            pdfUrl: item.pdfUrl || "",
+            downloadUrl: hasPdf && targetSlug
+              ? `/api/public/books/${targetSlug}/download-pdf?download=true&token=${encodeURIComponent(token || "")}`
+              : "",
+            readUrl: hasPdf && targetSlug
+              ? `/api/public/books/${targetSlug}/read-pdf?token=${encodeURIComponent(token || "")}`
+              : "",
             orderNumber: ord.orderNumber,
             purchaseDate: ord.createdAt,
           });
@@ -223,7 +257,7 @@ function AccountPortal() {
       });
     });
     return list;
-  }, [serverEbooks, orders]);
+  }, [serverEbooks, orders, token]);
 
   useEffect(() => {
     if (urlOrder && orders.length > 0) {
@@ -788,7 +822,7 @@ function AccountPortal() {
                       : "text-dim hover:text-vellum hover:bg-white/5"
                   }`}
                 >
-                  <span>📖 My E-Books & Soft Copies ({ebooks.length})</span>
+                  <span>📖 My Books ({ebooks.length})</span>
                 </button>
                 <button
                   type="button"
@@ -852,10 +886,9 @@ function AccountPortal() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         {ebooks.map((bk, idx) => {
-                          const downloadUrl = bk.slug 
-                            ? `/api/public/books/${bk.slug}/download-pdf` 
-                            : (bk.pdfUrl || "#");
-                          const viewUrl = bk.pdfUrl || downloadUrl;
+                          const hasFile = bk.hasPdf !== false && Boolean(bk.pdfUrl || bk.downloadUrl || bk.readUrl);
+                          const readUrl = bk.readUrl || (bk.slug ? `/api/public/books/${bk.slug}/read-pdf?token=${encodeURIComponent(token || "")}` : "");
+                          const downloadUrl = bk.downloadUrl || (bk.slug ? `/api/public/books/${bk.slug}/download-pdf?download=true&token=${encodeURIComponent(token || "")}` : "");
 
                           return (
                             <div
@@ -877,11 +910,16 @@ function AccountPortal() {
                                   )}
                                   <div className="flex-1 min-w-0">
                                     <span className="inline-block text-[0.68rem] font-bold uppercase tracking-wider text-halo bg-halo/10 border border-halo/20 px-2 py-0.5 rounded mb-1">
-                                      {bk.format === "Kindle" ? "E-Book Soft Copy" : (bk.format || "E-Book Soft Copy")}
+                                      {bk.format === "Kindle" ? "E-Book Edition" : (bk.format || "E-Book Edition")}
                                     </span>
                                     <h3 className="font-semibold text-base text-vellum line-clamp-2 leading-snug">
                                       {bk.title}
                                     </h3>
+                                    {bk.authorName && (
+                                      <p className="text-[0.72rem] text-dim/90 mt-0.5">
+                                        by {bk.authorName}
+                                      </p>
+                                    )}
                                     {bk.orderNumber && (
                                       <p className="text-[0.72rem] text-dim mt-1.5">
                                         Order: <span className="font-mono text-vellum/80">{bk.orderNumber}</span>
@@ -889,7 +927,7 @@ function AccountPortal() {
                                     )}
                                     {bk.purchaseDate && (
                                       <p className="text-[0.72rem] text-dim">
-                                        Added: {new Date(bk.purchaseDate).toLocaleDateString()}
+                                        Purchased: {new Date(bk.purchaseDate).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
                                       </p>
                                     )}
                                   </div>
@@ -897,32 +935,50 @@ function AccountPortal() {
                               </div>
 
                               <div className="pt-3 border-t border-white/10 space-y-2">
-                                <a
-                                  href={viewUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-halo px-4 py-2.5 text-xs font-bold text-void hover:bg-white transition-all shadow-[0_0_15px_rgba(201,168,106,0.25)] no-underline"
-                                >
-                                  <span>📖 Read Online (PDF)</span>
-                                </a>
-                                <div className="flex items-center gap-2">
-                                  <a
-                                    href={downloadUrl}
-                                    download={`${(bk.slug || "ebook").replace(/[^a-z0-9_-]/gi, "_")}.pdf`}
-                                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-[rgba(237,231,218,0.2)] bg-white/5 px-3 py-2 text-xs font-medium text-vellum hover:text-halo hover:border-halo transition-colors no-underline"
-                                  >
-                                    <span>⬇ Download PDF</span>
-                                  </a>
-                                  {bk.slug && (
-                                    <Link
-                                      to={`/books/${bk.slug}`}
-                                      className="rounded-xl border border-white/10 px-3 py-2 text-xs text-dim hover:text-vellum transition-colors"
-                                      title="Book Details"
+                                {hasFile ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => setReadingBook({ title: bk.title, readUrl, slug: bk.slug })}
+                                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-halo px-4 py-2.5 text-xs font-bold text-void hover:bg-white transition-all shadow-[0_0_15px_rgba(201,168,106,0.25)] cursor-pointer"
                                     >
-                                      ℹ Details
-                                    </Link>
-                                  )}
-                                </div>
+                                      <span>📖 Read Book</span>
+                                    </button>
+                                    <div className="flex items-center gap-2">
+                                      <a
+                                        href={downloadUrl}
+                                        download={`${(bk.slug || "ebook").replace(/[^a-z0-9_-]/gi, "_")}.pdf`}
+                                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-[rgba(237,231,218,0.2)] bg-white/5 px-3 py-2 text-xs font-medium text-vellum hover:text-halo hover:border-halo transition-colors no-underline"
+                                      >
+                                        <span>⬇ Download PDF</span>
+                                      </a>
+                                      {bk.slug && (
+                                        <Link
+                                          to={`/books/${bk.slug}`}
+                                          className="rounded-xl border border-white/10 px-3 py-2 text-xs text-dim hover:text-vellum transition-colors"
+                                          title="Book Details"
+                                        >
+                                          ℹ Details
+                                        </Link>
+                                      )}
+                                    </div>
+                                  </>
+                                ) : (
+                                  /* Requirement 9: Show clear notice if PDF is pending upload, without broken download links */
+                                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-left">
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-sm">⏳</span>
+                                      <div>
+                                        <p className="text-[0.75rem] font-bold text-amber-300">
+                                          Digital PDF Being Prepared
+                                        </p>
+                                        <p className="text-[0.7rem] text-amber-200/80 mt-0.5 leading-snug">
+                                          Your purchase access is confirmed. The PDF will be ready to read and download as soon as uploaded by the publisher.
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );
@@ -1164,6 +1220,50 @@ function AccountPortal() {
       </main>
 
       <SiteFooter />
+
+      {/* Online E-Book Reader Modal (Requirement 3, 4, 6) */}
+      {readingBook && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-md p-2 sm:p-5">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-t-2xl border-t border-x border-[rgba(232,206,140,0.3)] bg-[#0E1630] px-5 py-3 shadow-2xl">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-xl">📖</span>
+              <div className="min-w-0">
+                <span className="text-[0.68rem] uppercase tracking-widest text-halo font-bold block">
+                  Digital E-Book Reader • Arrive at Origin
+                </span>
+                <h2 className="text-sm sm:text-base font-semibold text-vellum truncate">
+                  {readingBook.title}
+                </h2>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href={readingBook.readUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/20 px-3 py-1.5 text-xs text-dim hover:text-vellum hover:border-vellum transition-colors no-underline"
+              >
+                ↗ Full Tab
+              </a>
+              <button
+                type="button"
+                onClick={() => setReadingBook(null)}
+                className="rounded-full bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs text-vellum hover:text-white transition-colors cursor-pointer font-semibold"
+                title="Close Reader"
+              >
+                ✕ Close Reader
+              </button>
+            </div>
+          </div>
+          <div className="mx-auto w-full max-w-6xl flex-1 rounded-b-2xl border-b border-x border-[rgba(232,206,140,0.3)] bg-[#070B18] overflow-hidden shadow-2xl relative">
+            <iframe
+              src={readingBook.readUrl}
+              title={readingBook.title}
+              className="w-full h-full border-0"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -60,9 +60,26 @@ interface PortalData {
   customer: CustomerProfile | null;
   sessions: PortalSession[];
   orders: PortalOrder[];
+  ebooks?: Array<{
+    bookId?: string;
+    title: string;
+    slug: string;
+    coverImage: string;
+    format: string;
+    authorName?: string;
+    hasPdf?: boolean;
+    pdfFilename?: string;
+    pdfUrl?: string;
+    downloadUrl?: string;
+    readUrl?: string;
+    orderNumber?: string;
+    purchasedAt?: string;
+    purchaseDate?: string;
+  }>;
   stats: {
     sessionsCount: number;
     ordersCount: number;
+    ebooksCount?: number;
     totalSpent: number;
   };
 }

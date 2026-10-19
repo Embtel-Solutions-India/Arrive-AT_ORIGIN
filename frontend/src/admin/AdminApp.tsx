@@ -17,6 +17,7 @@ const BookListPage = lazy(() => import("./pages/books/BookListPage").then(m => (
 const BookEditorPage = lazy(() => import("./pages/books/BookEditorPage").then(m => ({ default: m.BookEditorPage })));
 const BookInventoryPage = lazy(() => import("./pages/books/BookInventoryPage").then(m => ({ default: m.BookInventoryPage })));
 const BookCategoriesPage = lazy(() => import("./pages/books/BookCategoriesPage").then(m => ({ default: m.BookCategoriesPage })));
+const PurchasedBooksPage = lazy(() => import("./pages/books/PurchasedBooksPage").then(m => ({ default: m.PurchasedBooksPage })));
 const OrdersListPage = lazy(() => import("./pages/orders/OrdersListPage").then(m => ({ default: m.OrdersListPage })));
 const OrderDetailPage = lazy(() => import("./pages/orders/OrderDetailPage").then(m => ({ default: m.OrderDetailPage })));
 const CustomersListPage = lazy(() => import("./pages/customers/CustomersListPage").then(m => ({ default: m.CustomersListPage })));
@@ -67,6 +68,7 @@ export default function AdminApp() {
                 <Route path="books/new" element={<BookEditorPage />} />
                 <Route path="books/inventory" element={<BookInventoryPage />} />
                 <Route path="books/categories" element={<BookCategoriesPage />} />
+                <Route path="books/purchased" element={<PurchasedBooksPage />} />
                 <Route path="books/:id" element={<BookEditorPage />} />
 
                 {/* Orders */}

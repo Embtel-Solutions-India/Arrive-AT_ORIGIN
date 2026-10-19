@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate, requirePermission } from "../middleware/auth.js";
-import { upload } from "../middleware/upload.js";
+import { upload, uploadPdf } from "../middleware/upload.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { dashboardController } from "../modules/dashboard/dashboard.controller.js";
 import { blogController } from "../modules/blogs/blog.controller.js";
@@ -48,9 +48,13 @@ adminRouter.delete("/blog-tags/:id", requirePermission("BLOG_DELETE"), asyncHand
 
 // ─── Books ───
 adminRouter.get("/books/export", requirePermission("PRODUCT_READ"), asyncHandler(bookController.exportBooks));
+adminRouter.get("/books/purchased", requirePermission("ORDER_READ"), asyncHandler(bookController.getPurchasedBooks));
 adminRouter.get("/books", requirePermission("PRODUCT_READ"), asyncHandler(bookController.getBooks));
 adminRouter.post("/books", requirePermission("PRODUCT_WRITE"), asyncHandler(bookController.createBook));
 adminRouter.put("/books/inventory", requirePermission("PRODUCT_WRITE"), asyncHandler(bookController.updateInventory));
+adminRouter.get("/books/:id/ebook", requirePermission("PRODUCT_READ"), asyncHandler(bookController.getBookEbookDetails));
+adminRouter.post("/books/:id/upload-pdf", requirePermission("PRODUCT_WRITE"), uploadPdf.single("file"), asyncHandler(bookController.uploadBookPdf));
+adminRouter.delete("/books/:id/ebook-file", requirePermission("PRODUCT_WRITE"), asyncHandler(bookController.removeBookPdf));
 adminRouter.get("/books/:id", requirePermission("PRODUCT_READ"), asyncHandler(bookController.getBookById));
 adminRouter.put("/books/:id", requirePermission("PRODUCT_WRITE"), asyncHandler(bookController.updateBook));
 adminRouter.delete("/books/:id", requirePermission("PRODUCT_DELETE"), asyncHandler(bookController.deleteBook));

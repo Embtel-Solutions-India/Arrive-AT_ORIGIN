@@ -15,3 +15,4 @@ export * from "./AuditLog.js";
 export * from "./AdminSession.js";
 export * from "./BackupRecord.js";
 export * from "./Coupon.js";
+export * from "./PurchasedBook.js";

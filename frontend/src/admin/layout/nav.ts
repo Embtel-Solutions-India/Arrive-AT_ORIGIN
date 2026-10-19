@@ -36,6 +36,7 @@ export const adminNav: NavGroup[] = [
       { label: "All Books", to: "/admin/books", permission: "PRODUCT_READ" },
       { label: "Add New Book", to: "/admin/books/new", permission: "PRODUCT_WRITE" },
       { label: "Book Categories", to: "/admin/books/categories", permission: "PRODUCT_READ" },
+      { label: "Purchased Books", to: "/admin/books/purchased", permission: "ORDER_READ" },
       { label: "Authors", to: "/admin/authors", permission: "BLOG_READ" },
       { label: "Inventory", to: "/admin/books/inventory", permission: "PRODUCT_READ" },
     ],
