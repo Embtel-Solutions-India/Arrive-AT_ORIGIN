@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
 import { useCurrency } from "./CurrencyContext";
 import { convertInrToUsd, convertUsdToInr } from "../services/currencyService";
+import { getEbookPdfUrl } from "../utils/ebookUtils";
 
 export interface CartItem {
   bookId: string;
@@ -144,7 +145,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           : (bookPriceUSD ? convertUsdToInr(bookPriceUSD) : undefined);
     }
 
-    const pdfUrl = fmtObj?.pdfUrl || book.pdfUrl || (book.slug ? `/uploads/ebooks/${book.slug}.pdf` : "");
+    const isDigital =
+      itemFormat.toLowerCase().includes("ebook") ||
+      itemFormat.toLowerCase().includes("e-book") ||
+      itemFormat.toLowerCase().includes("kindle") ||
+      itemFormat.toLowerCase().includes("digital") ||
+      itemFormat.toLowerCase().includes("pdf");
+
+    const pdfUrl = isDigital
+      ? getEbookPdfUrl(fmtObj?.pdfUrl || book.pdfUrl, book.slug || book.title)
+      : "";
 
     setItems((prev) => {
       const existingIdx = prev.findIndex(

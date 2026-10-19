@@ -6,6 +6,7 @@ import SiteFooter from "../components/landing/SiteFooter";
 import Reveal from "../components/landing/Reveal";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { currencyService } from "../services/currencyService";
+import { getEbookPdfUrl, getEbookDownloadFilename } from "../utils/ebookUtils";
 
 const shell = "mx-auto w-full max-w-[1140px] px-[clamp(20px,4vw,48px)]";
 const heading = "font-display font-light leading-[1.05] tracking-[-0.015em]";
@@ -204,20 +205,23 @@ function AccountPortal() {
   const ebooks = useMemo(() => {
     if (serverEbooks && serverEbooks.length > 0) {
       return serverEbooks.map((bk) => {
-        const authedDownload = bk.downloadUrl?.includes("token=")
+        const directPdf = getEbookPdfUrl(bk.pdfUrl || bk.downloadUrl || bk.readUrl, bk.slug || bk.title);
+        const authedDownload = directPdf || (bk.downloadUrl?.includes("token=")
           ? bk.downloadUrl
           : bk.slug
           ? `/api/public/books/${bk.slug}/download-pdf?download=true&token=${encodeURIComponent(token || "")}`
-          : "";
-        const authedRead = bk.readUrl?.includes("token=")
+          : "");
+        const authedRead = directPdf || (bk.readUrl?.includes("token=")
           ? bk.readUrl
           : bk.slug
           ? `/api/public/books/${bk.slug}/read-pdf?token=${encodeURIComponent(token || "")}`
-          : "";
+          : "");
         return {
           ...bk,
+          pdfUrl: directPdf || bk.pdfUrl || "",
           downloadUrl: authedDownload,
           readUrl: authedRead,
+          hasPdf: Boolean(directPdf || bk.hasPdf),
         };
       });
     }
@@ -236,20 +240,21 @@ function AccountPortal() {
         const isDigital = isEbookFormat(item.format);
         if (isDigital) {
           const targetSlug = item.slug || (item.title ? item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "");
-          const hasPdf = Boolean(item.pdfUrl);
+          const directPdf = getEbookPdfUrl(item.pdfUrl, targetSlug || item.title);
+          const hasPdf = Boolean(directPdf || item.pdfUrl);
           list.push({
             title: item.title,
             slug: targetSlug,
             coverImage: item.coverImage,
             format: item.format === "Kindle" ? "E-Book" : (item.format || "E-Book"),
             hasPdf,
-            pdfUrl: item.pdfUrl || "",
-            downloadUrl: hasPdf && targetSlug
+            pdfUrl: directPdf,
+            downloadUrl: directPdf || (targetSlug
               ? `/api/public/books/${targetSlug}/download-pdf?download=true&token=${encodeURIComponent(token || "")}`
-              : "",
-            readUrl: hasPdf && targetSlug
+              : ""),
+            readUrl: directPdf || (targetSlug
               ? `/api/public/books/${targetSlug}/read-pdf?token=${encodeURIComponent(token || "")}`
-              : "",
+              : ""),
             orderNumber: ord.orderNumber,
             purchaseDate: ord.createdAt,
           });
@@ -892,9 +897,10 @@ function AccountPortal() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         {ebooks.map((bk, idx) => {
-                          const hasFile = bk.hasPdf !== false && Boolean(bk.pdfUrl || bk.downloadUrl || bk.readUrl);
-                          const readUrl = bk.readUrl || (bk.slug ? `/api/public/books/${bk.slug}/read-pdf?token=${encodeURIComponent(token || "")}` : "");
-                          const downloadUrl = bk.downloadUrl || (bk.slug ? `/api/public/books/${bk.slug}/download-pdf?download=true&token=${encodeURIComponent(token || "")}` : "");
+                          const directPdf = getEbookPdfUrl(bk.pdfUrl || bk.readUrl || bk.downloadUrl, bk.slug || bk.title);
+                          const hasFile = bk.hasPdf !== false && Boolean(directPdf || bk.pdfUrl || bk.downloadUrl || bk.readUrl);
+                          const readUrl = directPdf || bk.readUrl || (bk.slug ? `/api/public/books/${bk.slug}/read-pdf?token=${encodeURIComponent(token || "")}` : "");
+                          const downloadUrl = directPdf || bk.downloadUrl || (bk.slug ? `/api/public/books/${bk.slug}/download-pdf?download=true&token=${encodeURIComponent(token || "")}` : "");
 
                           return (
                             <div
@@ -953,7 +959,7 @@ function AccountPortal() {
                                     <div className="flex items-center gap-2">
                                       <a
                                         href={downloadUrl}
-                                        download={`${(bk.slug || "ebook").replace(/[^a-z0-9_-]/gi, "_")}.pdf`}
+                                        download={getEbookDownloadFilename(bk.slug || bk.title)}
                                         className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-[rgba(237,231,218,0.2)] bg-white/5 px-3 py-2 text-xs font-medium text-vellum hover:text-halo hover:border-halo transition-colors no-underline"
                                       >
                                         <span>⬇ Download PDF</span>
@@ -1152,8 +1158,8 @@ function AccountPortal() {
                           <div className="divide-y divide-white/5">
                             {ord.items.map((item, idx) => {
                               const isDigital = isEbookFormat(item.format);
-                              const pdfLink = isDigital ? (item.pdfUrl || (item.slug ? `/uploads/ebooks/${item.slug}.pdf` : null)) : null;
-                              const downloadLink = isDigital ? (item.slug ? `/api/public/books/${item.slug}/download-pdf` : pdfLink) : null;
+                              const pdfLink = isDigital ? getEbookPdfUrl(item.pdfUrl, item.slug || item.title) : null;
+                              const downloadLink = pdfLink;
 
                               return (
                                 <div key={idx} className="py-3 text-xs">
@@ -1190,19 +1196,18 @@ function AccountPortal() {
                                   </div>
 
                                   {/* Direct E-book Access Buttons for Digital Orders */}
-                                  {isDigital && (pdfLink || downloadLink) && (
+                                  {isDigital && pdfLink && (
                                     <div className="mt-2.5 ml-12 flex items-center gap-3 pt-2 border-t border-white/5">
-                                      <a
-                                        href={pdfLink || downloadLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 rounded-lg bg-halo/20 border border-halo/40 px-3 py-1 text-[0.75rem] font-semibold text-halo hover:bg-halo hover:text-void transition-colors"
+                                      <button
+                                        type="button"
+                                        onClick={() => setReadingBook({ title: item.title, readUrl: pdfLink, slug: item.slug })}
+                                        className="inline-flex items-center gap-1.5 rounded-lg bg-halo/20 border border-halo/40 px-3 py-1 text-[0.75rem] font-semibold text-halo hover:bg-halo hover:text-void transition-colors cursor-pointer"
                                       >
                                         <span>📖 Read E-Book Soft Copy</span>
-                                      </a>
+                                      </button>
                                       <a
-                                        href={downloadLink || pdfLink}
-                                        download
+                                        href={downloadLink}
+                                        download={getEbookDownloadFilename(item.slug || item.title)}
                                         className="inline-flex items-center gap-1 text-[0.75rem] text-dim hover:text-vellum transition-colors"
                                       >
                                         <span>⬇ Download PDF</span>

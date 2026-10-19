@@ -32,7 +32,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
     sku: "AAO-BK-001",
     priceUSD: 4.99,
     priceINR: 483.23,
-    pdfUrl: "/uploads/ebooks/arrive-at-origin-part-one.pdf",
+    pdfUrl: "/ebooks/arrive-at-origin-part-one.pdf",
     formats: [
       {
         format: "E-Book",
@@ -42,7 +42,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
         sku: "AAO-BK-001-EBOOK",
         stockQuantity: 9999,
         isAvailable: true,
-        pdfUrl: "/uploads/ebooks/arrive-at-origin-part-one.pdf",
+        pdfUrl: "/ebooks/arrive-at-origin-part-one.pdf",
       },
       {
         format: "Paperback",
@@ -70,7 +70,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
     sku: "AAO-BK-003",
     priceUSD: 5.0,
     priceINR: 484.2,
-    pdfUrl: "/uploads/ebooks/your-path-to-transformation.pdf",
+    pdfUrl: "/ebooks/your-path-to-transformation.pdf",
     formats: [
       {
         format: "E-Book",
@@ -80,7 +80,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
         sku: "AAO-BK-003-EBOOK",
         stockQuantity: 9999,
         isAvailable: true,
-        pdfUrl: "/uploads/ebooks/your-path-to-transformation.pdf",
+        pdfUrl: "/ebooks/your-path-to-transformation.pdf",
       },
       {
         format: "Paperback",
@@ -146,7 +146,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
     sku: "AAO-BK-004",
     priceUSD: 3.0,
     priceINR: 290.52,
-    pdfUrl: "/uploads/ebooks/your-path-to-spirituality.pdf",
+    pdfUrl: "/ebooks/your-path-to-spirituality.pdf",
     formats: [
       {
         format: "E-Book",
@@ -156,7 +156,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
         sku: "AAO-BK-004-EBOOK",
         stockQuantity: 9999,
         isAvailable: true,
-        pdfUrl: "/uploads/ebooks/your-path-to-spirituality.pdf",
+        pdfUrl: "/ebooks/your-path-to-spirituality.pdf",
       },
       {
         format: "Paperback",
@@ -184,7 +184,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
     sku: "AAO-BK-002",
     priceUSD: 4.99,
     priceINR: 483.23,
-    pdfUrl: "/uploads/ebooks/arrive-at-origin-part-two.pdf",
+    pdfUrl: "/ebooks/arrive-at-origin-part-two.pdf",
     formats: [
       {
         format: "E-Book",
@@ -194,7 +194,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
         sku: "AAO-BK-002-EBOOK",
         stockQuantity: 9999,
         isAvailable: true,
-        pdfUrl: "/uploads/ebooks/arrive-at-origin-part-two.pdf",
+        pdfUrl: "/ebooks/arrive-at-origin-part-two.pdf",
       },
       {
         format: "Paperback",
@@ -222,7 +222,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
     sku: "AAO-BK-005",
     priceUSD: 4.99,
     priceINR: 483.23,
-    pdfUrl: "/uploads/ebooks/your-path-to-healing.pdf",
+    pdfUrl: "/ebooks/your-path-to-healing.pdf",
     formats: [
       {
         format: "E-Book",
@@ -232,7 +232,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
         sku: "AAO-BK-005-EBOOK",
         stockQuantity: 9999,
         isAvailable: true,
-        pdfUrl: "/uploads/ebooks/your-path-to-healing.pdf",
+        pdfUrl: "/ebooks/your-path-to-healing.pdf",
       },
       {
         format: "Paperback",
@@ -260,7 +260,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
     sku: "AAO-BK-006",
     priceUSD: 2.99,
     priceINR: 289.55,
-    pdfUrl: "/uploads/ebooks/keeping-it-simple.pdf",
+    pdfUrl: "/ebooks/keeping-it-simple.pdf",
     formats: [
       {
         format: "E-Book",
@@ -270,7 +270,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
         sku: "AAO-BK-006-EBOOK",
         stockQuantity: 9999,
         isAvailable: true,
-        pdfUrl: "/uploads/ebooks/keeping-it-simple.pdf",
+        pdfUrl: "/ebooks/keeping-it-simple.pdf",
       },
       {
         format: "Paperback",
@@ -298,7 +298,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
     sku: "AAO-BK-008",
     priceUSD: 2.99,
     priceINR: 289.55,
-    pdfUrl: "/uploads/ebooks/life-force-lost-and-found.pdf",
+    pdfUrl: "/ebooks/life-force-lost-and-found.pdf",
     formats: [
       {
         format: "E-Book",
@@ -308,7 +308,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
         sku: "AAO-BK-008-EBOOK",
         stockQuantity: 9999,
         isAvailable: true,
-        pdfUrl: "/uploads/ebooks/life-force-lost-and-found.pdf",
+        pdfUrl: "/ebooks/life-force-lost-and-found.pdf",
       },
       {
         format: "Paperback",

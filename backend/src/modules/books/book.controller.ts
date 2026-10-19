@@ -413,7 +413,7 @@ export const bookController = {
     if (!book) throw HttpError.notFound("Book not found");
     if (!req.file) throw HttpError.badRequest("No PDF file uploaded. Please attach a valid PDF document.");
 
-    const pdfUrl = `/uploads/ebooks/${req.file.filename}`;
+    const pdfUrl = `/ebooks/${req.file.filename}`;
     book.pdfUrl = pdfUrl;
 
     // Update formats array if e-book format exists

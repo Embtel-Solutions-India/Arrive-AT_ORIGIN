@@ -161,10 +161,10 @@ export async function assignEbooksForOrder(orderOrId: string | IOrder): Promise<
       continue;
     }
 
-    const resolvedPdf = resolveBookPdfFile(item.pdfUrl || book.pdfUrl || "", book);
+    const rawPdfUrl = book.pdfUrl ? book.pdfUrl.replace("/uploads/ebooks/", "/ebooks/") : "";
     const pdfUrl = resolvedPdf.exists
-      ? (book.pdfUrl || `/uploads/ebooks/${resolvedPdf.filename}`)
-      : (book.pdfUrl || "");
+      ? (rawPdfUrl || `/ebooks/${resolvedPdf.filename}`)
+      : rawPdfUrl;
 
     // Atomic idempotent upsert into PurchasedBook (Requirement 8: prevent duplicates)
     try {

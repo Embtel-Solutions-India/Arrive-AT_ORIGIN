@@ -6,6 +6,7 @@ import SiteFooter from "../components/landing/SiteFooter";
 import { useCart } from "../context/CartContext";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { apiUrl } from "../utils/api";
+import { getEbookPdfUrl, getEbookDownloadFilename } from "../utils/ebookUtils";
 
 const shell = "mx-auto w-full max-w-[760px] px-[clamp(20px,5vw,64px)]";
 const heading = "font-display font-light leading-[1.05] tracking-[-0.015em]";
@@ -177,53 +178,61 @@ function OrderSuccess() {
                 {/* Display Specific E-Books with Direct Read and Download Buttons */}
                 {ebooks.length > 0 && (
                   <div className="space-y-3 mb-4">
-                    {ebooks.map((bk, idx) => (
-                      <div
-                        key={idx}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-[rgba(232,206,140,0.2)] bg-black/30"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          {bk.coverImage && (
-                            <img
-                              src={bk.coverImage}
-                              alt={bk.title}
-                              className="h-12 w-9 rounded object-cover border border-white/10 shrink-0 shadow"
-                            />
-                          )}
-                          <div className="min-w-0">
-                            <h4 className="text-sm font-bold text-vellum truncate">{bk.title}</h4>
-                            <span className="text-[0.72rem] text-dim">{bk.format} • {bk.authorName}</span>
+                    {ebooks.map((bk, idx) => {
+                      const directPdf = getEbookPdfUrl(bk.pdfUrl || bk.readUrl || bk.downloadUrl, bk.slug || bk.title);
+                      const readUrl = directPdf || bk.readUrl || "";
+                      const downloadUrl = directPdf || bk.downloadUrl || "";
+                      const hasPdf = Boolean(directPdf || bk.hasPdf);
+                      const downloadFilename = getEbookDownloadFilename(bk.slug || bk.title);
+
+                      return (
+                        <div
+                          key={idx}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-[rgba(232,206,140,0.2)] bg-black/30"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {bk.coverImage && (
+                              <img
+                                src={bk.coverImage}
+                                alt={bk.title}
+                                className="h-12 w-9 rounded object-cover border border-white/10 shrink-0 shadow"
+                              />
+                            )}
+                            <div className="min-w-0">
+                              <h4 className="text-sm font-bold text-vellum truncate">{bk.title}</h4>
+                              <span className="text-[0.72rem] text-dim">{bk.format} • {bk.authorName}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {hasPdf ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setReadingBook({ title: bk.title, readUrl, slug: bk.slug })}
+                                  className="inline-flex items-center gap-1.5 rounded-xl bg-halo px-3.5 py-2 text-xs font-bold text-void hover:bg-white transition-all shadow-[0_0_12px_rgba(201,168,106,0.3)] cursor-pointer"
+                                >
+                                  <span>📖 Read Now</span>
+                                </button>
+                                {downloadUrl && (
+                                  <a
+                                    href={downloadUrl}
+                                    download={downloadFilename}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-[rgba(237,231,218,0.2)] bg-white/5 px-3 py-2 text-xs font-semibold text-vellum hover:text-halo hover:border-halo transition-colors no-underline"
+                                  >
+                                    <span>⬇ Download</span>
+                                  </a>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-[0.72rem] text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-1">
+                                ⏳ PDF Being Prepared
+                              </span>
+                            )}
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          {bk.hasPdf ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => setReadingBook({ title: bk.title, readUrl: bk.readUrl, slug: bk.slug })}
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-halo px-3.5 py-2 text-xs font-bold text-void hover:bg-white transition-all shadow-[0_0_12px_rgba(201,168,106,0.3)] cursor-pointer"
-                              >
-                                <span>📖 Read Now</span>
-                              </button>
-                              {bk.downloadUrl && (
-                                <a
-                                  href={bk.downloadUrl}
-                                  download={`${(bk.slug || "ebook").replace(/[^a-z0-9_-]/gi, "_")}.pdf`}
-                                  className="inline-flex items-center gap-1.5 rounded-xl border border-[rgba(237,231,218,0.2)] bg-white/5 px-3 py-2 text-xs font-semibold text-vellum hover:text-halo hover:border-halo transition-colors no-underline"
-                                >
-                                  <span>⬇ Download</span>
-                                </a>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-[0.72rem] text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-1">
-                              ⏳ PDF Being Prepared
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 

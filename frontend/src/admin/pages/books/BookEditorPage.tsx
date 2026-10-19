@@ -217,7 +217,7 @@ export function BookEditorPage() {
         queryClient.invalidateQueries({ queryKey: ["admin", "book", id] });
         queryClient.invalidateQueries({ queryKey: ["admin", "books"] });
       } else {
-        setPdfUrl(`/uploads/ebooks/${file.name.toLowerCase().replace(/[^a-z0-9.]/g, "-")}`);
+        setPdfUrl(`/ebooks/${file.name.toLowerCase().replace(/[^a-z0-9.]/g, "-")}`);
       }
     } catch (err: any) {
       setPdfError(err.message || "Failed to upload e-book PDF file");
@@ -468,7 +468,7 @@ export function BookEditorPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                 <Field
                   label="E-Book PDF URL / Path"
-                  placeholder="/uploads/ebooks/my-book.pdf"
+                  placeholder="/ebooks/my-book.pdf"
                   value={pdfUrl}
                   onChange={(e) => setPdfUrl(e.target.value)}
                   helperText="Direct path or uploaded file location"

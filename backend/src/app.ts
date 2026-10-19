@@ -1,4 +1,6 @@
 import express from "express";
+import fs from "fs";
+import path from "path";
 import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -28,17 +30,24 @@ export function createApp() {
   );
   app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === "/api/health" } }));
 
-  // Securely protect e-book PDFs from unauthorized public access (Requirement 6)
+  // Redirect legacy /uploads/ebooks/* requests to /ebooks/*
   app.use((req, res, next) => {
-    const p = req.path.toLowerCase();
-    if (p.startsWith("/uploads/ebooks") || (p.startsWith("/uploads/") && p.endsWith(".pdf"))) {
-      return res.status(403).json({
-        success: false,
-        message: "Direct public access to e-book PDF files is restricted. Please access your digital books via your authenticated account library.",
-      });
+    const p = req.path;
+    if (p.toLowerCase().startsWith("/uploads/ebooks/")) {
+      const filename = p.slice("/uploads/ebooks/".length);
+      return res.redirect(301, `/ebooks/${filename}`);
     }
     next();
   });
+
+  // Static ebooks directory (serving all 8 publication PDFs)
+  const frontendEbooksDir = path.resolve(process.cwd(), "../frontend/public/ebooks");
+  const localEbooksDir = path.resolve(process.cwd(), "uploads", "ebooks");
+  if (fs.existsSync(frontendEbooksDir)) {
+    app.use("/ebooks", express.static(frontendEbooksDir));
+  } else if (fs.existsSync(localEbooksDir)) {
+    app.use("/ebooks", express.static(localEbooksDir));
+  }
 
   // Static uploads directory for public media library (images/assets only)
   app.use("/uploads", express.static(uploadDir));

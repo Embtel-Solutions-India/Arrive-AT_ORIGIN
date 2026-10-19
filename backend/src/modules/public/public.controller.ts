@@ -447,7 +447,7 @@ export const publicController = {
         quantity: item.quantity,
         coverImage: book.coverImage,
         subtotal: itemSubtotal,
-        pdfUrl: isDigital ? (matchedFmt?.pdfUrl || book.pdfUrl || `/uploads/ebooks/${book.slug}.pdf`) : "",
+        pdfUrl: isDigital ? (matchedFmt?.pdfUrl || book.pdfUrl || `/ebooks/${book.slug}.pdf`).replace("/uploads/ebooks/", "/ebooks/") : "",
       });
 
       // Update inventory and sales count
@@ -847,7 +847,7 @@ export const publicController = {
         quantity: item.quantity,
         coverImage: book.coverImage,
         subtotal: itemSubtotal,
-        pdfUrl: isDigital ? (matchedFmt?.pdfUrl || book.pdfUrl || `/uploads/ebooks/${book.slug}.pdf`) : "",
+        pdfUrl: isDigital ? (matchedFmt?.pdfUrl || book.pdfUrl || `/ebooks/${book.slug}.pdf`).replace("/uploads/ebooks/", "/ebooks/") : "",
       });
 
       book.stockQuantity = Math.max(0, book.stockQuantity - item.quantity);

@@ -118,7 +118,7 @@ async function seed() {
       language: "English",
       pages: 284,
       format: "Kindle",
-      pdfUrl: "/uploads/ebooks/arrive-at-origin-part-one.pdf",
+      pdfUrl: "/ebooks/arrive-at-origin-part-one.pdf",
       formats: [
         {
           format: "Kindle",
@@ -128,7 +128,7 @@ async function seed() {
           sku: "AAO-BK-001-KINDLE",
           stockQuantity: 9999,
           isAvailable: true,
-          pdfUrl: "/uploads/ebooks/arrive-at-origin-part-one.pdf",
+          pdfUrl: "/ebooks/arrive-at-origin-part-one.pdf",
         },
         {
           format: "Paperback",
@@ -181,7 +181,7 @@ async function seed() {
       language: "English",
       pages: 220,
       format: "Kindle",
-      pdfUrl: "/uploads/ebooks/your-path-to-transformation.pdf",
+      pdfUrl: "/ebooks/your-path-to-transformation.pdf",
       formats: [
         {
           format: "Kindle",
@@ -191,7 +191,7 @@ async function seed() {
           sku: "AAO-BK-003-KINDLE",
           stockQuantity: 9999,
           isAvailable: true,
-          pdfUrl: "/uploads/ebooks/your-path-to-transformation.pdf",
+          pdfUrl: "/ebooks/your-path-to-transformation.pdf",
         },
         {
           format: "Paperback",
@@ -297,7 +297,7 @@ async function seed() {
       language: "English",
       pages: 208,
       format: "Kindle",
-      pdfUrl: "/uploads/ebooks/your-path-to-spirituality.pdf",
+      pdfUrl: "/ebooks/your-path-to-spirituality.pdf",
       formats: [
         {
           format: "Kindle",
@@ -307,7 +307,7 @@ async function seed() {
           sku: "AAO-BK-004-KINDLE",
           stockQuantity: 9999,
           isAvailable: true,
-          pdfUrl: "/uploads/ebooks/your-path-to-spirituality.pdf",
+          pdfUrl: "/ebooks/your-path-to-spirituality.pdf",
         },
         {
           format: "Paperback",
@@ -355,7 +355,7 @@ async function seed() {
       language: "English",
       pages: 70,
       format: "E-Book",
-      pdfUrl: "/uploads/ebooks/arrive-at-origin-part-two.pdf",
+      pdfUrl: "/ebooks/arrive-at-origin-part-two.pdf",
       formats: [
         {
           format: "E-Book",
@@ -365,7 +365,7 @@ async function seed() {
           sku: "AAO-BK-002-EBOOK",
           stockQuantity: 9999,
           isAvailable: true,
-          pdfUrl: "/uploads/ebooks/arrive-at-origin-part-two.pdf",
+          pdfUrl: "/ebooks/arrive-at-origin-part-two.pdf",
         },
         {
           format: "Paperback",
@@ -420,7 +420,7 @@ async function seed() {
       language: "English",
       pages: 240,
       format: "Kindle",
-      pdfUrl: "/uploads/ebooks/your-path-to-healing.pdf",
+      pdfUrl: "/ebooks/your-path-to-healing.pdf",
       formats: [
         {
           format: "Kindle",
@@ -430,7 +430,7 @@ async function seed() {
           sku: "AAO-BK-005-KINDLE",
           stockQuantity: 9999,
           isAvailable: true,
-          pdfUrl: "/uploads/ebooks/your-path-to-healing.pdf",
+          pdfUrl: "/ebooks/your-path-to-healing.pdf",
         },
         {
           format: "Paperback",
@@ -479,7 +479,7 @@ async function seed() {
       language: "English",
       pages: 180,
       format: "Kindle",
-      pdfUrl: "/uploads/ebooks/keeping-it-simple.pdf",
+      pdfUrl: "/ebooks/keeping-it-simple.pdf",
       formats: [
         {
           format: "Kindle",
@@ -489,7 +489,7 @@ async function seed() {
           sku: "AAO-BK-006-KINDLE",
           stockQuantity: 9999,
           isAvailable: true,
-          pdfUrl: "/uploads/ebooks/keeping-it-simple.pdf",
+          pdfUrl: "/ebooks/keeping-it-simple.pdf",
         },
         {
           format: "Paperback",
@@ -537,7 +537,7 @@ async function seed() {
       language: "English",
       pages: 46,
       format: "E-Book",
-      pdfUrl: "/uploads/ebooks/life-force-lost-and-found.pdf",
+      pdfUrl: "/ebooks/life-force-lost-and-found.pdf",
       formats: [
         {
           format: "E-Book",
@@ -547,7 +547,7 @@ async function seed() {
           sku: "AAO-BK-008-EBOOK",
           stockQuantity: 9999,
           isAvailable: true,
-          pdfUrl: "/uploads/ebooks/life-force-lost-and-found.pdf",
+          pdfUrl: "/ebooks/life-force-lost-and-found.pdf",
         },
         {
           format: "Paperback",
