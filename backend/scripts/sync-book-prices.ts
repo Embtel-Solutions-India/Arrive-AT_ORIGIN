@@ -184,7 +184,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
     sku: "AAO-BK-002",
     priceUSD: 4.99,
     priceINR: 483.23,
-    pdfUrl: "",
+    pdfUrl: "/uploads/ebooks/arrive-at-origin-part-two.pdf",
     formats: [
       {
         format: "E-Book",
@@ -192,9 +192,9 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
         priceUSD: 4.99,
         priceINR: 483.23,
         sku: "AAO-BK-002-EBOOK",
-        stockQuantity: 0,
-        isAvailable: false,
-        pdfUrl: "",
+        stockQuantity: 9999,
+        isAvailable: true,
+        pdfUrl: "/uploads/ebooks/arrive-at-origin-part-two.pdf",
       },
       {
         format: "Paperback",

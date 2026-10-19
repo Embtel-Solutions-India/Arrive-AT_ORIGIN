@@ -117,14 +117,14 @@ const books = [
   },
   {
     tagline: "AAO series · Part Two",
-    title: "Arrive at Origin II",
+    title: "AAO – Arrive at Origin (Part 2)",
     slug: "arrive-at-origin-part-two",
     priceINR: 483.23,
     priceUSD: 4.99,
     href: "https://www.amazon.com/dp/B0H1H83KNV",
     image: "/aao-part-two.png",
-    alt: "Arrive at Origin, Part Two book cover",
-    text: "The elaboration: Concept Clearing as gateway, the four movements in depth, and living from Origin inside ordinary obligation.",
+    alt: "AAO – Arrive at Origin (Part 2) book cover",
+    text: "Why We Repeat Emotional Pain and How to Return to Love. Dissolving emotional loops, identity fusion, and returning to conscious presence.",
     series: true,
     formats: [
       { format: "E-Book", priceUSD: 4.99, priceINR: 483.23, isAvailable: true },
