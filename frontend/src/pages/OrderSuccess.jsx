@@ -7,7 +7,7 @@ import { useCart } from "../context/CartContext";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { apiUrl } from "../utils/api";
 
-const shell = "mx-auto w-full max-w-[700px] px-[clamp(20px,5vw,64px)]";
+const shell = "mx-auto w-full max-w-[760px] px-[clamp(20px,5vw,64px)]";
 const heading = "font-display font-light leading-[1.05] tracking-[-0.015em]";
 
 function OrderSuccess() {
@@ -17,7 +17,26 @@ function OrderSuccess() {
   const { autoLogin } = useCustomerAuth();
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState("");
+  const [orderData, setOrderData] = useState(null);
+  const [readingBook, setReadingBook] = useState(null);
   const verifiedRef = useRef(false);
+
+  // Fetch full verified order details and authenticate customer
+  const loadOrderDetails = async () => {
+    if (!orderNumber) return;
+    try {
+      const res = await fetch(apiUrl(`/public/orders/${encodeURIComponent(orderNumber)}`));
+      const json = await res.json();
+      if (res.ok && json.success && json.data) {
+        setOrderData(json.data);
+        if (json.data.customer && json.data.customerToken) {
+          autoLogin(json.data.customer, json.data.customerToken);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to load order status:", err);
+    }
+  };
 
   useEffect(() => {
     // Clear cart immediately upon successful order landing
@@ -52,11 +71,8 @@ function OrderSuccess() {
               localStorage.removeItem("aao_pending_order");
             } catch (_) {}
           } else {
-            // Check if this was just a benign duplicate verification race
             const msg = json.message || "";
-            if (msg.includes("duplicate key") || msg.includes("E11000") || msg.includes("already verified")) {
-              setVerifyError("");
-            } else {
+            if (!msg.includes("duplicate key") && !msg.includes("E11000") && !msg.includes("already verified")) {
               setVerifyError(msg);
             }
           }
@@ -66,9 +82,27 @@ function OrderSuccess() {
         })
         .finally(() => {
           setVerifying(false);
+          loadOrderDetails();
         });
+    } else {
+      // In all cases, load verified order status directly by orderNumber
+      loadOrderDetails();
     }
-  }, [orderNumber, searchParams, clearCart, autoLogin]);
+  }, [orderNumber, searchParams]);
+
+  const customerToken = orderData?.customerToken || "";
+  const customerEmail = orderData?.customerInfo?.email || orderData?.customer?.email || "";
+  const ebooks = orderData?.ebooks || [];
+  const hasEbooks = orderData?.hasEbooks || ebooks.length > 0;
+
+  // Seamless auto-auth links for the user
+  const accountBooksUrl = `/account?tab=ebooks${
+    customerToken ? `&token=${encodeURIComponent(customerToken)}` : ""
+  }${customerEmail ? `&email=${encodeURIComponent(customerEmail)}` : ""}`;
+
+  const accountOrderUrl = `/account?tab=orders&order=${encodeURIComponent(orderNumber || "")}${
+    customerToken ? `&token=${encodeURIComponent(customerToken)}` : ""
+  }${customerEmail ? `&email=${encodeURIComponent(customerEmail)}` : ""}`;
 
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.6]">
@@ -101,6 +135,7 @@ function OrderSuccess() {
             <p className="text-xs text-amber-400 mb-4">{verifyError}</p>
           )}
 
+          {/* Order Summary Strip */}
           <div className="rounded-2xl border border-[rgba(237,231,218,0.14)] bg-[rgba(237,231,218,0.03)] p-6 my-8 text-left space-y-4">
             <div className="flex items-center justify-between border-b border-[rgba(237,231,218,0.1)] pb-3">
               <span className="text-xs text-dim">Order Number</span>
@@ -108,34 +143,97 @@ function OrderSuccess() {
             </div>
             <div className="flex items-center justify-between border-b border-[rgba(237,231,218,0.1)] pb-3">
               <span className="text-xs text-dim">Payment Status</span>
-              <span className="text-xs font-semibold text-emerald-400">Paid via Stripe Gateway</span>
+              <span className="text-xs font-semibold text-emerald-400">
+                {orderData?.paymentStatus === "PAID"
+                  ? "Paid & Confirmed"
+                  : "Paid via Stripe Gateway"}
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-dim">Estimated Dispatch</span>
-              <span className="text-xs text-vellum">1–2 business days via Priority Mail</span>
+              <span className="text-xs text-dim">Fulfillment</span>
+              <span className="text-xs text-vellum">
+                {hasEbooks
+                  ? "Instant E-Book Access Assigned to Your Account"
+                  : "1–2 business days via Priority Mail"}
+              </span>
             </div>
           </div>
 
-          {/* Digital E-Book Library Callout */}
-          <div className="rounded-2xl border border-[rgba(232,206,140,0.35)] bg-[rgba(232,206,140,0.08)] p-5 mb-6 text-left backdrop-blur-sm shadow-[0_0_25px_rgba(232,206,140,0.12)]">
-            <div className="flex items-start gap-3.5">
-              <span className="text-2xl">📖</span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-sm font-bold text-halo">E-Book Soft Copy Ready in Your Account</h3>
-                  <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[0.65rem] font-bold px-2 py-0.5">
+          {/* Digital E-Book Library Callout (Always active & functional) */}
+          <div className="rounded-2xl border border-[rgba(232,206,140,0.35)] bg-[rgba(232,206,140,0.08)] p-5 sm:p-6 mb-8 text-left backdrop-blur-sm shadow-[0_0_25px_rgba(232,206,140,0.12)]">
+            <div className="flex items-start gap-4">
+              <span className="text-3xl">📖</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h3 className="text-base font-bold text-halo">E-Book Soft Copy Ready in Your Account</h3>
+                  <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[0.68rem] font-bold px-2.5 py-0.5">
                     Instant Soft Copy
                   </span>
                 </div>
-                <p className="text-xs text-vellum/90 mt-1 leading-relaxed">
-                  Purchased E-Book editions and digital publications are instantly accessible in your user account. Read online anytime or download your PDF soft copy.
+                <p className="text-xs text-vellum/90 leading-relaxed mb-4">
+                  Purchased digital editions and e-book PDFs are automatically assigned to your account. You can read online anytime or download the PDF file directly.
                 </p>
-                <div className="mt-3">
+
+                {/* Display Specific E-Books with Direct Read and Download Buttons */}
+                {ebooks.length > 0 && (
+                  <div className="space-y-3 mb-4">
+                    {ebooks.map((bk, idx) => (
+                      <div
+                        key={idx}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-[rgba(232,206,140,0.2)] bg-black/30"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {bk.coverImage && (
+                            <img
+                              src={bk.coverImage}
+                              alt={bk.title}
+                              className="h-12 w-9 rounded object-cover border border-white/10 shrink-0 shadow"
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-bold text-vellum truncate">{bk.title}</h4>
+                            <span className="text-[0.72rem] text-dim">{bk.format} • {bk.authorName}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {bk.hasPdf ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setReadingBook({ title: bk.title, readUrl: bk.readUrl, slug: bk.slug })}
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-halo px-3.5 py-2 text-xs font-bold text-void hover:bg-white transition-all shadow-[0_0_12px_rgba(201,168,106,0.3)] cursor-pointer"
+                              >
+                                <span>📖 Read Now</span>
+                              </button>
+                              {bk.downloadUrl && (
+                                <a
+                                  href={bk.downloadUrl}
+                                  download={`${(bk.slug || "ebook").replace(/[^a-z0-9_-]/gi, "_")}.pdf`}
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-[rgba(237,231,218,0.2)] bg-white/5 px-3 py-2 text-xs font-semibold text-vellum hover:text-halo hover:border-halo transition-colors no-underline"
+                                >
+                                  <span>⬇ Download</span>
+                                </a>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-[0.72rem] text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-1">
+                              ⏳ PDF Being Prepared
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Primary Button to Open User Account Library */}
+                <div className="pt-2">
                   <Link
-                    to="/account?tab=ebooks"
-                    className="inline-flex items-center gap-1.5 rounded-full bg-halo px-4 py-2 text-xs font-bold text-void hover:bg-white transition-all shadow-[0_0_15px_rgba(201,168,106,0.3)] no-underline"
+                    to={accountBooksUrl}
+                    className="inline-flex items-center gap-2 rounded-full bg-halo px-5 py-2.5 text-xs sm:text-sm font-bold text-void hover:bg-white transition-all shadow-[0_0_18px_rgba(201,168,106,0.35)] no-underline cursor-pointer"
                   >
-                    <span>📖 Read & Download E-Book in User Account →</span>
+                    <span>📖 Open &quot;My Books&quot; in User Account →</span>
                   </Link>
                 </div>
               </div>
@@ -143,13 +241,13 @@ function OrderSuccess() {
           </div>
 
           <p className="text-sm text-[#A9B0C2] mb-8 leading-relaxed max-w-md mx-auto">
-            Your user account has been automatically created. You can track this order, view receipts, and manage all your sessions directly in your User Account.
+            Your user account has been automatically created. You can track this order, view receipts, and manage all your digital publications directly in your User Account.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
-              to={`/account?tab=orders&order=${encodeURIComponent(orderNumber || "")}`}
-              className="rounded-full bg-halo px-6 py-3 text-xs font-bold text-void hover:bg-white transition-all transform hover:scale-[1.02] shadow-[0_0_20px_rgba(201,168,106,0.3)] no-underline"
+              to={accountOrderUrl}
+              className="rounded-full bg-halo px-6 py-3 text-xs font-bold text-void hover:bg-white transition-all transform hover:scale-[1.02] shadow-[0_0_20px_rgba(201,168,106,0.3)] no-underline cursor-pointer"
             >
               Track in User Account →
             </Link>
@@ -168,7 +266,52 @@ function OrderSuccess() {
           </div>
         </div>
       </main>
+
       <SiteFooter />
+
+      {/* Online E-Book Reader Modal (In-Page on Order Success) */}
+      {readingBook && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-md p-2 sm:p-5">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-t-2xl border-t border-x border-[rgba(232,206,140,0.3)] bg-[#0E1630] px-5 py-3 shadow-2xl">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-xl">📖</span>
+              <div className="min-w-0">
+                <span className="text-[0.68rem] uppercase tracking-widest text-halo font-bold block">
+                  Digital E-Book Reader • Arrive at Origin
+                </span>
+                <h2 className="text-sm sm:text-base font-semibold text-vellum truncate">
+                  {readingBook.title}
+                </h2>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href={readingBook.readUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/20 px-3 py-1.5 text-xs text-dim hover:text-vellum hover:border-vellum transition-colors no-underline"
+              >
+                ↗ Full Tab
+              </a>
+              <button
+                type="button"
+                onClick={() => setReadingBook(null)}
+                className="rounded-full bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs text-vellum hover:text-white transition-colors cursor-pointer font-semibold"
+                title="Close Reader"
+              >
+                ✕ Close Reader
+              </button>
+            </div>
+          </div>
+          <div className="mx-auto w-full max-w-6xl flex-1 rounded-b-2xl border-b border-x border-[rgba(232,206,140,0.3)] bg-[#070B18] overflow-hidden shadow-2xl relative">
+            <iframe
+              src={readingBook.readUrl}
+              title={readingBook.title}
+              className="w-full h-full border-0"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

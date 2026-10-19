@@ -25,6 +25,7 @@ publicRouter.post("/orders/checkout", asyncHandler(publicController.checkout));
 publicRouter.post("/orders/razorpay/create", asyncHandler(publicController.createBookRazorpayOrder));
 publicRouter.post("/orders/stripe/create-session", asyncHandler(publicController.createBookStripeSession));
 publicRouter.post("/orders/stripe/verify", asyncHandler(publicController.verifyBookStripeSession));
+publicRouter.get("/orders/:orderNumber", asyncHandler(publicController.getPublicOrderByNumber));
 
 // Public Consultations & Booking (Stripe + Razorpay)
 publicRouter.get("/consultations/packages", asyncHandler(consultationController.getPackages));

@@ -45,7 +45,6 @@ const PurchasedBookSchema = new Schema<IPurchasedBook>(
 PurchasedBookSchema.index({ customerEmail: 1, book: 1 }, { unique: true });
 PurchasedBookSchema.index({ customerEmail: 1, purchasedAt: -1 });
 PurchasedBookSchema.index({ book: 1, purchasedAt: -1 });
-PurchasedBookSchema.index({ orderNumber: 1 });
 
 export const PurchasedBook: mongoose.Model<IPurchasedBook> =
   (mongoose.models.PurchasedBook as mongoose.Model<IPurchasedBook>) ||

@@ -29,18 +29,12 @@ export function createApp() {
   app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === "/api/health" } }));
 
   // Securely protect e-book PDFs from unauthorized public access (Requirement 6)
-  app.use("/uploads/ebooks", (_req, res) => {
-    res.status(403).json({
-      success: false,
-      message: "Direct public access to e-book PDF files is restricted. Please access your digital books via your authenticated account library.",
-    });
-  });
-
-  app.use("/uploads", (req, res, next) => {
-    if (req.path.toLowerCase().endsWith(".pdf")) {
+  app.use((req, res, next) => {
+    const p = req.path.toLowerCase();
+    if (p.startsWith("/uploads/ebooks") || (p.startsWith("/uploads/") && p.endsWith(".pdf"))) {
       return res.status(403).json({
         success: false,
-        message: "Direct public access to PDF files is prohibited. Please use the authorized portal reading or download endpoint.",
+        message: "Direct public access to e-book PDF files is restricted. Please access your digital books via your authenticated account library.",
       });
     }
     next();

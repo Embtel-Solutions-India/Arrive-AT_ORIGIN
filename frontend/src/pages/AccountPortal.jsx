@@ -284,7 +284,13 @@ function AccountPortal() {
 
       <main className="py-[clamp(48px,6vw,96px)]">
         <div className={shell}>
-          {(!isAuthenticated || isResetFlow) ? (
+          {(loading && token && !customer) ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="h-10 w-10 animate-spin rounded-full border-2 border-halo border-t-transparent mb-4" />
+              <p className="text-sm font-semibold text-vellum">Accessing your account sanctuary…</p>
+              <p className="text-xs text-dim mt-1">Verifying your purchase credentials</p>
+            </div>
+          ) : (!isAuthenticated || isResetFlow) ? (
             /* ========================================================= */
             /* Unauthenticated View: 2 Options (Log In vs Sign Up)       */
             /* ========================================================= */

@@ -1001,6 +1001,115 @@ export const publicController = {
     }, "Order verified and placed successfully", 201);
   },
 
+  // ─── Public Order Status & E-Book Access for Order Success Page ───
+  async getPublicOrderByNumber(req: Request, res: Response) {
+    const { orderNumber } = req.params;
+    if (!orderNumber) {
+      throw HttpError.badRequest("Order number is required");
+    }
+
+    const order = await (Order as any).findOne({ orderNumber }).populate("customer");
+    if (!order) {
+      throw HttpError.notFound("Order not found");
+    }
+
+    // Ensure e-books are assigned if order is confirmed/paid
+    const isPaid =
+      order.paymentStatus === "PAID" ||
+      order.orderStatus === "PAYMENT_CONFIRMED" ||
+      order.orderStatus === "PROCESSING" ||
+      order.orderStatus === "SHIPPED" ||
+      order.orderStatus === "DELIVERED";
+
+    if (isPaid) {
+      await assignEbooksForOrder(order).catch(() => {});
+    }
+
+    let customerToken: string | undefined;
+    if (order.customer) {
+      customerToken = generateCustomerToken(order.customer as any);
+    } else if (order.customerInfo?.email) {
+      const cleanEmail = order.customerInfo.email.toLowerCase().trim();
+      let customer = await (Customer as any).findOne({ email: cleanEmail });
+      if (!customer) {
+        customer = await Customer.create({
+          name: order.customerInfo.name || "Valued Reader",
+          email: cleanEmail,
+          phone: order.customerInfo.phone || "",
+        });
+        order.customer = customer._id;
+        await order.save();
+      }
+      customerToken = generateCustomerToken(customer);
+    }
+
+    // Resolve digital e-books in this order
+    const allBooks = await (Book as any).find({});
+    const bookMap = new Map<string, any>();
+    allBooks.forEach((b: any) => {
+      bookMap.set(b._id.toString(), b);
+      bookMap.set(b.slug, b);
+      bookMap.set(b.title.toLowerCase(), b);
+      if (b.sku) bookMap.set(b.sku, b);
+    });
+
+    const ebookList: any[] = [];
+    for (const item of order.items) {
+      const isDigital = isEbookFormat(item.format);
+      if (!isDigital) continue;
+
+      const matchedBook =
+        (item.book ? bookMap.get(item.book.toString()) : null) ||
+        bookMap.get(item.sku) ||
+        bookMap.get(item.title?.toLowerCase());
+
+      const targetSlug = matchedBook?.slug || "";
+      const pdfResolution = resolveBookPdfFile(item.pdfUrl || matchedBook?.pdfUrl || "", matchedBook);
+
+      const downloadUrl = (pdfResolution.exists && targetSlug && customerToken)
+        ? `/api/public/books/${targetSlug}/download-pdf?download=true&token=${customerToken}`
+        : "";
+      const readUrl = (pdfResolution.exists && targetSlug && customerToken)
+        ? `/api/public/books/${targetSlug}/read-pdf?token=${customerToken}`
+        : "";
+
+      ebookList.push({
+        title: item.title,
+        slug: targetSlug,
+        format: item.format || "E-Book",
+        coverImage: item.coverImage || matchedBook?.coverImage || "/aao-part-one.png",
+        authorName: matchedBook?.authorName || "Dr. Alka Chopra Madan",
+        hasPdf: pdfResolution.exists,
+        pdfFilename: pdfResolution.filename,
+        downloadUrl,
+        readUrl,
+      });
+    }
+
+    ok(res, {
+      orderNumber: order.orderNumber,
+      paymentStatus: order.paymentStatus,
+      orderStatus: order.orderStatus,
+      total: order.total,
+      currency: order.currency,
+      createdAt: order.createdAt,
+      customerInfo: order.customerInfo,
+      customerToken,
+      hasEbooks: ebookList.length > 0,
+      ebooks: ebookList,
+      customer: order.customer ? {
+        id: order.customer._id,
+        name: order.customer.name,
+        email: order.customer.email,
+        phone: order.customer.phone,
+      } : {
+        name: order.customerInfo?.name,
+        email: order.customerInfo?.email,
+        phone: order.customerInfo?.phone,
+      },
+    });
+  },
+
   // ─── IP-Based Geo Location & Currency Detection ───
   async getGeoLocation(req: Request, res: Response) {
     const testCountry = (req.query.country as string) || (req.query.testCountry as string);
