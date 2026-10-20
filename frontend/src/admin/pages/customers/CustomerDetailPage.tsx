@@ -3,7 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { Badge, Button, Card } from "../../components/ui";
 
-const money = (n: number) => `$${(n || 0).toFixed(2)}`;
+const formatOrderMoney = (amount: number, currency = "USD") => {
+  const code = (currency || "USD").toUpperCase();
+  if (code === "INR") {
+    return `₹${(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `$${(amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 export function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,7 +47,12 @@ export function CustomerDetailPage() {
             </div>
             <div>
               <span className="text-xs text-[var(--admin-text-muted)] block">Lifetime Spend</span>
-              <span className="text-lg font-bold text-[var(--admin-accent)]">{money(customer.totalSpent)}</span>
+              <span className="text-lg font-bold text-[var(--admin-accent)]">
+                {formatOrderMoney(
+                  customer.totalSpent,
+                  orders[0]?.currency || (customer.shippingAddress?.country?.toLowerCase() === "india" ? "INR" : "USD")
+                )}
+              </span>
             </div>
           </div>
         </div>
@@ -104,8 +115,15 @@ export function CustomerDetailPage() {
                         <td className="py-3 text-xs text-[var(--admin-text-secondary)]">
                           {ord.items?.map((it: any) => `${it.title} (×${it.quantity})`).join(", ")}
                         </td>
-                        <td className="py-3 font-semibold text-[var(--admin-text-primary)]">
-                          {money(ord.total)}
+                        <td className="py-3 font-semibold text-[var(--admin-text-primary)] whitespace-nowrap">
+                          <span className="font-mono">{formatOrderMoney(ord.total, ord.currency)}</span>
+                          <span className={`ml-1.5 text-[0.68rem] px-1.5 py-0.5 rounded border font-mono font-medium ${
+                            (ord.currency || "USD").toUpperCase() === "INR"
+                              ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                              : "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                          }`}>
+                            {ord.currency || "USD"}
+                          </span>
                         </td>
                         <td className="py-3">
                           <Badge tone={ord.orderStatus === "DELIVERED" ? "good" : "info"}>

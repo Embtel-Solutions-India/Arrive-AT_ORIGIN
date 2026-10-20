@@ -37,9 +37,24 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
       throw HttpError.unauthorized("Session expired or invalid");
     }
 
+    // Block temporary 2FA setup/login tickets from accessing protected admin endpoints
+    if (payload.type === "2fa_ticket") {
+      throw HttpError.unauthorized("Two-factor authentication verification required");
+    }
+
+    // Require two-factor verification on the session
+    if (!payload.is2FA) {
+      throw HttpError.unauthorized("Two-factor authentication required");
+    }
+
     const user = await User.findById(payload.sub);
     if (!user || user.status !== "ACTIVE") {
       throw HttpError.unauthorized("User account not found or inactive");
+    }
+
+    // Admin accounts must have twoFactorEnabled activated
+    if (!user.twoFactorEnabled) {
+      throw HttpError.unauthorized("Two-factor authentication setup is required");
     }
 
     const role = (user.role || "ADMIN") as RoleName;

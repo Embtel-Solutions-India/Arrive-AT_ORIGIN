@@ -114,6 +114,11 @@ adminRouter.get("/settings/account/profile", asyncHandler(settingsController.get
 adminRouter.put("/settings/account/profile", asyncHandler(settingsController.updateAccountProfile));
 adminRouter.put("/settings/account/password", asyncHandler(settingsController.changeAccountPassword));
 
+// ─── Two-Factor Authentication Management ───
+adminRouter.get("/settings/2fa/status", asyncHandler(settingsController.get2FAStatus));
+adminRouter.post("/settings/2fa/recovery-codes", asyncHandler(settingsController.regenerateRecoveryCodes));
+adminRouter.post("/settings/2fa/disable", asyncHandler(settingsController.disable2FA));
+
 // ─── Sessions & Devices ───
 adminRouter.get("/settings/sessions", requirePermission("SETTINGS_MANAGE"), asyncHandler(settingsController.getSessions));
 adminRouter.delete("/settings/sessions/:id", requirePermission("SETTINGS_MANAGE"), asyncHandler(settingsController.revokeSession));
@@ -141,5 +146,7 @@ adminRouter.put("/users/:id", requirePermission("USER_MANAGE"), asyncHandler(use
 adminRouter.delete("/users/:id", requirePermission("USER_MANAGE"), asyncHandler(userController.deleteUser));
 adminRouter.put("/users/:id/status", requirePermission("USER_MANAGE"), asyncHandler(userController.updateStatus));
 adminRouter.post("/users/:id/reset-password", requirePermission("USER_MANAGE"), asyncHandler(userController.resetPassword));
+adminRouter.post("/users/:id/reset-2fa", requirePermission("USER_MANAGE"), asyncHandler(userController.resetUser2FA));
 adminRouter.post("/users/:id/force-logout", requirePermission("USER_MANAGE"), asyncHandler(userController.forceLogout));
 adminRouter.post("/users/logout-all", requirePermission("USER_MANAGE"), asyncHandler(userController.logoutAllUsers));
+

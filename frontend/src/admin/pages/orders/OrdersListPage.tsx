@@ -10,6 +10,7 @@ interface OrderItem {
   customerInfo: { name: string; email: string; phone?: string };
   items: Array<{ title: string; quantity: number; price: number }>;
   total: number;
+  currency?: string;
   paymentStatus: string;
   orderStatus: string;
   createdAt: string;
@@ -20,7 +21,13 @@ interface OrdersResponse {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
-const money = (n: number) => `$${(n || 0).toFixed(2)}`;
+const formatOrderMoney = (amount: number, currency = "USD") => {
+  const code = (currency || "USD").toUpperCase();
+  if (code === "INR") {
+    return `₹${(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `$${(amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 const ORDER_STATUS_TABS = [
   { label: "All Orders", value: "ALL" },
@@ -134,8 +141,15 @@ export function OrdersListPage() {
                     <td className="py-3.5 text-xs text-[var(--admin-text-secondary)]">
                       {ord.items.map((it) => `${it.title} (×${it.quantity})`).join(", ")}
                     </td>
-                    <td className="py-3.5 font-semibold text-[var(--admin-text-primary)]">
-                      {money(ord.total)}
+                    <td className="py-3.5 font-semibold text-[var(--admin-text-primary)] whitespace-nowrap">
+                      <span className="font-mono">{formatOrderMoney(ord.total, ord.currency)}</span>
+                      <span className={`ml-1.5 text-[0.7rem] px-1.5 py-0.5 rounded border font-mono font-medium ${
+                        (ord.currency || "USD").toUpperCase() === "INR"
+                          ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                          : "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                      }`}>
+                        {ord.currency || "USD"}
+                      </span>
                     </td>
                     <td className="py-3.5">
                       <Badge tone={ord.paymentStatus === "PAID" ? "good" : "warn"}>{ord.paymentStatus}</Badge>

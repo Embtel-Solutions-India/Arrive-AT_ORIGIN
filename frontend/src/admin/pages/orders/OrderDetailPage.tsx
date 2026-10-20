@@ -4,7 +4,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { Badge, Button, Card, Field, Select, Textarea } from "../../components/ui";
 
-const money = (n: number) => `$${(n || 0).toFixed(2)}`;
+const formatOrderMoney = (amount: number, currency = "USD") => {
+  const code = (currency || "USD").toUpperCase();
+  if (code === "INR") {
+    return `₹${(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `$${(amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -64,6 +70,9 @@ export function OrderDetailPage() {
             </h1>
             <Badge tone={ord.paymentStatus === "PAID" ? "good" : "warn"}>{ord.paymentStatus}</Badge>
             <Badge tone="info">{ord.orderStatus.replace(/_/g, " ")}</Badge>
+            <Badge tone={(ord.currency || "USD").toUpperCase() === "INR" ? "warn" : "neutral"}>
+              {ord.currency || "USD"}
+            </Badge>
           </div>
           <p className="text-xs text-[var(--admin-text-muted)] mt-1">
             Placed on {new Date(ord.createdAt).toLocaleString()}
@@ -99,11 +108,11 @@ export function OrderDetailPage() {
                       Format: {it.format || "Paperback"} · SKU: {it.sku || "N/A"}
                     </p>
                     <p className="text-xs text-[var(--admin-text-secondary)] mt-1">
-                      {money(it.price)} × {it.quantity}
+                      {formatOrderMoney(it.price, ord.currency)} × {it.quantity}
                     </p>
                   </div>
                   <div className="text-right font-semibold text-[var(--admin-text-primary)]">
-                    {money(it.subtotal || it.price * it.quantity)}
+                    {formatOrderMoney(it.subtotal || it.price * it.quantity, ord.currency)}
                   </div>
                 </div>
               ))}
@@ -113,25 +122,27 @@ export function OrderDetailPage() {
             <div className="mt-4 border-t border-[var(--admin-border)] pt-4 space-y-2 text-sm text-[var(--admin-text-secondary)]">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="font-medium text-[var(--admin-text-primary)]">{money(ord.subtotal)}</span>
+                <span className="font-medium text-[var(--admin-text-primary)]">{formatOrderMoney(ord.subtotal, ord.currency)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span>{ord.shipping === 0 ? "FREE" : money(ord.shipping)}</span>
+                <span>{ord.shipping === 0 ? "FREE" : formatOrderMoney(ord.shipping, ord.currency)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Tax (Est.)</span>
-                <span>{money(ord.tax)}</span>
+                <span>{formatOrderMoney(ord.tax, ord.currency)}</span>
               </div>
               {ord.discount > 0 && (
                 <div className="flex justify-between text-emerald-400">
                   <span>Discount</span>
-                  <span>-{money(ord.discount)}</span>
+                  <span>-{formatOrderMoney(ord.discount, ord.currency)}</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-[var(--admin-border)] pt-2 text-base font-bold text-[var(--admin-text-primary)]">
                 <span>Total Amount</span>
-                <span className="text-[var(--admin-accent)]">{money(ord.total)}</span>
+                <span className="text-[var(--admin-accent)]">
+                  {formatOrderMoney(ord.total, ord.currency)} {ord.currency || "USD"}
+                </span>
               </div>
             </div>
           </Card>
@@ -160,7 +171,7 @@ export function OrderDetailPage() {
               <div>
                 <span className="text-[var(--admin-text-muted)] block">Amount Charged:</span>
                 <span className="text-[var(--admin-text-primary)] text-sm font-semibold">
-                  {money(ord.total)} USD
+                  {formatOrderMoney(ord.total, ord.currency)} {ord.currency || "USD"}
                 </span>
               </div>
             </div>

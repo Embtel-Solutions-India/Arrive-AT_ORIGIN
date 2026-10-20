@@ -8,9 +8,6 @@ import { BlogTag } from "./models/BlogTag.js";
 import { BlogPost } from "./models/BlogPost.js";
 import { BookCategory } from "./models/BookCategory.js";
 import { Book } from "./models/Book.js";
-import { Customer } from "./models/Customer.js";
-import { Order } from "./models/Order.js";
-import { Payment } from "./models/Payment.js";
 import { Setting } from "./models/Setting.js";
 import { Coupon } from "./models/Coupon.js";
 
@@ -592,102 +589,7 @@ async function seed() {
   }
   console.log("✅ Seeded Books");
 
-  // 8. Sample Customer & Orders
-  let customer = await Customer.findOne({ email: "claire.bennett@example.com" });
-  if (!customer) {
-    customer = await Customer.create({
-      name: "Claire Bennett",
-      email: "claire.bennett@example.com",
-      phone: "+1 (415) 890-1234",
-      shippingAddress: {
-        street: "742 Evergreen Terrace",
-        city: "San Francisco",
-        state: "CA",
-        postalCode: "94107",
-        country: "United States",
-      },
-      billingAddress: {
-        street: "742 Evergreen Terrace",
-        city: "San Francisco",
-        state: "CA",
-        postalCode: "94107",
-        country: "United States",
-      },
-      totalOrders: 2,
-      totalSpent: 87.8,
-      lastOrderDate: new Date(),
-    });
-  }
-
-  const sampleOrderNumber = "ORD-2026-1001";
-  let sampleOrder = await Order.findOne({ orderNumber: sampleOrderNumber });
-  if (!sampleOrder) {
-    const book1 = await Book.findOne({ sku: "AAO-BK-001" });
-    const book2 = await Book.findOne({ sku: "AAO-BK-002" });
-
-    sampleOrder = await Order.create({
-      orderNumber: sampleOrderNumber,
-      customer: customer._id,
-      customerInfo: {
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-      },
-      items: [
-        {
-          book: book1?._id || customer._id,
-          title: "Arrive at Origin",
-          sku: "AAO-BK-001",
-          format: "Paperback",
-          price: 19.95,
-          quantity: 2,
-          coverImage: "/aao-part-one.png",
-          subtotal: 39.9,
-        },
-        {
-          book: book2?._id || customer._id,
-          title: "Arrive at Origin II",
-          sku: "AAO-BK-002",
-          format: "Paperback",
-          price: 22.95,
-          quantity: 1,
-          coverImage: "/aao-part-two.png",
-          subtotal: 22.95,
-        },
-      ],
-      subtotal: 62.85,
-      shipping: 0,
-      tax: 3.14,
-      discount: 0,
-      total: 65.99,
-      currency: "USD",
-      paymentStatus: "PAID",
-      orderStatus: "PROCESSING",
-      shippingAddress: customer.shippingAddress,
-      billingAddress: customer.billingAddress,
-      notes: "First time reader of AAO series.",
-      createdAt: new Date(Date.now() - 2 * 86_400_000),
-    });
-
-    const payment = await Payment.create({
-      order: sampleOrder._id,
-      orderNumber: sampleOrderNumber,
-      transactionId: "txn_sim_1001_seed",
-      paymentGateway: "stripe",
-      amount: 65.99,
-      currency: "USD",
-      status: "SUCCESSFUL",
-      paymentMethod: "Credit Card (Visa ···· 4242)",
-    });
-
-    sampleOrder.payment = payment._id as any;
-    await sampleOrder.save();
-    console.log("✅ Seeded Sample Customer & Order");
-  }
-
-
-
-  // 9. SEO & Site Settings
+  // 8. SEO & Site Settings
   const defaultSettings = [
     { key: "siteTitle", value: "Soul Body Healing Center | Arrive at Origin", group: "seo" },
     {
@@ -710,7 +612,7 @@ async function seed() {
   }
   console.log("✅ Seeded SEO & Site Settings");
 
-  // 10. Coupons & Discounts
+  // 9. Coupons & Discounts
   const defaultCoupons = [
     {
       code: "WELCOME10",

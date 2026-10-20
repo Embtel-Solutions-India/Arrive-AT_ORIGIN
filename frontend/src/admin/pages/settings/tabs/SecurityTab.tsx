@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../../lib/api";
 import { Button, Card, Field, Modal } from "../../../components/ui";
 import { Toggle } from "../components/Toggle";
+import { ConfirmationModal } from "../components/ConfirmationModal";
+
 
 export function SecurityTab() {
   const queryClient = useQueryClient();
@@ -31,17 +33,24 @@ export function SecurityTab() {
 
   // Backup codes modal
   const [backupCodesModalOpen, setBackupCodesModalOpen] = useState(false);
-  const [backupCodes, setBackupCodes] = useState<string[]>([
-    "8A91-4D2F-90BC",
-    "3F11-E489-A29B",
-    "7C99-12EF-8B14",
-    "5D42-990A-CC21",
-    "1E88-66DA-33F2",
-    "9B02-881E-44B7",
-  ]);
+  const [regenPasswordModalOpen, setRegenPasswordModalOpen] = useState(false);
+  const [reset2FAModalOpen, setReset2FAModalOpen] = useState(false);
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [copiedCodes, setCopiedCodes] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Real 2FA Status Query
+  const { data: twoFactorStatus, refetch: refetch2FA } = useQuery({
+    queryKey: ["admin", "settings", "2fa"],
+    queryFn: () =>
+      api.get<{ enabled: boolean; enrolledAt?: string; remainingBackupCodes: number }>(
+        "/admin/settings/2fa/status"
+      ),
+  });
+
 
   // Query Settings
   const { data, isLoading } = useQuery({
@@ -295,14 +304,64 @@ export function SecurityTab() {
         {/* 3. Two-Factor Authentication (2FA) */}
         <Card title="Two-Factor Authentication (2FA)" className="lg:col-span-2">
           <div className="space-y-5">
-            <p className="text-xs text-[var(--admin-text-secondary)]">
-              Enforce time-based one-time password (TOTP) codes via Google Authenticator, Authy, or 1Password for portal access.
-            </p>
+            {/* Live 2FA Status Banner */}
+            <div className="rounded-2xl border border-[var(--admin-border)]/80 bg-white/[0.02] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-white">Your Account 2FA Status:</span>
+                  {twoFactorStatus?.enabled ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-0.5 text-xs font-semibold text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      ACTIVE & ENROLLED
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-0.5 text-xs font-semibold text-amber-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                      NOT ENROLLED (Setup on Login)
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--admin-text-secondary)]">
+                  {twoFactorStatus?.enabled ? (
+                    <>
+                      Linked with Google / Microsoft Authenticator.{" "}
+                      <span className="text-white font-medium">
+                        {twoFactorStatus.remainingBackupCodes} of 10
+                      </span>{" "}
+                      emergency backup codes remaining.
+                    </>
+                  ) : (
+                    "Every administrator account must complete 2FA setup with Google or Microsoft Authenticator before accessing the portal."
+                  )}
+                </p>
+              </div>
+
+              {twoFactorStatus?.enabled && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRegenPasswordModalOpen(true)}
+                    className="text-xs"
+                  >
+                    Regenerate Backup Codes
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setReset2FAModalOpen(true)}
+                    className="text-xs text-rose-400 hover:text-rose-300"
+                  >
+                    Reset 2FA
+                  </Button>
+                </div>
+              )}
+            </div>
 
             <div className="divide-y divide-[var(--admin-border)]/40">
               <Toggle
                 label="Enable Two-Factor Authentication Portal-wide"
-                description="Allow all administrators and staff to link authenticator apps."
+                description="Enforce 2FA verification across all administrative roles."
                 checked={twoFactorEnabled}
                 onChange={setTwoFactorEnabled}
                 badge={twoFactorEnabled ? "ENABLED" : "DISABLED"}
@@ -320,43 +379,58 @@ export function SecurityTab() {
                 onChange={setRequireForSuperAdmin}
               />
             </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[var(--admin-border)]/50">
-              <div className="text-xs text-[var(--admin-text-muted)]">
-                Emergency recovery backup codes can restore portal access in case of device loss.
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setBackupCodesModalOpen(true)}
-                  className="text-xs"
-                >
-                  View / Generate Backup Codes
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setTwoFactorEnabled(false);
-                    setRequireForAdmins(false);
-                    setRequireForSuperAdmin(false);
-                  }}
-                  className="text-xs text-rose-400 hover:text-rose-300"
-                >
-                  Reset 2FA
-                </Button>
-              </div>
-            </div>
           </div>
         </Card>
       </div>
 
-      {/* Backup Codes Modal */}
+      {/* Password Confirmation to Regenerate Backup Codes */}
+      <ConfirmationModal
+        open={regenPasswordModalOpen}
+        onClose={() => setRegenPasswordModalOpen(false)}
+        onConfirm={async (pwd) => {
+          if (!pwd) return;
+          setIsRegenerating(true);
+          try {
+            const res = await api.post<{ backupCodes: string[] }>("/admin/settings/2fa/recovery-codes", {
+              password: pwd,
+            });
+            setBackupCodes(res.backupCodes);
+            setBackupCodesModalOpen(true);
+            refetch2FA();
+          } finally {
+            setIsRegenerating(false);
+          }
+        }}
+        title="Regenerate Emergency Backup Codes"
+        description="Generating new codes will invalidate all existing unused recovery codes. Enter your current password to proceed."
+        confirmText="Generate New Codes"
+        confirmVariant="primary"
+        requirePassword={true}
+        isLoading={isRegenerating}
+      />
+
+      {/* Password Confirmation to Reset 2FA */}
+      <ConfirmationModal
+        open={reset2FAModalOpen}
+        onClose={() => setReset2FAModalOpen(false)}
+        onConfirm={async (pwd) => {
+          if (!pwd) return;
+          await api.post("/admin/settings/2fa/disable", { password: pwd });
+          refetch2FA();
+          queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
+        }}
+        title="Reset Two-Factor Authentication"
+        description="Are you sure you want to reset 2FA? You will be prompted to re-enroll your authenticator app upon your next login. Enter your password to confirm."
+        confirmText="Reset 2FA"
+        confirmVariant="danger"
+        requirePassword={true}
+      />
+
+      {/* Backup Codes Display Modal */}
       <Modal
         open={backupCodesModalOpen}
         onClose={() => setBackupCodesModalOpen(false)}
-        title="2FA Emergency Backup Codes"
+        title="New Emergency Backup Codes"
         maxWidth="max-w-md"
       >
         <div className="space-y-4">
@@ -375,14 +449,40 @@ export function SecurityTab() {
             ))}
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-[var(--admin-border)]/50">
+          <div className="flex items-center justify-between pt-3 border-t border-[var(--admin-border)]/50 gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={handleGenerateBackupCodes}
+              onClick={() => {
+                navigator.clipboard.writeText(backupCodes.join("\n"));
+                setCopiedCodes(true);
+                setTimeout(() => setCopiedCodes(false), 2500);
+              }}
               className="text-xs"
             >
-              Generate New Codes
+              {copiedCodes ? "Copied!" : "Copy All"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const text =
+                  `Soul Body Healing Center - 2FA Emergency Backup Codes\n` +
+                  `Generated: ${new Date().toLocaleString()}\n\n` +
+                  backupCodes.map((c, i) => `${i + 1}. ${c}`).join("\n");
+                const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "admin-2fa-backup-codes.txt";
+                document.body.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+              }}
+              className="text-xs"
+            >
+              Download (.txt)
             </Button>
             <Button
               variant="primary"
@@ -398,3 +498,4 @@ export function SecurityTab() {
     </div>
   );
 }
+

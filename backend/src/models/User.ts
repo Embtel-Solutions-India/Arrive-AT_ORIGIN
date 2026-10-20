@@ -20,6 +20,7 @@ export interface IUser extends Document {
   lockoutUntil?: Date;
   twoFactorEnabled: boolean;
   twoFactorSecret?: string;
+  twoFactorEnrolledAt?: Date;
   backupCodes: string[];
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
@@ -54,6 +55,7 @@ const UserSchema = new Schema<IUser>(
     lockoutUntil: { type: Date },
     twoFactorEnabled: { type: Boolean, default: false },
     twoFactorSecret: { type: String },
+    twoFactorEnrolledAt: { type: Date },
     backupCodes: [{ type: String }],
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },

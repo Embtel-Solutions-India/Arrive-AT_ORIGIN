@@ -34,8 +34,10 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.10.4",
     "multer": "^2.4.0",
+    "otplib": "^13.5.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
+    "qrcode": "^1.5.4",
     "razorpay": "^2.9.8",
     "stripe": "^23.0.0",
     "zod": "^3.25.76"
@@ -47,6 +49,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.3.0",
     "@types/node": "^26.6.3",
+    "@types/qrcode": "^1.5.6",
     "@types/supertest": "^7.2.1",
     "prisma": "^6.19.3",
     "supertest": "^7.3.0",

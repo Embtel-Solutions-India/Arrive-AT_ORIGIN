@@ -33,9 +33,9 @@ describe("role matrix", () => {
   it("gives SUPER_ADMIN every permission", () => {
     expect([...ROLE_PERMISSIONS.SUPER_ADMIN].sort()).toEqual([...PERMISSIONS].sort());
   });
-  it("keeps refund rights away from store and consultation managers", () => {
+  it("keeps refund rights away from store and content managers", () => {
     expect(ROLE_PERMISSIONS.STORE_MANAGER).not.toContain("ORDER_REFUND");
-    expect(ROLE_PERMISSIONS.CONSULTATION_MANAGER).not.toContain("PAYMENT_REFUND");
+    expect(ROLE_PERMISSIONS.CONTENT_MANAGER).not.toContain("PAYMENT_REFUND");
   });
   it("only SUPER_ADMIN manages users and settings", () => {
     for (const [role, perms] of Object.entries(ROLE_PERMISSIONS)) {

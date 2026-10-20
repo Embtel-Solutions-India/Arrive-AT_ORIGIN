@@ -24,12 +24,15 @@ interface DashboardData {
     completedOrders: number;
     totalCustomers: number;
     totalRevenue: number;
+    currency?: "USD" | "INR";
+    revenueByCurrency?: { USD: number; INR: number };
   };
   recentOrders: Array<{
     _id: string;
     orderNumber: string;
     customerInfo: { name: string; email: string };
     total: number;
+    currency?: string;
     paymentStatus: string;
     orderStatus: string;
     createdAt: string;
@@ -54,12 +57,14 @@ interface DashboardData {
     salesCount: number;
     revenue: number;
     stockQuantity: number;
+    currency?: "USD" | "INR";
   }>;
   chartData: Array<{ date: string; revenue: number; orders: number }>;
   categoryDistribution?: Array<{ name: string; count: number; revenue: number; sales: number }>;
   orderStatusDistribution?: Array<{ status: string; count: number; amount: number }>;
   formatDistribution?: Array<{ format: string; count: number; stock: number }>;
   range: string;
+  currency?: "USD" | "INR";
 }
 
 const RANGES = [
@@ -69,8 +74,20 @@ const RANGES = [
   { label: "This Year", value: "year" },
 ];
 
-const money = (n: number) =>
-  `$${(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatMoney = (n: number, currency: "USD" | "INR" = "USD") => {
+  if (currency === "INR") {
+    return `₹${(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `$${(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+const formatOrderMoney = (n: number, currency = "USD") => {
+  const code = (currency || "USD").toUpperCase();
+  if (code === "INR") {
+    return `₹${(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `$${(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 const orderStatusTone = (s: string) => {
   if (s === "DELIVERED" || s === "PAYMENT_CONFIRMED") return "good";
@@ -87,10 +104,19 @@ const paymentStatusTone = (s: string) => {
 
 export function DashboardPage() {
   const [range, setRange] = useState("30d");
+  const [currency, setCurrency] = useState<"USD" | "INR">(() => {
+    const saved = localStorage.getItem("admin_dashboard_currency");
+    return saved === "INR" ? "INR" : "USD";
+  });
+
+  const handleCurrencyChange = (newCur: "USD" | "INR") => {
+    setCurrency(newCur);
+    localStorage.setItem("admin_dashboard_currency", newCur);
+  };
 
   const { data, isLoading, error } = useQuery<DashboardData>({
-    queryKey: ["admin", "dashboard", range],
-    queryFn: () => api.get<DashboardData>(`/admin/dashboard?range=${range}`),
+    queryKey: ["admin", "dashboard", range, currency],
+    queryFn: () => api.get<DashboardData>(`/admin/dashboard?range=${range}&currency=${currency}`),
   });
 
   if (isLoading) {
@@ -115,13 +141,45 @@ export function DashboardPage() {
     );
   }
 
-  const { cards, recentOrders, recentBlogs, bestSellingBooks, chartData } = data;  return (
+  const { cards, recentOrders, recentBlogs, bestSellingBooks, chartData } = data;
+
+  return (
     <div className="space-y-8">
       <PageHeader
         title="Dashboard"
         description="Real-time MongoDB overview of publications, inventory, store sales, and customer activity."
         action={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Interactive USD ⇄ INR Currency Switcher */}
+            <div className="flex items-center rounded-xl border border-[var(--admin-border)] bg-[rgba(10,13,24,0.8)] p-1 text-xs font-semibold shadow-inner">
+              <button
+                type="button"
+                onClick={() => handleCurrencyChange("USD")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  currency === "USD"
+                    ? "bg-gradient-to-r from-[#C5A880] to-[#E2BD78] text-[#0A0D18] font-bold shadow-md shadow-[#C5A880]/20"
+                    : "text-[var(--admin-text-secondary)] hover:text-white"
+                }`}
+                title="View dashboard figures converted to US Dollars ($)"
+              >
+                <span>$</span>
+                <span>USD</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCurrencyChange("INR")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  currency === "INR"
+                    ? "bg-gradient-to-r from-[#C5A880] to-[#E2BD78] text-[#0A0D18] font-bold shadow-md shadow-[#C5A880]/20"
+                    : "text-[var(--admin-text-secondary)] hover:text-white"
+                }`}
+                title="View dashboard figures converted to Indian Rupees (₹)"
+              >
+                <span>₹</span>
+                <span>INR</span>
+              </button>
+            </div>
+
             <Link to="/admin/books/new">
               <Button size="sm" variant="outline">
                 + Add Book
@@ -138,11 +196,25 @@ export function DashboardPage() {
 
       {/* 12 Dynamic Metrics Cards */}
       <div>
-        <h2 className="mb-3 text-[0.8rem] font-semibold tracking-wider text-[var(--admin-text-muted)] uppercase">
-          Key Performance Indicators (MongoDB)
-        </h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[0.8rem] font-semibold tracking-wider text-[var(--admin-text-muted)] uppercase">
+            Key Performance Indicators (MongoDB)
+          </h2>
+          <span className="text-[0.72rem] text-[var(--admin-accent)] font-mono">
+            Active Currency: {currency === "INR" ? "₹ INR" : "$ USD"}
+          </span>
+        </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-          <StatCard label="Total Revenue" value={money(cards.totalRevenue)} highlight="good" />
+          <StatCard
+            label={`Total Revenue (${currency})`}
+            value={formatMoney(cards.totalRevenue, currency)}
+            highlight="good"
+            sub={
+              cards.revenueByCurrency
+                ? `Collected: ₹${cards.revenueByCurrency.INR?.toFixed(2)} · $${cards.revenueByCurrency.USD?.toFixed(2)}`
+                : undefined
+            }
+          />
           <StatCard label="Total Orders" value={cards.totalOrders} sub={`${cards.pendingOrders} pending`} />
           <StatCard label="Completed Orders" value={cards.completedOrders} />
           <StatCard label="Total Customers" value={cards.totalCustomers} />
@@ -167,22 +239,23 @@ export function DashboardPage() {
         range={range}
         onRangeChange={setRange}
         ranges={RANGES}
+        currency={currency}
       />
 
       {/* 2. Visual Distribution Charts: Category Share (Pie/Donut) & Order Status Breakdown (Pie/Donut) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="min-w-0">
-          <CategoryRevenueChart categories={data.categoryDistribution || []} />
+          <CategoryRevenueChart categories={data.categoryDistribution || []} currency={currency} />
         </div>
         <div className="min-w-0">
-          <OrderStatusBreakdownChart statuses={data.orderStatusDistribution || []} />
+          <OrderStatusBreakdownChart statuses={data.orderStatusDistribution || []} currency={currency} />
         </div>
       </div>
 
       {/* 3. Publication Sales Comparison (Horizontal Bar Chart) */}
       {bestSellingBooks.length > 0 && (
         <div className="min-w-0">
-          <PublicationSalesBarChart books={bestSellingBooks} />
+          <PublicationSalesBarChart books={bestSellingBooks} currency={currency} />
         </div>
       )}
 
@@ -207,7 +280,7 @@ export function DashboardPage() {
                     <tr className="border-b border-[var(--admin-border)]/50 text-[0.75rem] text-[var(--admin-text-muted)] uppercase">
                       <th className="pb-3 font-semibold">Order</th>
                       <th className="pb-3 font-semibold">Customer</th>
-                      <th className="pb-3 font-semibold">Amount</th>
+                      <th className="pb-3 font-semibold">Amount Paid</th>
                       <th className="pb-3 font-semibold">Payment</th>
                       <th className="pb-3 font-semibold">Status</th>
                       <th className="pb-3 font-semibold text-right">Action</th>
@@ -223,7 +296,16 @@ export function DashboardPage() {
                           <div className="font-medium text-[var(--admin-text-primary)]">{ord.customerInfo.name}</div>
                           <div className="text-[0.75rem] text-[var(--admin-text-muted)]">{ord.customerInfo.email}</div>
                         </td>
-                        <td className="py-3 font-semibold text-[var(--admin-text-primary)]">{money(ord.total)}</td>
+                        <td className="py-3 font-semibold text-[var(--admin-text-primary)] whitespace-nowrap">
+                          <span className="font-mono">{formatOrderMoney(ord.total, ord.currency)}</span>
+                          <span className={`ml-1.5 text-[0.68rem] px-1.5 py-0.5 rounded border font-mono font-medium ${
+                            (ord.currency || "USD").toUpperCase() === "INR"
+                              ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                              : "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                          }`}>
+                            {ord.currency || "USD"}
+                          </span>
+                        </td>
                         <td className="py-3">
                           <Badge tone={paymentStatusTone(ord.paymentStatus)}>{ord.paymentStatus}</Badge>
                         </td>
@@ -270,14 +352,14 @@ export function DashboardPage() {
                       {bk.title}
                     </h4>
                     <p className="text-[0.75rem] text-[var(--admin-text-muted)]">
-                      {bk.salesCount || 0} sold · {money(bk.revenue || 0)}
+                      {bk.salesCount || 0} sold · {formatMoney(bk.revenue || 0, currency)}
                     </p>
                     <p className="text-[0.75rem] text-[var(--admin-text-secondary)] mt-0.5">
                       Stock: <span className={bk.stockQuantity <= 5 ? "text-amber-400 font-semibold" : ""}>{bk.stockQuantity}</span>
                     </p>
                   </div>
                   <div className="text-right font-semibold text-[0.9rem] text-[var(--admin-accent)]">
-                    {money(bk.price)}
+                    {formatMoney(bk.price, currency)}
                   </div>
                 </div>
               ))}

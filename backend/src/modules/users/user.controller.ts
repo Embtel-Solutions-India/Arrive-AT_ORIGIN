@@ -272,4 +272,41 @@ export const userController = {
 
     ok(res, null, `User "${target.name}" has been permanently deleted`);
   },
+
+  // ─── Reset User 2FA (Super Admin / User Manager) ───
+  async resetUser2FA(req: Request, res: Response) {
+    const { id } = req.params;
+    const target = await (User as any).findById(id);
+    if (!target) throw HttpError.notFound("User not found");
+
+    target.twoFactorEnabled = false;
+    target.twoFactorSecret = undefined;
+    target.twoFactorEnrolledAt = undefined;
+    target.backupCodes = [];
+    target.failedLoginAttempts = 0;
+    target.lockoutUntil = undefined;
+    await target.save();
+
+    // Invalidate active sessions so they must re-authenticate and setup 2FA
+    await (AdminSession as any).updateMany({ userId: id }, { isRevoked: true });
+
+    await logAudit({
+      req,
+      action: "USER_2FA_RESET",
+      module: "USERS",
+      status: "WARNING",
+      details: {
+        targetUserId: id,
+        targetEmail: target.email,
+        resetBy: req.user?.email,
+      },
+    });
+
+    ok(
+      res,
+      null,
+      `Two-factor authentication for "${target.name}" has been reset. They will configure 2FA upon their next login.`
+    );
+  },
 };
+

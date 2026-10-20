@@ -12,8 +12,14 @@ const PALETTE = [
   "#F87171", // Coral Red
 ];
 
-const money = (n: number) =>
-  `$${(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const formatMoney = (n: number, currency: "USD" | "INR" = "USD") => {
+  if (currency === "INR") {
+    return `₹${(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `$${(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+const money = (n: number) => formatMoney(n, "USD");
 
 // ─────────────────────────────────────────────────────────────
 // 1. Primary Analytics Chart (Toggle: Area / Bar / Donut)
@@ -30,16 +36,18 @@ interface AnalyticsTrendProps {
   range: string;
   onRangeChange: (r: string) => void;
   ranges: Array<{ label: string; value: string }>;
+  currency?: "USD" | "INR";
 }
 
-// Format compact currency for Y-axis ticks (e.g. $1.5k, $800, $0)
-function formatCompactMoney(n: number): string {
-  if (n <= 0) return "$0";
+// Format compact currency for Y-axis ticks (e.g. $1.5k / ₹1.5k, $800 / ₹800, $0 / ₹0)
+function formatCompactMoney(n: number, currency: "USD" | "INR" = "USD"): string {
+  const sym = currency === "INR" ? "₹" : "$";
+  if (n <= 0) return `${sym}0`;
   if (n >= 1000) {
     const k = n / 1000;
-    return `$${k >= 10 ? k.toFixed(0) : k.toFixed(1)}k`;
+    return `${sym}${k >= 10 ? k.toFixed(0) : k.toFixed(1)}k`;
   }
-  return `$${Math.round(n)}`;
+  return `${sym}${Math.round(n)}`;
 }
 
 // Format date for display
@@ -94,6 +102,7 @@ export function AnalyticsTrendChart({
   range,
   onRangeChange,
   ranges,
+  currency = "USD",
 }: AnalyticsTrendProps) {
   const [chartType, setChartType] = useState<"area" | "bar" | "pie">("area");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
@@ -268,7 +277,7 @@ export function AnalyticsTrendChart({
           </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-xl sm:text-2xl font-bold tracking-tight text-[#E5C69F]">
-              {money(totalRevenue)}
+              {formatMoney(totalRevenue, currency)}
             </span>
           </div>
         </div>
@@ -293,7 +302,7 @@ export function AnalyticsTrendChart({
           </span>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-              {money(aov)}
+              {formatMoney(aov, currency)}
             </span>
             <span className="text-[0.72rem] text-[var(--admin-text-muted)]">/ order</span>
           </div>
@@ -306,7 +315,7 @@ export function AnalyticsTrendChart({
           </span>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-xl sm:text-2xl font-bold tracking-tight text-emerald-400">
-              {peakPoint ? money(peakPoint.revenue) : "$0.00"}
+              {peakPoint ? formatMoney(peakPoint.revenue, currency) : formatMoney(0, currency)}
             </span>
             {peakPoint && peakPoint.revenue > 0 && (
               <span className="text-[10px] font-mono text-emerald-300/80 bg-emerald-500/10 px-1 py-0.5 rounded truncate">
@@ -388,7 +397,7 @@ export function AnalyticsTrendChart({
                           fontSize="11"
                           fontFamily="monospace"
                         >
-                          {formatCompactMoney(tick.val)}
+                          {formatCompactMoney(tick.val, currency)}
                         </text>
                       </g>
                     ))}
@@ -529,7 +538,7 @@ export function AnalyticsTrendChart({
                         </div>
                         <div className="flex items-baseline gap-2">
                           <span className="font-mono text-base font-bold text-[#F5E4CA]">
-                            {money(activePoint.data.revenue)}
+                            {formatMoney(activePoint.data.revenue, currency)}
                           </span>
                           <span className="text-[11px] text-white/70">
                             · {activePoint.data.orders} {activePoint.data.orders === 1 ? "order" : "orders"}
@@ -537,7 +546,7 @@ export function AnalyticsTrendChart({
                         </div>
                         {activePoint.data.orders > 0 && (
                           <div className="mt-0.5 text-[10px] text-[var(--admin-accent)]/80 font-mono">
-                            AOV: {money(activePoint.data.revenue / activePoint.data.orders)}
+                            AOV: {formatMoney(activePoint.data.revenue / activePoint.data.orders, currency)}
                           </div>
                         )}
                       </div>
@@ -627,7 +636,7 @@ export function AnalyticsTrendChart({
                               {formatPointDate(d.date).short}
                             </span>
                             <span className="font-bold text-[#E5C69F] font-mono mr-1">
-                              {money(d.revenue)}
+                              {formatMoney(d.revenue, currency)}
                             </span>
                             <span className="text-[10px] text-white/70">({d.orders} ord)</span>
                           </div>
@@ -710,7 +719,7 @@ export function AnalyticsTrendChart({
                       sub: `${d.orders} ${d.orders === 1 ? "order" : "orders"}`,
                     }))}
                   totalLabel="Period Total"
-                  formatValue={money}
+                  formatValue={(v) => formatMoney(v, currency)}
                 />
               </div>
             )}
@@ -869,7 +878,13 @@ interface CategoryItem {
   sales: number;
 }
 
-export function CategoryRevenueChart({ categories }: { categories: CategoryItem[] }) {
+export function CategoryRevenueChart({
+  categories,
+  currency = "USD",
+}: {
+  categories: CategoryItem[];
+  currency?: "USD" | "INR";
+}) {
   const items = categories.map((cat, i) => ({
     label: cat.name,
     value: cat.revenue,
@@ -880,7 +895,11 @@ export function CategoryRevenueChart({ categories }: { categories: CategoryItem[
   return (
     <Card title="Revenue Share by Category (Pie Chart)">
       <div className="pt-2">
-        <DonutSliceChart items={items} totalLabel="All Categories" formatValue={money} />
+        <DonutSliceChart
+          items={items}
+          totalLabel="All Categories"
+          formatValue={(v) => formatMoney(v, currency)}
+        />
       </div>
     </Card>
   );
@@ -906,11 +925,17 @@ interface OrderStatusItem {
   amount: number;
 }
 
-export function OrderStatusBreakdownChart({ statuses }: { statuses: OrderStatusItem[] }) {
+export function OrderStatusBreakdownChart({
+  statuses,
+  currency = "USD",
+}: {
+  statuses: OrderStatusItem[];
+  currency?: "USD" | "INR";
+}) {
   const items = statuses.map((st) => ({
     label: st.status.replace(/_/g, " "),
     value: st.count,
-    sub: money(st.amount),
+    sub: formatMoney(st.amount, currency),
     color: STATUS_COLORS[st.status] || "#94A3B8",
   }));
 
@@ -941,7 +966,13 @@ interface BookSaleItem {
   revenue: number;
 }
 
-export function PublicationSalesBarChart({ books }: { books: BookSaleItem[] }) {
+export function PublicationSalesBarChart({
+  books,
+  currency = "USD",
+}: {
+  books: BookSaleItem[];
+  currency?: "USD" | "INR";
+}) {
   const maxUnits = Math.max(...books.map((b) => b.salesCount), 1);
 
   return (
@@ -964,7 +995,7 @@ export function PublicationSalesBarChart({ books }: { books: BookSaleItem[] }) {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="font-bold text-white">{book.salesCount} sold</span>
-                  <span className="text-halo font-semibold">{money(book.revenue)}</span>
+                  <span className="text-halo font-semibold">{formatMoney(book.revenue, currency)}</span>
                 </div>
               </div>
 

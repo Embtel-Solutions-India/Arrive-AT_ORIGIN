@@ -21,6 +21,8 @@ export interface SessionTokens {
 
 const DAY_MS = 86_400_000;
 
+import { sign2FATicket } from "./twoFactor.service.js";
+
 export const toPublicUser = (u: IUser) => {
   const role = (u.role || "ADMIN") as RoleName;
   const permissions = (ROLE_PERMISSIONS[role] || []) as Permission[];
@@ -31,21 +33,22 @@ export const toPublicUser = (u: IUser) => {
     role,
     avatar: u.avatar || "",
     permissions,
+    twoFactorEnabled: Boolean(u.twoFactorEnabled),
   };
 };
 
-function signAccess(user: IUser) {
-  return jwt.sign({ role: user.role }, env.JWT_SECRET, {
+export function signAccess(user: IUser) {
+  return jwt.sign({ role: user.role, is2FA: true }, env.JWT_SECRET, {
     subject: user._id.toString(),
     expiresIn: `${env.ACCESS_TOKEN_TTL_MINUTES}m`,
     algorithm: "HS256",
   });
 }
 
-function signRefresh(user: IUser, remember: boolean) {
+export function signRefresh(user: IUser, remember: boolean) {
   const days = remember ? env.REFRESH_TOKEN_REMEMBER_TTL_DAYS : env.REFRESH_TOKEN_TTL_DAYS;
   return {
-    token: jwt.sign({ type: "refresh" }, env.JWT_SECRET, {
+    token: jwt.sign({ type: "refresh", is2FA: true }, env.JWT_SECRET, {
       subject: user._id.toString(),
       expiresIn: `${days}d`,
       algorithm: "HS256",
@@ -54,27 +57,62 @@ function signRefresh(user: IUser, remember: boolean) {
   };
 }
 
+export type LoginResult =
+  | {
+      requires2FA: true;
+      requiresSetup: boolean;
+      twoFactorTicket: string;
+      user: ReturnType<typeof toPublicUser>;
+      tokens?: undefined;
+    }
+  | {
+      requires2FA: false;
+      user: ReturnType<typeof toPublicUser>;
+      tokens: SessionTokens;
+    };
+
 export const authService = {
-  async login(email: string, password: string, remember: boolean, _ctx: SessionContext) {
+  async login(email: string, password: string, remember: boolean, _ctx: SessionContext): Promise<LoginResult> {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user || user.status !== "ACTIVE") {
       throw HttpError.unauthorized("Invalid email or password");
     }
 
+    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+      const minutesRemaining = Math.max(1, Math.ceil((user.lockoutUntil.getTime() - Date.now()) / 60_000));
+      throw HttpError.tooManyRequests(
+        `Account is temporarily locked. Please try again in ${minutesRemaining} minute(s).`
+      );
+    }
+
     const valid = await argon2.verify(user.passwordHash, password);
     if (!valid) {
+      user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+      if (user.failedLoginAttempts >= 5) {
+        user.lockoutUntil = new Date(Date.now() + 15 * 60_000);
+      }
+      await user.save();
       throw HttpError.unauthorized("Invalid email or password");
     }
 
-    user.lastLogin = new Date();
-    await user.save();
+    // Require Two-Factor Authentication for the admin panel
+    const twoFactorTicket = sign2FATicket(user, remember);
 
-    const { token: refreshToken, refreshMaxAgeMs } = signRefresh(user, remember);
-    const accessToken = signAccess(user);
+    if (user.twoFactorEnabled && user.twoFactorSecret) {
+      return {
+        requires2FA: true,
+        requiresSetup: false,
+        twoFactorTicket,
+        user: toPublicUser(user),
+      };
+    }
 
+    // First-time 2FA setup required for admin access
     return {
+      requires2FA: true,
+      requiresSetup: true,
+      twoFactorTicket,
       user: toPublicUser(user),
-      tokens: { accessToken, refreshToken, refreshMaxAgeMs },
     };
   },
 
@@ -84,7 +122,9 @@ export const authService = {
       if (!payload.sub) throw HttpError.unauthorized("Invalid refresh token");
 
       const user = await User.findById(payload.sub);
-      if (!user || user.status !== "ACTIVE") throw HttpError.unauthorized("User not found or inactive");
+      if (!user || user.status !== "ACTIVE" || !user.twoFactorEnabled) {
+        throw HttpError.unauthorized("User not found or two-factor authentication required");
+      }
 
       const { token: newRefresh, refreshMaxAgeMs } = signRefresh(user, true);
       const accessToken = signAccess(user);

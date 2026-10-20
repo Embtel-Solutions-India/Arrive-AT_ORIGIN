@@ -9,6 +9,7 @@ interface CustomerItem {
   name: string;
   email: string;
   phone?: string;
+  shippingAddress?: { country?: string };
   totalOrders: number;
   totalSpent: number;
   lastOrderDate?: string;
@@ -20,7 +21,16 @@ interface CustomersResponse {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
-const money = (n: number) => `$${(n || 0).toFixed(2)}`;
+const formatCustomerMoney = (amount: number, c: CustomerItem) => {
+  const isIndia =
+    c.shippingAddress?.country?.toLowerCase() === "india" ||
+    c.phone?.startsWith("+91") ||
+    c.email === "vishu@embtelsolutions.com";
+  if (isIndia) {
+    return `₹${(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `$${(amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 export function CustomersListPage() {
   const [page, setPage] = useState(1);
@@ -82,7 +92,9 @@ export function CustomersListPage() {
                     </td>
                     <td className="py-3.5 text-xs text-[var(--admin-text-secondary)] whitespace-nowrap">{c.phone || "—"}</td>
                     <td className="py-3.5 font-semibold text-[var(--admin-text-primary)] whitespace-nowrap">{c.totalOrders}</td>
-                    <td className="py-3.5 font-semibold text-[var(--admin-accent)] whitespace-nowrap">{money(c.totalSpent)}</td>
+                    <td className="py-3.5 font-semibold text-[var(--admin-accent)] whitespace-nowrap">
+                      {formatCustomerMoney(c.totalSpent, c)}
+                    </td>
                     <td className="py-3.5 text-xs text-[var(--admin-text-muted)] whitespace-nowrap">
                       {c.lastOrderDate ? new Date(c.lastOrderDate).toLocaleDateString() : "—"}
                     </td>

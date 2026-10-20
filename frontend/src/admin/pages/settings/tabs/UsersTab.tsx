@@ -103,6 +103,7 @@ export function UsersTab() {
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false);
   const [confirmForceLogoutOpen, setConfirmForceLogoutOpen] = useState(false);
   const [confirmLogoutAllOpen, setConfirmLogoutAllOpen] = useState(false);
+  const [confirmReset2FAOpen, setConfirmReset2FAOpen] = useState(false);
 
   // Query users
   const { data, isLoading } = useQuery({
@@ -189,6 +190,16 @@ export function UsersTab() {
       queryClient.invalidateQueries({ queryKey: ["admin", "settings", "sessions"] });
     },
   });
+
+  const reset2FAMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/admin/users/${id}/reset-2fa`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      setConfirmReset2FAOpen(false);
+      setSelectedUser(null);
+    },
+  });
+
 
   const resetForm = () => {
     setFormName("");
@@ -419,6 +430,7 @@ export function UsersTab() {
                 <th className="pb-3 px-3">User</th>
                 <th className="pb-3 px-3">Role</th>
                 <th className="pb-3 px-3">Status</th>
+                <th className="pb-3 px-3">2FA</th>
                 <th className="pb-3 px-3">Phone</th>
                 <th className="pb-3 px-3">Last Active</th>
                 <th className="pb-3 px-3 text-right">Actions</th>
@@ -427,13 +439,13 @@ export function UsersTab() {
             <tbody className="divide-y divide-[var(--admin-border)]/40 text-[var(--admin-text-primary)]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[var(--admin-text-muted)]">
+                  <td colSpan={7} className="py-8 text-center text-[var(--admin-text-muted)]">
                     Loading users…
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[var(--admin-text-muted)]">
+                  <td colSpan={7} className="py-8 text-center text-[var(--admin-text-muted)]">
                     No users found matching current filters.
                   </td>
                 </tr>
@@ -468,6 +480,19 @@ export function UsersTab() {
                       <Badge tone={getStatusBadgeTone(u.status || "ACTIVE")}>
                         {u.status || "ACTIVE"}
                       </Badge>
+                    </td>
+                    <td className="py-3 px-3">
+                      {u.twoFactorEnabled ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[0.7rem] font-semibold text-emerald-400 border border-emerald-500/20">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                          Enrolled
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 text-[0.7rem] font-semibold text-amber-400 border border-amber-500/20">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                          Pending
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-3 text-[var(--admin-text-secondary)] font-mono text-[0.75rem]">
                       {u.phone || "—"}
@@ -541,6 +566,17 @@ export function UsersTab() {
                           type="button"
                           onClick={() => {
                             setSelectedUser(u);
+                            setConfirmReset2FAOpen(true);
+                          }}
+                          className="rounded-lg px-2 py-1 text-[0.72rem] font-medium text-amber-400 hover:bg-amber-400/10"
+                          title="Reset 2FA"
+                        >
+                          Reset 2FA
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedUser(u);
                             setConfirmForceLogoutOpen(true);
                           }}
                           className="rounded-lg px-2 py-1 text-[0.72rem] font-medium text-purple-400 hover:bg-purple-400/10"
@@ -562,6 +598,7 @@ export function UsersTab() {
                       </div>
                     </td>
                   </tr>
+
                 ))
               )}
             </tbody>
@@ -1185,6 +1222,21 @@ export function UsersTab() {
           if (selectedUser) forceLogoutMutation.mutate(selectedUser._id || selectedUser.id);
         }}
       />
+
+      {/* CONFIRMATION: RESET USER 2FA */}
+      <ConfirmationModal
+        open={confirmReset2FAOpen}
+        onClose={() => setConfirmReset2FAOpen(false)}
+        title={`Reset 2FA: ${selectedUser?.name || ""}`}
+        description={`Are you sure you want to reset two-factor authentication for "${selectedUser?.name}" (${selectedUser?.email})? All active sessions will be terminated, and they will be prompted to re-enroll with an authenticator app upon their next login.`}
+        confirmText="Reset 2FA"
+        confirmVariant="danger"
+        isLoading={reset2FAMutation.isPending}
+        onConfirm={() => {
+          if (selectedUser) reset2FAMutation.mutate(selectedUser._id || selectedUser.id);
+        }}
+      />
+
 
       {/* CONFIRMATION: FORCE LOGOUT ALL USERS */}
       <ConfirmationModal

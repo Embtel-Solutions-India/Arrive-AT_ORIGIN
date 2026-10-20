@@ -22,7 +22,13 @@ interface PaymentsResponse {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
-const money = (n: number) => `$${(n || 0).toFixed(2)}`;
+const formatOrderMoney = (amount: number, currency = "USD") => {
+  const code = (currency || "USD").toUpperCase();
+  if (code === "INR") {
+    return `₹${(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `$${(amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 export function PaymentsPage() {
   const [page, setPage] = useState(1);
@@ -111,7 +117,14 @@ export function PaymentsPage() {
                       {p.order?.customerInfo?.name || "Customer"}
                     </td>
                     <td className="py-3.5 font-semibold text-[var(--admin-text-primary)] whitespace-nowrap">
-                      {money(p.amount)} {p.currency}
+                      <span className="font-mono">{formatOrderMoney(p.amount, p.currency)}</span>
+                      <span className={`ml-1.5 text-[0.7rem] px-1.5 py-0.5 rounded border font-mono font-medium ${
+                        (p.currency || "USD").toUpperCase() === "INR"
+                          ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                          : "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                      }`}>
+                        {p.currency || "USD"}
+                      </span>
                     </td>
                     <td className="py-3.5 text-xs text-[var(--admin-text-muted)] whitespace-nowrap">
                       <span className="capitalize">{p.paymentGateway}</span> · {p.paymentMethod}

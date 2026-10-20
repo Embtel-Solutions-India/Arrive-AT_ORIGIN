@@ -372,10 +372,11 @@ export function AccountTab() {
 
               <div className="border-t border-[var(--admin-border)]/40 pt-3">
                 <span className="text-[var(--admin-text-muted)] block">Two-Factor Authentication:</span>
-                <span className="font-semibold text-amber-300">
-                  {profile?.twoFactorEnabled ? "ENABLED ✓" : "DISABLED (Setup in Security)"}
+                <span className={`font-semibold ${profile?.twoFactorEnabled ? "text-emerald-400" : "text-amber-300"}`}>
+                  {profile?.twoFactorEnabled ? "ENABLED & ACTIVE ✓" : "NOT CONFIGURED (Setup in Security)"}
                 </span>
               </div>
+
             </div>
           </Card>
 

@@ -5,13 +5,16 @@ import { Order } from "../../models/Order.js";
 import { Customer } from "../../models/Customer.js";
 import { ok } from "../../utils/response.js";
 
+export const USD_TO_INR_RATE = 96.79;
+
 export const dashboardController = {
   async getStats(req: Request, res: Response) {
     const range = (req.query.range as string) || "30d";
     const startDateQuery = req.query.startDate as string | undefined;
     const endDateQuery = req.query.endDate as string | undefined;
+    const currency = ((req.query.currency as string) || "USD").toUpperCase() === "INR" ? "INR" : "USD";
 
-    // 1. Parallel counts
+    // 1. Parallel counts & revenue segmented by currency
     const [
       totalBooks,
       publishedBooks,
@@ -39,17 +42,36 @@ export const dashboardController = {
       Customer.countDocuments(),
       Order.aggregate([
         { $match: { paymentStatus: "PAID" } },
-        { $group: { _id: null, totalRevenue: { $sum: "$total" } } },
+        {
+          $group: {
+            _id: { $toUpper: { $ifNull: ["$currency", "USD"] } },
+            totalRevenue: { $sum: "$total" },
+            ordersCount: { $sum: 1 },
+          },
+        },
       ]),
     ]);
 
-    const totalRevenue = revenueResult[0]?.totalRevenue || 0;
+    let revenueUSD = 0;
+    let revenueINR = 0;
+    for (const item of (revenueResult as Array<{ _id: string; totalRevenue: number }>)) {
+      if (item._id === "INR") {
+        revenueINR += item.totalRevenue;
+      } else {
+        revenueUSD += item.totalRevenue;
+      }
+    }
 
-    // 2. Recent orders
+    const totalRevenue =
+      currency === "INR"
+        ? revenueINR + revenueUSD * USD_TO_INR_RATE
+        : revenueUSD + revenueINR / USD_TO_INR_RATE;
+
+    // 2. Recent orders (with currency)
     const recentOrders = await Order.find()
       .sort({ createdAt: -1 })
       .limit(6)
-      .select("orderNumber customerInfo total paymentStatus orderStatus createdAt items");
+      .select("orderNumber customerInfo total currency paymentStatus orderStatus createdAt items");
 
     // 3. Recent blog posts
     const recentBlogs = await BlogPost.find()
@@ -57,19 +79,39 @@ export const dashboardController = {
       .limit(5)
       .select("title slug authorName categoryName status publishDate createdAt isFeatured");
 
-    // 4. Best-selling books
+    // 4. Best-selling books with currency adjustments
     const bestSellingBooks = await Book.find({ salesCount: { $gt: 0 } })
       .sort({ salesCount: -1 })
       .limit(5)
-      .select("title slug coverImage price salesCount revenue stockQuantity");
+      .select("title slug coverImage price priceINR priceUSD salesCount revenue stockQuantity");
 
-    // Fallback if no sales yet: return top books
     let topBooks = bestSellingBooks;
     if (topBooks.length === 0) {
-      topBooks = await Book.find().sort({ createdAt: -1 }).limit(5).select("title slug coverImage price salesCount revenue stockQuantity");
+      topBooks = await Book.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select("title slug coverImage price priceINR priceUSD salesCount revenue stockQuantity");
     }
 
-    // 5. Sales analytics chart data based on date filter
+    const formattedTopBooks = topBooks.map((b) => {
+      const bookObj = b.toObject ? b.toObject() : { ...b };
+      const bookPrice =
+        currency === "INR"
+          ? bookObj.priceINR || (bookObj.priceUSD ? bookObj.priceUSD * USD_TO_INR_RATE : (bookObj.price >= 50 ? bookObj.price : bookObj.price * USD_TO_INR_RATE))
+          : bookObj.priceUSD || (bookObj.priceINR ? bookObj.priceINR / USD_TO_INR_RATE : (bookObj.price < 50 ? bookObj.price : bookObj.price / USD_TO_INR_RATE));
+      const bookRevenue =
+        currency === "INR"
+          ? (bookObj.revenue || 0) * USD_TO_INR_RATE
+          : bookObj.revenue || 0;
+      return {
+        ...bookObj,
+        price: Number(bookPrice.toFixed(2)),
+        revenue: Number(bookRevenue.toFixed(2)),
+        currency,
+      };
+    });
+
+    // 5. Sales analytics chart data based on date filter & currency conversion
     const now = new Date();
     let filterStart: Date;
     let filterEnd: Date = new Date();
@@ -84,7 +126,6 @@ export const dashboardController = {
       filterStart = new Date(startDateQuery);
       filterEnd = new Date(endDateQuery);
     } else {
-      // 30d default
       filterStart = new Date(now.getTime() - 30 * 86_400_000);
     }
 
@@ -97,28 +138,38 @@ export const dashboardController = {
       },
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          _id: {
+            date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            currency: { $toUpper: { $ifNull: ["$currency", "USD"] } },
+          },
           revenue: { $sum: "$total" },
           ordersCount: { $sum: 1 },
         },
       },
-      { $sort: { _id: 1 } },
+      { $sort: { "_id.date": 1 } },
     ]);
 
-    // Map existing aggregation by date key
     const salesMap = new Map<string, { revenue: number; orders: number }>();
     for (const item of salesTimeSeries) {
-      salesMap.set(item._id, {
-        revenue: Number(item.revenue.toFixed(2)),
-        orders: item.ordersCount,
+      const dStr = item._id.date;
+      const itemCurrency = item._id.currency;
+      const convertedRev =
+        currency === itemCurrency
+          ? item.revenue
+          : currency === "INR"
+          ? item.revenue * USD_TO_INR_RATE
+          : item.revenue / USD_TO_INR_RATE;
+
+      const existing = salesMap.get(dStr) || { revenue: 0, orders: 0 };
+      salesMap.set(dStr, {
+        revenue: Number((existing.revenue + convertedRev).toFixed(2)),
+        orders: existing.orders + item.ordersCount,
       });
     }
 
-    // Build continuous timeline array so chart is never sparse/broken
     const chartData: Array<{ date: string; revenue: number; orders: number }> = [];
 
     if (range === "today") {
-      // 8 time slots across the day (00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, 21:00)
       const hourlyAgg = await Order.aggregate([
         {
           $match: {
@@ -128,7 +179,10 @@ export const dashboardController = {
         },
         {
           $group: {
-            _id: { $hour: "$createdAt" },
+            _id: {
+              hour: { $hour: "$createdAt" },
+              currency: { $toUpper: { $ifNull: ["$currency", "USD"] } },
+            },
             revenue: { $sum: "$total" },
             ordersCount: { $sum: 1 },
           },
@@ -136,7 +190,20 @@ export const dashboardController = {
       ]);
       const hourMap = new Map<number, { revenue: number; orders: number }>();
       for (const item of hourlyAgg) {
-        hourMap.set(item._id, { revenue: Number(item.revenue.toFixed(2)), orders: item.ordersCount });
+        const h = item._id.hour;
+        const itemCurrency = item._id.currency;
+        const convertedRev =
+          currency === itemCurrency
+            ? item.revenue
+            : currency === "INR"
+            ? item.revenue * USD_TO_INR_RATE
+            : item.revenue / USD_TO_INR_RATE;
+
+        const existing = hourMap.get(h) || { revenue: 0, orders: 0 };
+        hourMap.set(h, {
+          revenue: Number((existing.revenue + convertedRev).toFixed(2)),
+          orders: existing.orders + item.ordersCount,
+        });
       }
       for (let h = 0; h < 24; h += 3) {
         let hRev = 0;
@@ -174,7 +241,6 @@ export const dashboardController = {
         });
       }
     } else {
-      // Day by day timeline (7d or 30d or custom)
       const daysCount = range === "7d" ? 7 : 30;
       for (let i = daysCount - 1; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 86_400_000);
@@ -204,7 +270,10 @@ export const dashboardController = {
       Order.aggregate([
         {
           $group: {
-            _id: "$orderStatus",
+            _id: {
+              status: "$orderStatus",
+              currency: { $toUpper: { $ifNull: ["$currency", "USD"] } },
+            },
             count: { $sum: 1 },
             amount: { $sum: "$total" },
           },
@@ -226,14 +295,34 @@ export const dashboardController = {
     const categoryDistribution = categoryDistributionRaw.map((c) => ({
       name: c._id,
       count: c.count,
-      revenue: Number(c.revenue.toFixed(2)),
+      revenue: Number(
+        (currency === "INR" ? c.revenue * USD_TO_INR_RATE : c.revenue).toFixed(2)
+      ),
       sales: c.sales,
     }));
 
-    const orderStatusDistribution = orderStatusRaw.map((s) => ({
-      status: s._id,
-      count: s.count,
-      amount: Number(s.amount.toFixed(2)),
+    const statusMap = new Map<string, { count: number; amount: number }>();
+    for (const s of orderStatusRaw) {
+      const st = s._id.status;
+      const itemCurrency = s._id.currency;
+      const convertedAmt =
+        currency === itemCurrency
+          ? s.amount
+          : currency === "INR"
+          ? s.amount * USD_TO_INR_RATE
+          : s.amount / USD_TO_INR_RATE;
+
+      const existing = statusMap.get(st) || { count: 0, amount: 0 };
+      statusMap.set(st, {
+        count: existing.count + s.count,
+        amount: Number((existing.amount + convertedAmt).toFixed(2)),
+      });
+    }
+
+    const orderStatusDistribution = Array.from(statusMap.entries()).map(([st, val]) => ({
+      status: st,
+      count: val.count,
+      amount: val.amount,
     }));
 
     const formatDistribution = formatDistributionRaw.map((f) => ({
@@ -256,15 +345,21 @@ export const dashboardController = {
         completedOrders,
         totalCustomers,
         totalRevenue: Number(totalRevenue.toFixed(2)),
+        currency,
+        revenueByCurrency: {
+          USD: Number(revenueUSD.toFixed(2)),
+          INR: Number(revenueINR.toFixed(2)),
+        },
       },
       recentOrders,
       recentBlogs,
-      bestSellingBooks: topBooks,
+      bestSellingBooks: formattedTopBooks,
       chartData,
       categoryDistribution,
       orderStatusDistribution,
       formatDistribution,
       range,
+      currency,
     });
   },
 };

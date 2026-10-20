@@ -8,14 +8,40 @@ export interface AdminUser {
   name: string;
   role: string;
   permissions: string[];
+  twoFactorEnabled?: boolean;
+}
+
+export type LoginResponse = {
+  requires2FA: boolean;
+  requiresSetup?: boolean;
+  twoFactorTicket?: string;
+  user: AdminUser;
+  token?: string;
+};
+
+export interface Setup2FAResponse {
+  secret: string;
+  manualEntryKey: string;
+  otpauthUrl: string;
+  qrCode: string;
+  backupCodes: string[];
 }
 
 interface AuthValue {
   user: AdminUser | null;
   loading: boolean;
   can: (...permissions: string[]) => boolean;
-  login: (input: { email: string; password: string; remember: boolean }) => Promise<void>;
+  login: (input: { email: string; password: string; remember: boolean }) => Promise<LoginResponse>;
+  verify2FA: (params: { twoFactorTicket: string; code: string; isRecoveryCode?: boolean }) => Promise<{ user: AdminUser; token: string }>;
+  start2FASetup: (twoFactorTicket?: string) => Promise<Setup2FAResponse>;
+  confirm2FASetup: (params: {
+    twoFactorTicket?: string;
+    secret: string;
+    code: string;
+    backupCodes: string[];
+  }) => Promise<{ user: AdminUser; token?: string }>;
   logout: () => Promise<void>;
+  setUser: (user: AdminUser | null) => void;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -38,12 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     retry: false,
   });
 
-  const loginMutation = useMutation({
-    mutationFn: (input: { email: string; password: string; remember: boolean }) =>
-      api.post<{ user: AdminUser }>("/auth/login", input),
-    onSuccess: (data) => qc.setQueryData(ME_KEY, data.user),
-  });
-
   const logoutMutation = useMutation({
     mutationFn: () => api.post("/auth/logout"),
     onSettled: () => {
@@ -53,16 +73,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const user = me.data ?? null;
+
+  const login = async (input: { email: string; password: string; remember: boolean }): Promise<LoginResponse> => {
+    const data = await api.post<LoginResponse>("/auth/login", input);
+    if (!data.requires2FA && data.user) {
+      qc.setQueryData(ME_KEY, data.user);
+    }
+    return data;
+  };
+
+  const verify2FA = async (params: {
+    twoFactorTicket: string;
+    code: string;
+    isRecoveryCode?: boolean;
+  }): Promise<{ user: AdminUser; token: string }> => {
+    const res = await api.post<{ user: AdminUser; token: string }>("/auth/2fa/verify", params);
+    qc.setQueryData(ME_KEY, res.user);
+    return res;
+  };
+
+  const start2FASetup = async (twoFactorTicket?: string): Promise<Setup2FAResponse> => {
+    return api.post<Setup2FAResponse>("/auth/2fa/setup/start", { twoFactorTicket });
+  };
+
+  const confirm2FASetup = async (params: {
+    twoFactorTicket?: string;
+    secret: string;
+    code: string;
+    backupCodes: string[];
+  }): Promise<{ user: AdminUser; token?: string }> => {
+    const res = await api.post<{ user: AdminUser; token?: string }>("/auth/2fa/setup/confirm", params);
+    if (res.user) {
+      qc.setQueryData(ME_KEY, res.user);
+    }
+    return res;
+  };
+
   const value: AuthValue = {
     user,
     loading: me.isLoading,
     can: (...permissions) => !!user && permissions.every((p) => user.permissions.includes(p)),
-    login: async (input) => {
-      await loginMutation.mutateAsync(input);
-    },
+    login,
+    verify2FA,
+    start2FASetup,
+    confirm2FASetup,
     logout: async () => {
       await logoutMutation.mutateAsync();
     },
+    setUser: (u) => qc.setQueryData(ME_KEY, u),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

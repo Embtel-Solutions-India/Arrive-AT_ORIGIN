@@ -20,6 +20,7 @@ import {
 import { logAudit } from "../../utils/auditLogger.js";
 import { sendEmail } from "../../services/email.service.js";
 import { logger } from "../../utils/logger.js";
+import { twoFactorService } from "../auth/twoFactor.service.js";
 
 // Helper to get or initialize a grouped setting
 export async function getGroupSetting<T>(group: string, defaultVal: T): Promise<T> {
@@ -977,4 +978,45 @@ export const settingsController = {
       throw HttpError.badRequest(`Restore failed: ${err.message || "Corrupt backup file"}`);
     }
   },
+
+  // ─── Two-Factor Authentication Settings ───
+  async get2FAStatus(req: Request, res: Response) {
+    const user = await (User as any).findById(req.user?.id);
+    if (!user) throw HttpError.notFound("User not found");
+
+    ok(res, {
+      enabled: Boolean(user.twoFactorEnabled),
+      enrolledAt: user.twoFactorEnrolledAt,
+      remainingBackupCodes: user.backupCodes?.length || 0,
+    });
+  },
+
+  async regenerateRecoveryCodes(req: Request, res: Response) {
+    const { password } = req.body;
+    if (!password) throw HttpError.badRequest("Current password is required to regenerate recovery codes");
+
+    const user = await (User as any).findById(req.user?.id);
+    if (!user) throw HttpError.notFound("User not found");
+
+    const valid = await argon2.verify(user.passwordHash, password);
+    if (!valid) throw HttpError.unauthorized("Incorrect password");
+
+    const backupCodes = await twoFactorService.regenerateBackupCodes(user, req);
+    ok(res, { backupCodes }, "Emergency recovery codes regenerated successfully");
+  },
+
+  async disable2FA(req: Request, res: Response) {
+    const { password } = req.body;
+    if (!password) throw HttpError.badRequest("Current password is required to reset 2FA");
+
+    const user = await (User as any).findById(req.user?.id);
+    if (!user) throw HttpError.notFound("User not found");
+
+    const valid = await argon2.verify(user.passwordHash, password);
+    if (!valid) throw HttpError.unauthorized("Incorrect password");
+
+    await twoFactorService.disable2FA(user, req);
+    ok(res, null, "Two-factor authentication has been disabled. You will be prompted to configure it upon your next login.");
+  },
 };
+

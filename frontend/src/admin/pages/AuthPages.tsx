@@ -1,18 +1,53 @@
-import { useState, type ReactNode } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { api, ApiError } from "../lib/api";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth, type Setup2FAResponse } from "../auth/AuthContext";
 import cosmicMeditationImg from "../../assets/images/admin-login-cosmic.jpg";
 
 // ==========================================
 // SVG Icons
 // ==========================================
+function QrCodeIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.008v.008H6.75V6.75ZM6.75 16.5h.008v.008H6.75v-.008ZM16.5 6.75h.008v.008H16.5V6.75ZM13.5 13.5h.008v.008H13.5V13.5ZM13.5 19.5h.008v.008H13.5V19.5ZM19.5 13.5h.008v.008H19.5V13.5ZM16.5 16.5h.008v.008H16.5V16.5ZM19.5 19.5h.008v.008H19.5V19.5Z" />
+    </svg>
+  );
+}
+
+function ClipboardDocumentCheckIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m9 14.25 2.25 2.25L15 12" />
+    </svg>
+  );
+}
+
+function DocumentArrowDownIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+    </svg>
+  );
+}
+
+function DevicePhoneMobileIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+    </svg>
+  );
+}
+
 function MailIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+
       <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
     </svg>
   );
@@ -275,11 +310,36 @@ const loginSchema = z.object({
 });
 
 export function LoginPage() {
-  const { user, login } = useAuth();
+  const { user, login, verify2FA, start2FASetup, confirm2FASetup } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Phase: "CREDENTIALS" | "OTP" | "RECOVERY" | "SETUP"
+  const [phase, setPhase] = useState<"CREDENTIALS" | "OTP" | "RECOVERY" | "SETUP">("CREDENTIALS");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // 2FA state
+  const [ticket, setTicket] = useState("");
+  const [targetEmail, setTargetEmail] = useState("");
+  const [rememberSession, setRememberSession] = useState(false);
+  const [otpDigits, setOtpDigits] = useState<string[]>(["", "", "", "", "", ""]);
+  const [recoveryCodeInput, setRecoveryCodeInput] = useState("");
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+
+  // Setup state
+  const [setupData, setSetupData] = useState<Setup2FAResponse | null>(null);
+  const [setupCode, setSetupCode] = useState("");
+  const [setupConfirmedSaved, setSetupConfirmedSaved] = useState(false);
+  const [copiedCodes, setCopiedCodes] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
+  const [isActivatingSetup, setIsActivatingSetup] = useState(false);
+  const [isLoadingSetup, setIsLoadingSetup] = useState(false);
+
+  // 30-second TOTP countdown timer
+  const [timerSeconds, setTimerSeconds] = useState(30);
+
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const {
     register,
@@ -293,25 +353,659 @@ export function LoginPage() {
   const from = (location.state as { from?: string } | null)?.from ?? "/admin/dashboard";
   if (user) return <Navigate to={from} replace />;
 
+  // Dynamic 30-second rotation ticker for standard TOTP
+  useEffect(() => {
+    if (phase !== "OTP") return;
+    const updateTicker = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const remaining = 30 - (now % 30);
+      setTimerSeconds(remaining);
+    };
+    updateTicker();
+    const interval = setInterval(updateTicker, 1000);
+    return () => clearInterval(interval);
+  }, [phase]);
+
+  // Focus the first OTP box when entering OTP phase
+  useEffect(() => {
+    if (phase === "OTP") {
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 50);
+    }
+  }, [phase]);
+
+  // Step 1: Submit Credentials
+  const onCredentialsSubmit = async (values: z.infer<typeof loginSchema>) => {
+    setError("");
+    try {
+      const res = await login(values);
+      if (res.requires2FA) {
+        setTicket(res.twoFactorTicket || "");
+        setTargetEmail(values.email);
+        setRememberSession(values.remember);
+
+        if (res.requiresSetup) {
+          setPhase("SETUP");
+          loadSetupWizard(res.twoFactorTicket);
+        } else {
+          setPhase("OTP");
+          setOtpDigits(["", "", "", "", "", ""]);
+        }
+        return;
+      }
+      navigate(from, { replace: true });
+    } catch (e) {
+      setError(formError(e));
+    }
+  };
+
+  // Load Setup Data
+  const loadSetupWizard = async (t?: string) => {
+    setIsLoadingSetup(true);
+    setError("");
+    try {
+      const data = await start2FASetup(t || ticket);
+      setSetupData(data);
+    } catch (e) {
+      setError(formError(e));
+    } finally {
+      setIsLoadingSetup(false);
+    }
+  };
+
+  // Step 2A: Verify 6-digit OTP
+  const handleVerifyOtp = async (codeToVerify?: string) => {
+    const fullCode = codeToVerify || otpDigits.join("");
+    if (fullCode.length !== 6) {
+      setError("Please enter the complete 6-digit verification code");
+      return;
+    }
+
+    setError("");
+    setIsVerifyingCode(true);
+    try {
+      await verify2FA({
+        twoFactorTicket: ticket,
+        code: fullCode,
+      });
+      navigate(from, { replace: true });
+    } catch (e) {
+      setError(formError(e));
+      setOtpDigits(["", "", "", "", "", ""]);
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 50);
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  // Step 2B: Verify Emergency Recovery Code
+  const handleVerifyRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanCode = recoveryCodeInput.trim().toUpperCase();
+    if (!cleanCode || cleanCode.replace(/[^A-Z0-9]/g, "").length < 8) {
+      setError("Please enter a valid emergency recovery code");
+      return;
+    }
+
+    setError("");
+    setIsVerifyingCode(true);
+    try {
+      await verify2FA({
+        twoFactorTicket: ticket,
+        code: cleanCode,
+        isRecoveryCode: true,
+      });
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(formError(err));
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  // Step 2C: Confirm & Activate Setup
+  const handleConfirmSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!setupData) return;
+
+    if (!setupConfirmedSaved) {
+      setError("Please acknowledge that you have safely stored your recovery codes");
+      return;
+    }
+
+    const cleanCode = setupCode.trim().replace(/\D/g, "");
+    if (cleanCode.length !== 6) {
+      setError("Please enter the 6-digit verification code shown in your authenticator app");
+      return;
+    }
+
+    setError("");
+    setIsActivatingSetup(true);
+    try {
+      await confirm2FASetup({
+        twoFactorTicket: ticket,
+        secret: setupData.secret,
+        code: cleanCode,
+        backupCodes: setupData.backupCodes,
+      });
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(formError(err));
+    } finally {
+      setIsActivatingSetup(false);
+    }
+  };
+
+  // OTP Box Key Handling
+  const handleOtpBoxChange = (index: number, val: string) => {
+    const digit = val.replace(/\D/g, "").slice(-1);
+    const updated = [...otpDigits];
+    updated[index] = digit;
+    setOtpDigits(updated);
+
+    if (digit && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-verify if all 6 digits entered
+    if (digit && index === 5 && updated.every((d) => d !== "")) {
+      handleVerifyOtp(updated.join(""));
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+
+    const updated = ["", "", "", "", "", ""];
+    for (let i = 0; i < pasted.length; i++) {
+      updated[i] = pasted[i];
+    }
+    setOtpDigits(updated);
+
+    if (pasted.length === 6) {
+      handleVerifyOtp(pasted);
+    } else {
+      const nextIdx = Math.min(pasted.length, 5);
+      otpInputRefs.current[nextIdx]?.focus();
+    }
+  };
+
+  // Copy Recovery Codes to Clipboard
+  const handleCopyCodes = () => {
+    if (!setupData?.backupCodes) return;
+    const text = `Soul Body Healing Center - Admin Emergency Backup Codes\nGenerated: ${new Date().toISOString()}\n\n` +
+      setupData.backupCodes.map((c, i) => `${i + 1}. ${c}`).join("\n");
+    navigator.clipboard.writeText(text);
+    setCopiedCodes(true);
+    setTimeout(() => setCopiedCodes(false), 3000);
+  };
+
+  // Download Recovery Codes File
+  const handleDownloadCodes = () => {
+    if (!setupData?.backupCodes) return;
+    const text =
+      `=======================================================\n` +
+      `SOUL BODY HEALING CENTER - ADMIN PORTAL RECOVERY CODES\n` +
+      `=======================================================\n` +
+      `Admin Account: ${targetEmail}\n` +
+      `Generated At : ${new Date().toLocaleString()}\n\n` +
+      `KEEP THESE EMERGENCY CODES IN A SAFE & ENCRYPTED PLACE.\n` +
+      `Each recovery code can only be used ONCE if you lose\n` +
+      `access to Google Authenticator or Microsoft Authenticator.\n\n` +
+      setupData.backupCodes.map((c, i) => `[${(i + 1).toString().padStart(2, "0")}] ${c}`).join("\n") +
+      `\n\n=======================================================\n`;
+
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `arrive-at-origin-2fa-recovery-codes.txt`;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
+  const handleCopyKey = (key: string) => {
+    navigator.clipboard.writeText(key);
+    setCopiedKey(true);
+    setTimeout(() => setCopiedKey(false), 2500);
+  };
+
+  // ==========================================
+  // RENDER: Phase 2A - 6-Digit OTP Verification
+  // ==========================================
+  if (phase === "OTP") {
+    return (
+      <AuthShell
+        title="Two-Factor Security"
+        subtitle={`Enter the 6-digit code from Google Authenticator or Microsoft Authenticator for ${targetEmail}.`}
+        portalBadge="2FA Verification Required"
+      >
+        <div className="space-y-5">
+          {/* Authenticator App Badge */}
+          <div className="flex items-center justify-between rounded-xl border border-[rgba(232,206,140,0.18)] bg-[rgba(232,206,140,0.06)] px-3.5 py-2.5">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[rgba(232,206,140,0.15)] text-[var(--admin-accent)]">
+                <DevicePhoneMobileIcon className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-[0.78rem] font-medium text-white">Authenticator App</p>
+                <p className="text-[0.68rem] text-[var(--admin-text-muted)]">Google Authenticator • Microsoft Auth</p>
+              </div>
+            </div>
+
+            {/* Rotating TOTP cycle indicator */}
+            <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[0.72rem] text-[var(--admin-accent)]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--admin-accent)] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--admin-accent)]" />
+              </span>
+              <span>Rotates in {timerSeconds}s</span>
+            </div>
+          </div>
+
+          {/* Form wrapping 6 digits */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleVerifyOtp();
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <label className="mb-2 block text-center text-[0.8rem] font-medium tracking-wide text-[var(--admin-text-secondary)] uppercase">
+                6-Digit Security Code
+              </label>
+
+              {/* 6 Individual Numeric Boxes with Auto-Advance & Paste */}
+              <div className="flex items-center justify-center gap-2 sm:gap-2.5">
+                {otpDigits.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => {
+                      otpInputRefs.current[idx] = el;
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={1}
+                    autoComplete={idx === 0 ? "one-time-code" : "off"}
+                    value={digit}
+                    onChange={(e) => handleOtpBoxChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                    onPaste={handleOtpPaste}
+                    aria-label={`Digit ${idx + 1} of verification code`}
+                    className="h-12 w-10 sm:h-14 sm:w-12 rounded-xl border border-[var(--admin-border)] bg-[rgba(237,231,218,0.06)] text-center font-mono text-xl sm:text-2xl font-bold text-white shadow-inner transition-all focus:border-[var(--admin-accent)] focus:bg-[rgba(237,231,218,0.12)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-accent)]/30"
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Error Banner */}
+            {error && (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-xl border border-[var(--admin-danger)]/40 bg-[var(--admin-danger)]/15 p-3 text-[0.84rem] text-[#ff948a]"
+              >
+                <AlertCircleIcon className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Submit Action */}
+            <button
+              type="submit"
+              disabled={isVerifyingCode || otpDigits.join("").length !== 6}
+              className="btn-cosmic-primary w-full min-h-[44px] rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none text-[0.92rem] tracking-wide"
+            >
+              {isVerifyingCode ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin text-[#070b18]" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Verifying Code…</span>
+                </>
+              ) : (
+                <>
+                  <span>Verify & Enter Dashboard</span>
+                  <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Fallback & Switch Options */}
+          <div className="space-y-2 pt-2 text-center text-[0.8rem]">
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setPhase("RECOVERY");
+              }}
+              className="text-[var(--admin-accent)] hover:underline transition-colors cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <KeyIcon className="h-3.5 w-3.5" />
+              <span>Use an Emergency Recovery Code</span>
+            </button>
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setPhase("CREDENTIALS");
+                }}
+                className="text-[var(--admin-text-muted)] hover:text-white transition-colors cursor-pointer"
+              >
+                ← Back to email sign in
+              </button>
+            </div>
+          </div>
+        </div>
+      </AuthShell>
+    );
+  }
+
+  // ==========================================
+  // RENDER: Phase 2B - Emergency Recovery Code
+  // ==========================================
+  if (phase === "RECOVERY") {
+    return (
+      <AuthShell
+        title="Emergency Recovery"
+        subtitle="Use one of your 10 emergency backup recovery codes to access the portal."
+        portalBadge="One-Time Emergency Access"
+      >
+        <form onSubmit={handleVerifyRecovery} className="space-y-4">
+          <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-[0.78rem] text-amber-200/90 leading-relaxed">
+            <span className="font-semibold text-amber-300">Single-use emergency codes: </span>
+            Once verified, the recovery code used will be permanently retired from your list.
+          </div>
+
+          <div>
+            <label htmlFor="recovery-code" className="mb-1.5 block text-[0.82rem] font-medium text-[var(--admin-text-secondary)]">
+              12-Character Recovery Code
+            </label>
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[var(--admin-text-muted)]">
+                <KeyIcon className="h-4 w-4" />
+              </span>
+              <input
+                id="recovery-code"
+                type="text"
+                autoComplete="off"
+                placeholder="XXXX-XXXX-XXXX"
+                value={recoveryCodeInput}
+                onChange={(e) => setRecoveryCodeInput(e.target.value.toUpperCase())}
+                className="w-full rounded-xl border border-[var(--admin-border)] bg-[rgba(237,231,218,0.05)] pl-10 pr-3.5 py-2.5 font-mono text-[0.95rem] tracking-wider text-white placeholder-[var(--admin-text-muted)]/50 transition-all focus:border-[var(--admin-accent)] focus:bg-[rgba(237,231,218,0.08)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-accent)]/20"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-xl border border-[var(--admin-danger)]/40 bg-[var(--admin-danger)]/15 p-3 text-[0.84rem] text-[#ff948a]"
+            >
+              <AlertCircleIcon className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isVerifyingCode || !recoveryCodeInput.trim()}
+            className="btn-cosmic-primary w-full min-h-[44px] rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none text-[0.92rem] tracking-wide"
+          >
+            {isVerifyingCode ? (
+              <span>Verifying Recovery Code…</span>
+            ) : (
+              <>
+                <span>Submit Recovery Code</span>
+                <ArrowRightIcon className="h-4 w-4" />
+              </>
+            )}
+          </button>
+
+          <div className="space-y-2 pt-2 text-center text-[0.8rem]">
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setPhase("OTP");
+              }}
+              className="text-[var(--admin-accent)] hover:underline transition-colors cursor-pointer"
+            >
+              ← Return to 6-digit authenticator code
+            </button>
+          </div>
+        </form>
+      </AuthShell>
+    );
+  }
+
+  // ==========================================
+  // RENDER: Phase 2C - 2FA Enrollment / Setup Wizard
+  // ==========================================
+  if (phase === "SETUP") {
+    return (
+      <AuthShell
+        title="Setup Two-Factor Auth"
+        subtitle="Two-factor authentication is mandatory to protect your administrator privileges."
+        portalBadge="First-Time 2FA Setup"
+      >
+        {isLoadingSetup ? (
+          <div className="flex flex-col items-center justify-center py-12 space-y-3">
+            <svg className="h-8 w-8 animate-spin text-[var(--admin-accent)]" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <p className="text-[0.84rem] text-[var(--admin-text-secondary)]">Generating secure TOTP key & QR code…</p>
+          </div>
+        ) : setupData ? (
+          <form onSubmit={handleConfirmSetup} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+            {/* Step 1: QR Code Card */}
+            <div className="rounded-2xl border border-[var(--admin-border)]/80 bg-[rgba(237,231,218,0.03)] p-4 space-y-3">
+              <div className="flex items-center gap-2 text-[0.76rem] font-semibold tracking-wider text-[var(--admin-accent)] uppercase">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--admin-accent)]/20 text-[0.7rem]">
+                  1
+                </span>
+                Scan QR in Authenticator App
+              </div>
+              <p className="text-[0.78rem] text-[var(--admin-text-muted)]">
+                Scan with Google Authenticator, Microsoft Authenticator, Authy, or 1Password.
+              </p>
+
+              {/* Crisp High-Contrast QR Code Display */}
+              <div className="flex flex-col items-center justify-center py-2">
+                <div className="rounded-2xl bg-white p-3 shadow-xl border border-white/20">
+                  <img
+                    src={setupData.qrCode}
+                    alt="Authenticator Setup QR Code"
+                    className="h-40 w-40 sm:h-44 sm:w-44 object-contain"
+                  />
+                </div>
+              </div>
+
+              {/* Manual Entry Key */}
+              <div className="rounded-xl border border-white/10 bg-black/40 p-2.5">
+                <div className="flex items-center justify-between text-[0.68rem] text-[var(--admin-text-muted)] mb-1">
+                  <span>Manual Secret Key</span>
+                  {copiedKey && <span className="text-emerald-400 font-semibold">Key copied!</span>}
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <code className="font-mono text-[0.8rem] text-[var(--admin-accent)] tracking-wider select-all truncate">
+                    {setupData.secret}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyKey(setupData.secret)}
+                    className="shrink-0 rounded-lg border border-[var(--admin-border)] bg-white/5 px-2.5 py-1 text-[0.72rem] text-white hover:border-[var(--admin-accent)] hover:bg-[var(--admin-accent)]/10 transition-colors cursor-pointer"
+                  >
+                    Copy Key
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 2: Emergency Recovery Codes */}
+            <div className="rounded-2xl border border-[var(--admin-border)]/80 bg-[rgba(237,231,218,0.03)] p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[0.76rem] font-semibold tracking-wider text-[var(--admin-accent)] uppercase">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--admin-accent)]/20 text-[0.7rem]">
+                    2
+                  </span>
+                  Emergency Recovery Codes
+                </div>
+                <span className="text-[0.7rem] text-amber-300 font-medium">10 Codes</span>
+              </div>
+              <p className="text-[0.76rem] text-[var(--admin-text-muted)] leading-relaxed">
+                Save these one-time codes in a safe place. If you ever lose your phone, they are the only way to recover access.
+              </p>
+
+              {/* 10 Codes Grid */}
+              <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/5 bg-black/40 p-2.5 font-mono text-[0.74rem]">
+                {setupData.backupCodes.map((c, i) => (
+                  <div key={i} className="text-zinc-300 font-semibold select-all py-0.5">
+                    <span className="text-zinc-500 mr-1.5">{i + 1}.</span>
+                    {c}
+                  </div>
+                ))}
+              </div>
+
+              {/* Recovery Code Actions */}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCopyCodes}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--admin-border)] bg-white/5 py-2 text-[0.75rem] font-medium text-white hover:border-[var(--admin-accent)] hover:bg-[var(--admin-accent)]/10 transition-colors cursor-pointer"
+                >
+                  <ClipboardDocumentCheckIcon className="h-3.5 w-3.5 text-[var(--admin-accent)]" />
+                  <span>{copiedCodes ? "Copied to Clipboard!" : "Copy All Codes"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadCodes}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[var(--admin-border)] bg-white/5 py-2 text-[0.75rem] font-medium text-white hover:border-[var(--admin-accent)] hover:bg-[var(--admin-accent)]/10 transition-colors cursor-pointer"
+                >
+                  <DocumentArrowDownIcon className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>Download (.txt)</span>
+                </button>
+              </div>
+
+              {/* Mandatory Backup Confirmation Checkbox */}
+              <label className="flex items-start gap-2 pt-1 text-[0.76rem] text-[var(--admin-text-secondary)] cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={setupConfirmedSaved}
+                  onChange={(e) => setSetupConfirmedSaved(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-[var(--admin-border)] bg-white/5 text-[var(--admin-accent)] accent-[var(--admin-accent)] cursor-pointer shrink-0"
+                />
+                <span>I have securely backed up these 10 emergency recovery codes.</span>
+              </label>
+            </div>
+
+            {/* Step 3: Verification Code to Activate */}
+            <div className="rounded-2xl border border-[var(--admin-border)]/80 bg-[rgba(237,231,218,0.03)] p-4 space-y-3">
+              <div className="flex items-center gap-2 text-[0.76rem] font-semibold tracking-wider text-[var(--admin-accent)] uppercase">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--admin-accent)]/20 text-[0.7rem]">
+                  3
+                </span>
+                Verify & Activate
+              </div>
+              <p className="text-[0.76rem] text-[var(--admin-text-muted)]">
+                Enter the 6-digit code currently showing in your authenticator app to confirm setup.
+              </p>
+
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                autoComplete="one-time-code"
+                placeholder="000000"
+                value={setupCode}
+                onChange={(e) => setSetupCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="w-full text-center tracking-[0.4em] font-mono text-2xl font-bold py-2.5 rounded-xl border border-[var(--admin-border)] bg-black/40 text-white focus:border-[var(--admin-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-accent)]/25"
+              />
+            </div>
+
+            {error && (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-xl border border-[var(--admin-danger)]/40 bg-[var(--admin-danger)]/15 p-3 text-[0.84rem] text-[#ff948a]"
+              >
+                <AlertCircleIcon className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isActivatingSetup || !setupConfirmedSaved || setupCode.length !== 6}
+              className="btn-cosmic-primary w-full min-h-[44px] rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none text-[0.92rem] tracking-wide"
+            >
+              {isActivatingSetup ? (
+                <span>Activating 2FA…</span>
+              ) : (
+                <>
+                  <span>Activate 2FA & Enter Portal</span>
+                  <ArrowRightIcon className="h-4 w-4" />
+                </>
+              )}
+            </button>
+
+            <div className="text-center pt-1 text-[0.78rem]">
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setPhase("CREDENTIALS");
+                }}
+                className="text-[var(--admin-text-muted)] hover:text-white transition-colors cursor-pointer"
+              >
+                Cancel and back to sign in
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="text-center py-6 space-y-3">
+            <p className="text-[0.84rem] text-[var(--admin-danger)]">{error || "Failed to initialize 2FA setup"}</p>
+            <button
+              type="button"
+              onClick={() => loadSetupWizard(ticket)}
+              className="btn-cosmic-primary px-4 py-2 text-xs"
+            >
+              Retry 2FA Setup
+            </button>
+          </div>
+        )}
+      </AuthShell>
+    );
+  }
+
+  // ==========================================
+  // RENDER: Phase 1 - Credentials Form (Default)
+  // ==========================================
   return (
     <AuthShell
       title="Admin Access"
       subtitle="Sign in with your authorized credentials to access the management portal."
       portalBadge="Administrative Portal"
     >
-      <form
-        noValidate
-        onSubmit={handleSubmit(async (values) => {
-          setError("");
-          try {
-            await login(values);
-            navigate(from, { replace: true });
-          } catch (e) {
-            setError(formError(e));
-          }
-        })}
-        className="space-y-4"
-      >
+      <form noValidate onSubmit={handleSubmit(onCredentialsSubmit)} className="space-y-4">
         {/* Email Field */}
         <div>
           <label htmlFor="admin-email" className="mb-1.5 block text-[0.82rem] font-medium text-[var(--admin-text-secondary)]">
@@ -432,6 +1126,7 @@ export function LoginPage() {
     </AuthShell>
   );
 }
+
 
 // ==========================================
 // Forgot Password Page
