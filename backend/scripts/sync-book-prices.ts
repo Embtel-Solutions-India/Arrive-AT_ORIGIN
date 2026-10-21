@@ -108,7 +108,7 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
     sku: "AAO-BK-007",
     priceUSD: 3.99,
     priceINR: 386.39,
-    pdfUrl: "",
+    pdfUrl: "/ebooks/your-path-to-peace.pdf",
     formats: [
       {
         format: "E-Book",
@@ -116,9 +116,9 @@ export const AMAZON_US_BOOKS: AmazonBookData[] = [
         priceUSD: 3.99,
         priceINR: 386.39,
         sku: "AAO-BK-007-EBOOK",
-        stockQuantity: 0,
-        isAvailable: false,
-        pdfUrl: "",
+        stockQuantity: 9999,
+        isAvailable: true,
+        pdfUrl: "/ebooks/your-path-to-peace.pdf",
       },
       {
         format: "Paperback",
@@ -350,6 +350,18 @@ async function syncBookPrices() {
       book.pdfUrl = amazonData.pdfUrl;
       book.format = "E-Book";
       book.formats = amazonData.formats;
+      if (!book.stockQuantity || book.stockQuantity <= 0) {
+        book.stockQuantity = 9999;
+      }
+      book.status = "PUBLISHED";
+
+      if (amazonData.slug === "your-path-to-peace") {
+        book.pages = 41;
+        book.coverImage = "/your-path-to-peace.png";
+        book.shortDescription = "A Journey Beyond Calmness. An invitation not to practice peace, but to remove what stands in its way.";
+        book.description =
+          "<p><strong>Your Path to Peace</strong> subtitled <em>A Journey Beyond Calmness</em> is Dr. Alka Chopra Madan's profound contemplative inquiry into the nature of true peace and emotional resolution.</p><p class=\"italic text-halo\">\"This book is not about becoming calm. It is about listening long enough for peace to arrive. Calmness can be created. Peace cannot. Peace emerges when nothing inside is being interrupted, silenced, or managed. It remains when what was unfinished is finally allowed to complete itself.\"</p><h4>Core Teachings & Insights</h4><ul><li><strong>Calmness vs. Peace:</strong> Why induced calmness through routines and affirmations provides temporary relief, but not resolution.</li><li><strong>The Nervous System Does Not Lie:</strong> The nervous system responds to experience, not beliefs. Tightness, chronic fatigue, and recurring anxiety are signals of unfinished sensation.</li><li><strong>Unfinished Emotional Loops:</strong> Emotions do not repeat because they are stubborn; they repeat because earlier experiences were interrupted before completing their arc.</li><li><strong>Facing Without Fixing:</strong> Facing does not happen in thought—it happens in the body as soft, uninterrupted attention.</li><li><strong>Emotional Sovereignty:</strong> Reclaiming your sovereignty by trusting the body to complete its own processes rather than outsourcing regulation.</li></ul><h4>Table of Contents</h4><ul><li><strong>Part I — The Addiction to Calm:</strong> The Era of Induced Calmness · Why Silence Became the Ideal · Spiritual Bypassing in Modern Disguise · The Nervous System Does Not Lie</li><li><strong>Part II — Understanding the Noise:</strong> The Language of Inner Noise · Unfinished Emotional Loops · Grief, Shock, and the Body’s Memory</li><li><strong>Part III — Facing Without Fixing:</strong> The Discipline of Facing · Staying Without Intervening · Letting Sensations Finish · When Meaning Arrives on Its Own</li><li><strong>Part IV — What Remains When the Noise Ends:</strong> The Difference Between Calm and Stillness · Living Without Internal Suppression · Emotional Sovereignty · A Quiet That Does Not Require Effort</li></ul>";
+      }
 
       await book.save();
       console.log(`✅ Synced "${book.title}": E-Book $${amazonData.priceUSD} | Formats:`, amazonData.formats.map(f => `${f.format}: ${f.isAvailable ? `$${f.price}` : 'Not Available'}`).join(', '));

@@ -12,6 +12,7 @@ export const KNOWN_EBOOK_FILES: Record<string, string> = {
   "life-force-lost-and-found": "life-force-lost-and-found.pdf",
   "the-process-of-healing": "the-process-of-healing.pdf",
   "your-path-to-healing": "your-path-to-healing.pdf",
+  "your-path-to-peace": "your-path-to-peace.pdf",
   "your-path-to-spirituality": "your-path-to-spirituality.pdf",
   "your-path-to-transformation": "your-path-to-transformation.pdf",
 };

@@ -182,6 +182,24 @@ const books = [
   },
 ];
 
+const youtubeVideos = [
+  {
+    id: "1oKhlpAMbZo",
+    title: "How to cope with Anxiety? Let's Talk : Anxiety & You",
+    url: "https://youtu.be/1oKhlpAMbZo?si=VbxbqVR-HCWjn7CO",
+  },
+  {
+    id: "02CtrgbLy6M",
+    title: "Why do we feel anxious? Let's Talk : Anxiety & You",
+    url: "https://youtu.be/02CtrgbLy6M?si=F139DL8V82GYFDZt",
+  },
+  {
+    id: "s3bAW3TMwYE",
+    title: "AAO — ARRIVE AT ORIGIN | A simple way to reset yourself.",
+    url: "https://youtu.be/s3bAW3TMwYE?si=dyr_70xV1400PoxI",
+  },
+];
+
 function resolveFormatInfo(book, formatKey, currency, formatPrice) {
   const target = formatKey.toLowerCase();
   const fmtObj = Array.isArray(book.formats)
@@ -787,6 +805,109 @@ function Home() {
                   {plat.name}
                 </a>
               ))}
+            </Reveal>
+          </div>
+        </section>
+
+        {/* MEET DR. ALKA CHOPRA MADAN / YOUTUBE VIDEOS */}
+        <section
+          className="relative overflow-hidden py-[clamp(72px,9vw,124px)] text-vellum"
+          id="videos"
+        >
+          {/* Cosmic background image */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 pointer-events-none transition-opacity duration-700"
+            style={{ backgroundImage: "url('/youtube-section-bg.jpg')" }}
+          />
+
+          {/* Cosmic radial & gradient lighting matching website palette */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(110% 75% at 50% 25%, rgba(201,153,46,0.16) 0%, rgba(14,22,48,0.72) 48%, rgba(7,11,24,0.96) 88%)",
+            }}
+          />
+
+          {/* Subtle edge blend transitions */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-void/90 to-transparent pointer-events-none"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-void/90 to-transparent pointer-events-none"
+          />
+
+          <div className={`${shell} relative z-[2]`}>
+            <Reveal className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
+              <div className="max-w-[78ch]">
+                <div className="mb-3 flex items-center gap-2.5 font-mono text-[0.8rem] tracking-[0.16em] uppercase text-halo">
+                  <span className="inline-block h-px w-[32px] bg-gold" />
+                  <span>Metaphysical Insights · YouTube Series</span>
+                </div>
+                <h2 className={`${heading} text-[clamp(2.3rem,4.8vw,3.8rem)] text-vellum tracking-tight mb-4`}>
+                  Meet Dr. Alka Chopra Madan
+                </h2>
+                <p className="text-[#C6CBD8] text-[clamp(0.98rem,1.2vw,1.12rem)] leading-relaxed font-light">
+                  In our life, we go through many ups and down. We face lot of challenges that profoundly affects our behaviour, thought process and eventually program our mindset. In due course of time we start reacting according to our programmed mindset and indulge into intense emotional chaos instead of responding in a channelized manner.
+                </p>
+              </div>
+
+              <div className="flex-shrink-0 pt-2 md:pt-0">
+                <a
+                  href="https://www.youtube.com/@dr.alkachopramadan6837/videos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-halo bg-halo px-7 py-3 text-[0.88rem] font-bold uppercase tracking-wider text-void no-underline shadow-[0_4px_22px_rgba(232,206,140,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white hover:bg-white hover:shadow-[0_6px_28px_rgba(255,255,255,0.35)]"
+                >
+                  <span>See More</span>
+                  <span aria-hidden="true" className="text-base font-normal">↗</span>
+                </a>
+              </div>
+            </Reveal>
+
+            <Reveal>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+                {youtubeVideos.map((video) => (
+                  <div
+                    key={video.id}
+                    className="group flex flex-col overflow-hidden rounded-2xl border border-[rgba(237,231,218,0.14)] bg-[#0E1630]/85 backdrop-blur-md shadow-[0_12px_32px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-1 hover:border-halo/60 hover:shadow-[0_18px_40px_rgba(201,153,46,0.18)]"
+                  >
+                    <div className="relative aspect-video w-full bg-black/90 overflow-hidden">
+                      <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${video.id}?rel=0`}
+                        title={video.title}
+                        className="absolute inset-0 h-full w-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="p-5 bg-[#090F22]/90 border-t border-[rgba(237,231,218,0.08)] flex-1 flex flex-col justify-between">
+                      <h3 className="font-display font-medium text-[1rem] text-vellum line-clamp-2 leading-snug group-hover:text-halo transition-colors">
+                        {video.title}
+                      </h3>
+                      <div className="mt-4 pt-3 border-t border-[rgba(237,231,218,0.06)] flex items-center justify-between text-xs text-dim">
+                        <span className="font-mono tracking-wider uppercase text-[0.72rem] text-dim">
+                          Soul Body Healing Center
+                        </span>
+                        <a
+                          href={video.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 font-semibold text-halo hover:text-white transition-colors text-[0.82rem] no-underline"
+                        >
+                          <span>Watch on YouTube</span>
+                          <span aria-hidden="true">↗</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </Reveal>
           </div>
         </section>

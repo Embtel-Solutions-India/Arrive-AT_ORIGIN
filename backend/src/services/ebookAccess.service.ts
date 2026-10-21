@@ -162,6 +162,7 @@ export async function assignEbooksForOrder(orderOrId: string | IOrder): Promise<
     }
 
     const rawPdfUrl = book.pdfUrl ? book.pdfUrl.replace("/uploads/ebooks/", "/ebooks/") : "";
+    const resolvedPdf = resolveBookPdfFile(item.pdfUrl || book.pdfUrl || "", book);
     const pdfUrl = resolvedPdf.exists
       ? (rawPdfUrl || `/ebooks/${resolvedPdf.filename}`)
       : rawPdfUrl;
