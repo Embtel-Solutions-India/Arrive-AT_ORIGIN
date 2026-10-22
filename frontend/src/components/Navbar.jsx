@@ -14,6 +14,14 @@ function Navbar() {
           <NavLink to="/" className={linkClass} end>Home</NavLink>
           <NavLink to="/about" className={linkClass}>About</NavLink>
           <a
+            href="https://soulbodyhealingcenter.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkClass({ isActive: false })}
+          >
+            Soul Body Healing Center
+          </a>
+          <a
             href="/dr-alka-chopra-madan-meta-human.html"
             className="rounded-full bg-[#E8CE8C] px-4 py-2 text-sm font-semibold text-[#070B18] transition hover:bg-white"
           >

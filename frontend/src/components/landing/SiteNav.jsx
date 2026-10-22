@@ -17,20 +17,48 @@ function SiteNav() {
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreDropdownRef = useRef(null);
+  const moreTimeoutRef = useRef(null);
   const { totalItems, setCartOpen } = useCart();
   const { customer, isAuthenticated } = useCustomerAuth();
   const location = useLocation();
+
+  // Handlers for MORE dropdown with smooth hover grace period
+  const handleMoreEnter = () => {
+    if (moreTimeoutRef.current) {
+      clearTimeout(moreTimeoutRef.current);
+      moreTimeoutRef.current = null;
+    }
+    setMoreOpen(true);
+  };
+
+  const handleMoreLeave = () => {
+    if (moreTimeoutRef.current) {
+      clearTimeout(moreTimeoutRef.current);
+    }
+    moreTimeoutRef.current = setTimeout(() => {
+      setMoreOpen(false);
+    }, 220);
+  };
 
   // Automatically close menus on route changes
   useEffect(() => {
     setOpen(false);
     setMoreOpen(false);
+    if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current);
   }, [location.pathname, location.search, location.hash]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current);
+    };
+  }, []);
 
   // Close MORE dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
       if (moreDropdownRef.current && !moreDropdownRef.current.contains(e.target)) {
+        if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current);
         setMoreOpen(false);
       }
     }
@@ -111,12 +139,15 @@ function SiteNav() {
           <div
             className="relative flex-shrink-0"
             ref={moreDropdownRef}
-            onMouseEnter={() => setMoreOpen(true)}
-            onMouseLeave={() => setMoreOpen(false)}
+            onMouseEnter={handleMoreEnter}
+            onMouseLeave={handleMoreLeave}
           >
             <button
               type="button"
-              onClick={() => setMoreOpen((prev) => !prev)}
+              onClick={() => {
+                if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current);
+                setMoreOpen((prev) => !prev);
+              }}
               aria-expanded={moreOpen}
               aria-haspopup="true"
               aria-label="More navigation options"
@@ -136,32 +167,50 @@ function SiteNav() {
               </svg>
             </button>
 
-            {/* Dropdown Menu Card (matches user image layout & styling) */}
+            {/* Dropdown Menu Container with zero-gap hover bridge */}
             {moreOpen && (
               <div
-                className="absolute left-0 top-full mt-2 w-48 sm:w-52 rounded-xl bg-white py-3 shadow-[0_14px_40px_rgba(0,0,0,0.38)] border border-gray-100/90 z-50 animate-in fade-in duration-150"
+                className="absolute left-0 top-full pt-2 w-56 sm:w-64 z-50 animate-in fade-in duration-150"
                 role="menu"
+                onMouseEnter={handleMoreEnter}
+                onMouseLeave={handleMoreLeave}
               >
-                <a
-                  href="https://soulbodyclothing.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setMoreOpen(false)}
-                  className="block px-6 py-2.5 text-[0.92rem] font-semibold tracking-wider text-gray-900 uppercase hover:bg-gray-50 hover:text-amber-700 transition-colors no-underline"
-                  role="menuitem"
-                >
-                  SHOP
-                </a>
-                <a
-                  href="https://www.youtube.com/@dr.alkachopramadan6837/videos"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setMoreOpen(false)}
-                  className="block px-6 py-2.5 text-[0.92rem] font-normal text-gray-900 hover:bg-gray-50 hover:text-amber-700 transition-colors no-underline"
-                  role="menuitem"
-                >
-                  YouTube Videos
-                </a>
+                {/* Invisible hover bridge spanning between button and card */}
+                <div className="absolute -top-3 left-0 right-0 h-4" aria-hidden="true" />
+
+                {/* Dropdown Menu Card */}
+                <div className="rounded-xl bg-white py-3 shadow-[0_14px_40px_rgba(0,0,0,0.38)] border border-gray-100/90">
+                  <a
+                    href="https://soulbodyclothing.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMoreOpen(false)}
+                    className="block px-6 py-2.5 text-[0.92rem] font-semibold tracking-wider text-gray-900 uppercase hover:bg-gray-50 hover:text-amber-700 transition-colors no-underline"
+                    role="menuitem"
+                  >
+                    SHOP
+                  </a>
+                  <a
+                    href="https://www.youtube.com/@dr.alkachopramadan6837/videos"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMoreOpen(false)}
+                    className="block px-6 py-2.5 text-[0.92rem] font-normal text-gray-900 hover:bg-gray-50 hover:text-amber-700 transition-colors no-underline"
+                    role="menuitem"
+                  >
+                    YouTube Videos
+                  </a>
+                  <a
+                    href="https://soulbodyhealingcenter.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMoreOpen(false)}
+                    className="block px-6 py-2.5 text-[0.92rem] font-normal text-gray-900 hover:bg-gray-50 hover:text-amber-700 transition-colors no-underline"
+                    role="menuitem"
+                  >
+                    Soul Body Healing Center
+                  </a>
+                </div>
               </div>
             )}
           </div>
@@ -327,9 +376,19 @@ function SiteNav() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-between rounded-xl px-4 py-3 text-[0.95rem] font-medium text-vellum hover:bg-white/5 hover:text-halo transition-colors no-underline"
+                className="flex items-center justify-between rounded-xl px-4 py-3 text-[0.95rem] font-medium text-vellum hover:bg-white/5 hover:text-halo transition-colors no-underline border-b border-white/[0.04]"
               >
                 <span>YouTube Videos</span>
+                <span className="text-dim text-xs">↗</span>
+              </a>
+              <a
+                href="https://soulbodyhealingcenter.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-between rounded-xl px-4 py-3 text-[0.95rem] font-medium text-vellum hover:bg-white/5 hover:text-halo transition-colors no-underline"
+              >
+                <span>Soul Body Healing Center</span>
                 <span className="text-dim text-xs">↗</span>
               </a>
             </div>
