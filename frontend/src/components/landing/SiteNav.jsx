@@ -200,6 +200,16 @@ function SiteNav() {
                   >
                     YouTube Videos
                   </a>
+                  <a
+                    href="https://soulbodyhealingcenter.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMoreOpen(false)}
+                    className="block px-6 py-2.5 text-[0.92rem] font-normal text-gray-900 hover:bg-gray-50 hover:text-amber-700 transition-colors no-underline"
+                    role="menuitem"
+                  >
+                    Soul Body Healing Center
+                  </a>
                 </div>
               </div>
             )}
@@ -366,9 +376,19 @@ function SiteNav() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-between rounded-xl px-4 py-3 text-[0.95rem] font-medium text-vellum hover:bg-white/5 hover:text-halo transition-colors no-underline"
+                className="flex items-center justify-between rounded-xl px-4 py-3 text-[0.95rem] font-medium text-vellum hover:bg-white/5 hover:text-halo transition-colors no-underline border-b border-white/[0.04]"
               >
                 <span>YouTube Videos</span>
+                <span className="text-dim text-xs">↗</span>
+              </a>
+              <a
+                href="https://soulbodyhealingcenter.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-between rounded-xl px-4 py-3 text-[0.95rem] font-medium text-vellum hover:bg-white/5 hover:text-halo transition-colors no-underline"
+              >
+                <span>Soul Body Healing Center</span>
                 <span className="text-dim text-xs">↗</span>
               </a>
             </div>
