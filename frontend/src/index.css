@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @theme {
+  --breakpoint-xs: 26rem;
+
   --color-void: #070b18;
   --color-ink: #0e1630;
   --color-slate: #1b2647;
@@ -19,18 +21,24 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
     overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   body {
     background: var(--color-void);
     color: var(--color-vellum);
     font-family: var(--font-text);
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
     overflow-x: clip;
     min-width: 0;
+    -webkit-tap-highlight-color: transparent;
   }
   img {
     max-width: 100%;
+    height: auto;
     display: block;
   }
   :focus-visible {
@@ -38,6 +46,15 @@
     outline-offset: 4px;
     border-radius: 2px;
   }
+}
+
+/* Utility to hide scrollbars on horizontal swipe bars while preserving touch scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -196,7 +213,11 @@
 }
 
 .blog-rich-content table {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-collapse: collapse;
   margin: 1.25rem 0;
   border: 1px solid rgba(255, 255, 255, 0.2);

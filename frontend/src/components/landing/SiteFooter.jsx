@@ -10,9 +10,9 @@ function SiteFooter() {
     <footer className="border-t border-[rgba(237,231,218,0.12)] bg-[#050812] py-12 sm:py-16 text-[0.86rem] text-dim transition-colors">
       <div className="mx-auto w-full max-w-[1360px] px-[clamp(20px,4vw,64px)]">
         {/* Main 5-Column Responsive Navigation Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 sm:gap-10 pb-12 border-b border-[rgba(237,231,218,0.08)]">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 sm:gap-10 pb-12 border-b border-[rgba(237,231,218,0.08)]">
           {/* Column 1: Brand & Founder Identity */}
-          <div className="space-y-4 sm:col-span-2 md:col-span-3 lg:col-span-1">
+          <div className="space-y-4 xs:col-span-2 md:col-span-3 lg:col-span-1">
             <div className="flex items-center gap-2.5">
               <svg width="28" height="28" viewBox="0 0 34 34" aria-hidden="true" className="flex-none">
                 <circle cx="17" cy="17" r="16" fill="none" stroke="#C9992E" strokeWidth="1" />

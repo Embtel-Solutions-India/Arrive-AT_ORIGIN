@@ -210,11 +210,11 @@ function HealingCenterSection() {
         {/* 2. Key Center Metrics & Highlights                                       */}
         {/* ========================================================================= */}
         <Reveal className="mb-14 sm:mb-20">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
             {centerStats.map((st) => (
               <div
                 key={st.label}
-                className="group relative rounded-2xl border border-[rgba(237,231,218,0.12)] bg-[#0A1024]/70 p-5 sm:p-6 backdrop-blur-md transition-all duration-300 hover:border-halo/50 hover:bg-[#0E1630]/90 hover:-translate-y-1 shadow-lg"
+                className="group relative rounded-2xl border border-[rgba(237,231,218,0.12)] bg-[#0A1024]/70 p-4 xs:p-5 sm:p-6 backdrop-blur-md transition-all duration-300 hover:border-halo/50 hover:bg-[#0E1630]/90 hover:-translate-y-1 shadow-lg"
               >
                 <div className="flex items-baseline gap-1.5 mb-1">
                   <span className="font-display text-2xl sm:text-3xl lg:text-4xl font-light text-halo tracking-tight">
@@ -222,10 +222,10 @@ function HealingCenterSection() {
                   </span>
                   <span className="font-mono text-[0.75rem] uppercase tracking-wider text-dim">{st.unit}</span>
                 </div>
-                <h3 className="font-display text-[0.95rem] sm:text-[1.05rem] font-medium text-vellum mt-1">
+                <h3 className="font-display text-[0.92rem] xs:text-[0.95rem] sm:text-[1.05rem] font-medium text-vellum mt-1">
                   {st.label}
                 </h3>
-                <p className="mt-2 text-[0.8rem] sm:text-[0.84rem] text-[#8A93A8] leading-relaxed mb-0">
+                <p className="mt-1.5 xs:mt-2 text-[0.78rem] xs:text-[0.8rem] sm:text-[0.84rem] text-[#8A93A8] leading-relaxed mb-0">
                   {st.desc}
                 </p>
               </div>
@@ -277,7 +277,7 @@ function HealingCenterSection() {
           </div>
 
           {/* Active Tab Panel Content */}
-          <div className="rounded-3xl border border-[rgba(232,206,140,0.22)] bg-gradient-to-br from-[#0E1630]/95 via-[#0A1024]/90 to-[#070B18]/95 p-6 sm:p-10 backdrop-blur-xl shadow-2xl transition-all duration-300">
+          <div className="rounded-2xl sm:rounded-3xl border border-[rgba(232,206,140,0.22)] bg-gradient-to-br from-[#0E1630]/95 via-[#0A1024]/90 to-[#070B18]/95 p-4 xs:p-6 sm:p-10 backdrop-blur-xl shadow-2xl transition-all duration-300">
             <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8 lg:gap-12 items-start">
               <div className="space-y-5">
                 <div>
@@ -504,7 +504,7 @@ function HealingCenterSection() {
                     <span aria-hidden="true">→</span>
                   </Link>
 
-                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                  <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2.5 pt-1">
                     <a
                       href="https://www.google.com/maps/place//@46.423669,-129.9427085,3z/data=!3m1!4b1!4m3!3m2!1s0x6613bd4da2da38c7:0x44d81f84a5ec0c06!12e1?entry=ttu&g_ep=EgoyMDI2MTAxMi4wIKXMDSoASAFQAw%3D%3D"
                       target="_blank"

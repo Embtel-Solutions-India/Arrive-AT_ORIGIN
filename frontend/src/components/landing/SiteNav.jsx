@@ -8,7 +8,6 @@ const navLinks = [
   { href: "/#threshold", label: "The meta-human" },
   { href: "/#frameworks", label: "Frameworks" },
   { href: "/#practice", label: "Practice" },
-  { href: "/#healing-center", label: "Healing Center" },
   { to: "/books", label: "Book Store" },
   { to: "/blog", label: "Blog" },
   { href: "/#about", label: "About" },
@@ -97,21 +96,21 @@ function SiteNav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[rgba(237,231,218,0.08)] bg-void/95 backdrop-blur-[16px] backdrop-saturate-[1.3]">
-      <div className="relative mx-auto flex min-h-[68px] sm:min-h-[74px] w-full max-w-[1280px] items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex min-h-[64px] xs:min-h-[68px] sm:min-h-[74px] w-full max-w-[1280px] items-center justify-between gap-2 xs:gap-3 sm:gap-4 px-3 sm:px-6 lg:px-8">
         {/* Brand Logo & Title */}
         <a
           href="/#top"
-          className="flex items-center gap-2.5 sm:gap-3 font-display text-[0.98rem] sm:text-[1.04rem] tracking-[0.01em] text-vellum no-underline flex-shrink-0 group"
+          className="flex items-center gap-2 xs:gap-2.5 sm:gap-3 font-display text-[0.88rem] xs:text-[0.96rem] sm:text-[1.04rem] tracking-[0.01em] text-vellum no-underline flex-shrink-0 group"
           aria-label="Dr. Alka Chopra Madan - Home"
         >
-          <svg width="32" height="32" viewBox="0 0 34 34" aria-hidden="true" className="flex-none transition-transform duration-300 group-hover:scale-105">
+          <svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true" className="flex-none transition-transform duration-300 group-hover:scale-105 sm:w-[34px] sm:h-[34px]">
             <circle cx="17" cy="17" r="16" fill="none" stroke="#C9992E" strokeWidth="1" />
             <circle cx="17" cy="17" r="10" fill="none" stroke="#E8CE8C" strokeWidth="1" opacity=".7" />
             <circle cx="17" cy="17" r="3" fill="#E8CE8C" />
           </svg>
           <span className="whitespace-nowrap leading-tight">
             Dr. Alka Chopra Madan
-            <small className="block font-text text-[0.63rem] sm:text-[0.66rem] tracking-[0.12em] text-dim">
+            <small className="block font-text text-[0.6rem] xs:text-[0.63rem] sm:text-[0.66rem] tracking-[0.12em] text-dim">
               Soul Body Healing Center
             </small>
           </span>
@@ -201,16 +200,6 @@ function SiteNav() {
                   >
                     YouTube Videos
                   </a>
-                  <a
-                    href="https://soulbodyhealingcenter.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setMoreOpen(false)}
-                    className="block px-6 py-2.5 text-[0.92rem] font-normal text-gray-900 hover:bg-gray-50 hover:text-amber-700 transition-colors no-underline"
-                    role="menuitem"
-                  >
-                    Soul Body Healing Center
-                  </a>
                 </div>
               </div>
             )}
@@ -297,14 +286,14 @@ function SiteNav() {
         <div className="lg:hidden">
           {/* Backdrop below the header */}
           <div
-            className="fixed inset-x-0 bottom-0 top-[68px] sm:top-[74px] z-40 bg-black/75 backdrop-blur-sm transition-opacity"
+            className="fixed inset-x-0 bottom-0 top-[64px] xs:top-[68px] sm:top-[74px] z-40 bg-black/75 backdrop-blur-sm transition-opacity"
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
 
           {/* Mobile Dropdown Panel attached right below header */}
           <div
-            className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-74px)] overflow-y-auto border-b border-[rgba(232,206,140,0.25)] bg-[#070B18]/98 p-4 sm:p-6 shadow-2xl backdrop-blur-2xl space-y-4"
+            className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-64px)] xs:max-h-[calc(100dvh-68px)] sm:max-h-[calc(100dvh-74px)] overflow-y-auto border-b border-[rgba(232,206,140,0.25)] bg-[#070B18]/98 p-3.5 sm:p-6 shadow-2xl backdrop-blur-2xl space-y-3.5 sm:space-y-4"
             role="dialog"
             aria-modal="true"
             aria-label="Navigation Menu"
@@ -377,19 +366,9 @@ function SiteNav() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-between rounded-xl px-4 py-3 text-[0.95rem] font-medium text-vellum hover:bg-white/5 hover:text-halo transition-colors no-underline border-b border-white/[0.04]"
-              >
-                <span>YouTube Videos</span>
-                <span className="text-dim text-xs">↗</span>
-              </a>
-              <a
-                href="https://soulbodyhealingcenter.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setOpen(false)}
                 className="flex items-center justify-between rounded-xl px-4 py-3 text-[0.95rem] font-medium text-vellum hover:bg-white/5 hover:text-halo transition-colors no-underline"
               >
-                <span>Soul Body Healing Center</span>
+                <span>YouTube Videos</span>
                 <span className="text-dim text-xs">↗</span>
               </a>
             </div>

@@ -54,49 +54,49 @@ function ThresholdCompare() {
     <div>
       <div
         ref={boxRef}
-        className="relative min-h-[520px] overflow-hidden rounded-[20px] shadow-[0_40px_90px_rgba(0,0,0,0.45)] max-[760px]:min-h-[660px]"
+        className="relative min-h-[520px] overflow-hidden rounded-[20px] shadow-[0_40px_90px_rgba(0,0,0,0.45)] max-[760px]:min-h-[720px] max-[480px]:min-h-[800px] max-[380px]:min-h-[890px]"
       >
-        <div className="absolute inset-0 flex flex-col bg-vellum p-[clamp(26px,4vw,52px)] text-[#2A2618]">
-          <h3 className="mb-[0.15em] font-display text-[clamp(1.5rem,2.6vw,2.1rem)] font-light leading-[1.02] tracking-[-0.015em] text-[#2A2618]">
+        <div className="absolute inset-0 flex flex-col bg-vellum p-4 xs:p-6 sm:p-8 md:p-[clamp(26px,4vw,52px)] text-[#2A2618]">
+          <h3 className="mb-[0.15em] font-display text-[clamp(1.4rem,2.6vw,2.1rem)] font-light leading-[1.05] tracking-[-0.015em] text-[#2A2618]">
             The acquired self
           </h3>
-          <p className="mb-[26px] min-h-[2.6em] max-w-[34ch] text-[0.86rem] tracking-[0.02em] text-dim-warm">
+          <p className="mb-3 sm:mb-[26px] min-h-0 sm:min-h-[2.6em] max-w-[34ch] text-[0.8rem] sm:text-[0.86rem] tracking-[0.02em] text-dim-warm">
             Life read through what has accumulated.
           </p>
           <dl className="grid min-h-0 flex-1 grid-rows-4">
             {humanRows.map((row) => (
               <div
                 key={row.label}
-                className="grid grid-cols-[118px_1fr] items-start gap-5 border-t border-[rgba(42,38,24,0.16)] py-4 max-[760px]:grid-cols-1 max-[760px]:gap-1"
+                className="grid grid-cols-1 sm:grid-cols-[118px_1fr] items-start gap-1 sm:gap-5 border-t border-[rgba(42,38,24,0.16)] py-2 sm:py-3.5"
               >
-                <dt className="font-display text-[1.02rem] font-normal text-dim-warm">{row.label}</dt>
-                <dd className="m-0 text-[0.95rem] leading-[1.5] text-[#4A4638]">{row.text}</dd>
+                <dt className="font-display text-[0.92rem] sm:text-[1.02rem] font-medium text-dim-warm">{row.label}</dt>
+                <dd className="m-0 text-[0.85rem] sm:text-[0.95rem] leading-[1.45] text-[#4A4638]">{row.text}</dd>
               </div>
             ))}
           </dl>
         </div>
 
         <div
-          className="absolute inset-0 flex flex-col p-[clamp(26px,4vw,52px)] text-vellum"
+          className="absolute inset-0 flex flex-col p-4 xs:p-6 sm:p-8 md:p-[clamp(26px,4vw,52px)] text-vellum"
           style={{
             clipPath: `inset(0 0 0 ${split}%)`,
             background: "radial-gradient(120% 100% at 85% 10%, #16224A 0%, #070B18 62%)",
           }}
         >
-          <h3 className="mb-[0.15em] font-display text-[clamp(1.5rem,2.6vw,2.1rem)] font-light leading-[1.02] tracking-[-0.015em] text-vellum">
+          <h3 className="mb-[0.15em] font-display text-[clamp(1.4rem,2.6vw,2.1rem)] font-light leading-[1.05] tracking-[-0.015em] text-vellum">
             The meta-human
           </h3>
-          <p className="mb-[26px] min-h-[2.6em] max-w-[34ch] text-[0.86rem] tracking-[0.02em] text-halo">
+          <p className="mb-3 sm:mb-[26px] min-h-0 sm:min-h-[2.6em] max-w-[34ch] text-[0.8rem] sm:text-[0.86rem] tracking-[0.02em] text-halo">
             The same life, read from Origin.
           </p>
           <dl className="grid min-h-0 flex-1 grid-rows-4">
             {metaRows.map((row) => (
               <div
                 key={row.label}
-                className="grid grid-cols-[118px_1fr] items-start gap-5 border-t border-[rgba(237,231,218,0.14)] py-4 max-[760px]:grid-cols-1 max-[760px]:gap-1"
+                className="grid grid-cols-1 sm:grid-cols-[118px_1fr] items-start gap-1 sm:gap-5 border-t border-[rgba(237,231,218,0.14)] py-2 sm:py-3.5"
               >
-                <dt className="font-display text-[1.02rem] font-normal text-halo">{row.label}</dt>
-                <dd className="m-0 text-[0.95rem] leading-[1.5] text-[#C6CBD8]">{row.text}</dd>
+                <dt className="font-display text-[0.92rem] sm:text-[1.02rem] font-medium text-halo">{row.label}</dt>
+                <dd className="m-0 text-[0.85rem] sm:text-[0.95rem] leading-[1.45] text-[#C6CBD8]">{row.text}</dd>
               </div>
             ))}
           </dl>
@@ -110,7 +110,7 @@ function ThresholdCompare() {
           value={split}
           onChange={(e) => setSplit(Number(e.target.value))}
           aria-label="Move the threshold between the acquired self and the meta-human"
-          className="absolute inset-0 z-[6] m-0 h-full w-full cursor-ew-resize appearance-none bg-transparent opacity-0 [&::-moz-range-thumb]:h-[520px] [&::-moz-range-thumb]:w-16 [&::-moz-range-thumb]:cursor-ew-resize [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-transparent [&::-webkit-slider-thumb]:h-[520px] [&::-webkit-slider-thumb]:w-16 [&::-webkit-slider-thumb]:cursor-ew-resize [&::-webkit-slider-thumb]:appearance-none"
+          className="absolute inset-0 z-[6] m-0 h-full w-full cursor-ew-resize appearance-none bg-transparent opacity-0 [&::-moz-range-thumb]:h-full [&::-moz-range-thumb]:w-16 [&::-moz-range-thumb]:cursor-ew-resize [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-transparent [&::-webkit-slider-thumb]:h-full [&::-webkit-slider-thumb]:w-16 [&::-webkit-slider-thumb]:cursor-ew-resize [&::-webkit-slider-thumb]:appearance-none"
         />
 
         <div

@@ -823,11 +823,11 @@ function AccountPortal() {
               </div>
 
               {/* Navigation Tabs */}
-              <div className="flex items-center gap-2 border-b border-[rgba(237,231,218,0.12)] pb-3 mb-6 overflow-x-auto whitespace-nowrap">
+              <div className="flex items-center gap-2 border-b border-[rgba(237,231,218,0.12)] pb-3 mb-6 overflow-x-auto whitespace-nowrap no-scrollbar py-1">
                 <button
                   type="button"
                   onClick={() => setActiveTab("ebooks")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                     activeTab === "ebooks"
                       ? "bg-halo text-void shadow-sm"
                       : "text-dim hover:text-vellum hover:bg-white/5"
@@ -1235,19 +1235,19 @@ function AccountPortal() {
       {/* Online E-Book Reader Modal (Requirement 3, 4, 6) */}
       {readingBook && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-md p-2 sm:p-5">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-t-2xl border-t border-x border-[rgba(232,206,140,0.3)] bg-[#0E1630] px-5 py-3 shadow-2xl">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="text-xl">📖</span>
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-t-2xl border-t border-x border-[rgba(232,206,140,0.3)] bg-[#0E1630] px-3.5 sm:px-5 py-2.5 sm:py-3 shadow-2xl">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <span className="text-lg sm:text-xl shrink-0">📖</span>
               <div className="min-w-0">
-                <span className="text-[0.68rem] uppercase tracking-widest text-halo font-bold block">
+                <span className="text-[0.62rem] sm:text-[0.68rem] uppercase tracking-widest text-halo font-bold block truncate">
                   Digital E-Book Reader • Arrive at Origin
                 </span>
-                <h2 className="text-sm sm:text-base font-semibold text-vellum truncate">
+                <h2 className="text-xs sm:text-base font-semibold text-vellum truncate">
                   {readingBook.title}
                 </h2>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <a
                 href={readingBook.readUrl}
                 target="_blank"
@@ -1259,10 +1259,10 @@ function AccountPortal() {
               <button
                 type="button"
                 onClick={() => setReadingBook(null)}
-                className="rounded-full bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs text-vellum hover:text-white transition-colors cursor-pointer font-semibold"
+                className="rounded-full bg-white/10 hover:bg-white/20 px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs text-vellum hover:text-white transition-colors cursor-pointer font-semibold"
                 title="Close Reader"
               >
-                ✕ Close Reader
+                ✕ Close
               </button>
             </div>
           </div>

@@ -97,15 +97,15 @@ function BlogPost() {
             {/* ─── Main Article Column ─── */}
             <article className="lg:col-span-8 min-w-0">
               {/* Breadcrumbs */}
-              <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-xs text-dim">
+              <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-dim">
                 <Link to="/" className="text-dim hover:text-vellum">Home</Link>
                 <span>/</span>
                 <Link to="/blog" className="text-dim hover:text-vellum">Blog</Link>
                 <span>/</span>
-                <span className="text-halo truncate max-w-[200px]">{post.categoryName || "Essay"}</span>
+                <span className="text-halo truncate max-w-[180px] xs:max-w-[260px] sm:max-w-none">{post.categoryName || "Essay"}</span>
               </nav>
 
-              <div className="mb-4 flex flex-wrap items-center gap-3 text-xs tracking-wider uppercase text-dim">
+              <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3 text-xs tracking-wider uppercase text-dim">
                 <Link
                   to={`/blog?category=${encodeURIComponent(post.categoryName || "Metaphysics")}`}
                   className="rounded bg-halo/10 px-2.5 py-1 font-semibold text-halo hover:bg-halo/20 transition-colors no-underline"
@@ -169,15 +169,15 @@ function BlogPost() {
               )}
 
               {/* Author Box & Share */}
-              <div className="mt-10 rounded-2xl border border-[rgba(237,231,218,0.14)] bg-[rgba(237,231,218,0.03)] p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 backdrop-blur-md">
-                <div className="flex items-center gap-4">
+              <div className="mt-10 rounded-2xl border border-[rgba(237,231,218,0.14)] bg-[rgba(237,231,218,0.03)] p-4.5 xs:p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 backdrop-blur-md">
+                <div className="flex items-center gap-3.5 sm:gap-4">
                   <img
                     src="/dr-alka-chopra-madan.png"
                     alt="Dr. Alka Chopra Madan"
-                    className="h-16 w-16 rounded-full object-cover border border-halo/40"
+                    className="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover border border-halo/40 shrink-0"
                   />
                   <div>
-                    <h4 className="font-display text-lg text-vellum">Dr. Alka Chopra Madan</h4>
+                    <h4 className="font-display text-base sm:text-lg text-vellum">Dr. Alka Chopra Madan</h4>
                     <p className="text-xs text-dim">Author & Metaphysical Counselor · Arrive at Origin</p>
                   </div>
                 </div>
@@ -185,7 +185,7 @@ function BlogPost() {
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="inline-flex items-center gap-2 rounded-full border border-[rgba(237,231,218,0.25)] bg-white/5 px-4 py-2 text-xs font-semibold text-vellum hover:border-halo hover:bg-white/10 transition-colors cursor-pointer"
+                  className="w-full sm:w-auto justify-center inline-flex items-center gap-2 rounded-full border border-[rgba(237,231,218,0.25)] bg-white/5 px-4 py-2 text-xs font-semibold text-vellum hover:border-halo hover:bg-white/10 transition-colors cursor-pointer text-center"
                 >
                   {copied ? "✓ Link Copied!" : "🔗 Share Article"}
                 </button>

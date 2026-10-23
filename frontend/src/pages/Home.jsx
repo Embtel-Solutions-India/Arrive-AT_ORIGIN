@@ -488,21 +488,21 @@ function Home() {
               that circumstance never manufactured — the meta-human. Metaphysics is the discipline that studies it.
               This practice is where it is put to use.
             </p>
-            <div className="mt-[34px] flex flex-wrap gap-[14px]">
+            <div className="mt-7 sm:mt-[34px] flex flex-col xs:flex-row flex-wrap items-stretch xs:items-center gap-3 sm:gap-[14px]">
               <a
                 href="#threshold"
-                className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-halo bg-halo px-[26px] text-[0.95rem] font-bold text-void no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-white hover:bg-white"
+                className="inline-flex min-h-[50px] sm:min-h-[52px] items-center justify-center rounded-full border border-halo bg-halo px-5 sm:px-[26px] text-[0.9rem] sm:text-[0.95rem] font-bold text-void no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-white hover:bg-white text-center"
               >
                 See what meta-human means
               </a>
               <Link
                 to="/schedule"
-                className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-[rgba(237,231,218,0.32)] bg-transparent px-[26px] text-[0.95rem] font-bold text-vellum no-underline transition-all duration-200 hover:border-halo hover:bg-[rgba(237,231,218,0.08)]"
+                className="inline-flex min-h-[50px] sm:min-h-[52px] items-center justify-center rounded-full border border-[rgba(237,231,218,0.32)] bg-transparent px-5 sm:px-[26px] text-[0.9rem] sm:text-[0.95rem] font-bold text-vellum no-underline transition-all duration-200 hover:border-halo hover:bg-[rgba(237,231,218,0.08)] text-center"
               >
                 Book a conversation
               </Link>
             </div>
-            <div className="mt-10 flex flex-wrap gap-x-[26px] gap-y-[10px] text-[0.86rem] text-dim">
+            <div className="mt-8 sm:mt-10 flex flex-wrap gap-x-4 sm:gap-x-[26px] gap-y-2 sm:gap-y-[10px] text-xs sm:text-[0.86rem] text-dim">
               <span>
                 <b className="font-medium text-vellum">D.Msc.</b> Doctorate in Metaphysics
               </span>
@@ -754,12 +754,12 @@ function Home() {
                 <Link
                   key={item.title}
                   to="/schedule"
-                  className="group grid grid-cols-1 items-baseline gap-2 border-b border-[rgba(237,231,218,0.14)] py-[30px] no-underline transition-all duration-300 hover:bg-linear-to-r hover:from-[rgba(232,206,140,0.1)] hover:to-transparent hover:pl-[18px] focus-visible:bg-linear-to-r focus-visible:from-[rgba(232,206,140,0.1)] focus-visible:to-transparent focus-visible:pl-[18px] sm:grid-cols-[minmax(220px,0.9fr)_1.4fr_auto] sm:gap-6"
+                  className="group grid grid-cols-1 items-baseline gap-2 border-b border-[rgba(237,231,218,0.14)] py-5 sm:py-[30px] no-underline transition-all duration-300 hover:bg-linear-to-r hover:from-[rgba(232,206,140,0.1)] hover:to-transparent hover:pl-3 sm:hover:pl-[18px] focus-visible:bg-linear-to-r focus-visible:from-[rgba(232,206,140,0.1)] focus-visible:to-transparent focus-visible:pl-[18px] md:grid-cols-[minmax(220px,0.9fr)_1.4fr_auto] md:gap-6"
                 >
-                  <h3 className={`${heading} text-[clamp(1.3rem,2vw,1.7rem)] font-normal text-vellum`}>{item.title}</h3>
-                  <p className="m-0 text-[0.95rem] text-[#A9B0C2]">{item.text}</p>
-                  <span className="text-[0.85rem] whitespace-nowrap text-halo opacity-100 transition-opacity duration-300 sm:opacity-[0.55] sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
-                    {item.cta}
+                  <h3 className={`${heading} text-[clamp(1.2rem,2vw,1.7rem)] font-normal text-vellum`}>{item.title}</h3>
+                  <p className="m-0 text-[0.88rem] sm:text-[0.95rem] text-[#A9B0C2] leading-relaxed">{item.text}</p>
+                  <span className="text-[0.85rem] whitespace-nowrap text-halo font-semibold opacity-100 transition-opacity duration-300 md:opacity-[0.6] md:group-hover:opacity-100 md:group-focus-visible:opacity-100">
+                    {item.cta} →
                   </span>
                 </Link>
               ))}
@@ -945,16 +945,16 @@ function Home() {
                 anyone else's reading of your life — including mine.
               </p>
               <p className="max-w-[64ch] text-vellum">AAO is the clearest expression of that. The meta-human is who it is addressed to.</p>
-              <div className="mt-[34px] flex flex-wrap gap-[14px]">
+              <div className="mt-7 sm:mt-[34px] flex flex-col xs:flex-row flex-wrap items-stretch xs:items-center gap-3 sm:gap-[14px]">
                 <Link
                   to="/schedule"
-                  className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-halo bg-halo px-[26px] text-[0.95rem] font-bold text-void no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-white hover:bg-white"
+                  className="inline-flex min-h-[50px] sm:min-h-[52px] items-center justify-center rounded-full border border-halo bg-halo px-5 sm:px-[26px] text-[0.9rem] sm:text-[0.95rem] font-bold text-void no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-white hover:bg-white text-center"
                 >
                   Book a conversation
                 </Link>
                 <a
                   href="#books"
-                  className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-[rgba(237,231,218,0.32)] bg-transparent px-[26px] text-[0.95rem] font-bold text-vellum no-underline transition-all duration-200 hover:border-halo hover:bg-[rgba(237,231,218,0.08)]"
+                  className="inline-flex min-h-[50px] sm:min-h-[52px] items-center justify-center rounded-full border border-[rgba(237,231,218,0.32)] bg-transparent px-5 sm:px-[26px] text-[0.9rem] sm:text-[0.95rem] font-bold text-vellum no-underline transition-all duration-200 hover:border-halo hover:bg-[rgba(237,231,218,0.08)] text-center"
                 >
                   Read the books
                 </a>

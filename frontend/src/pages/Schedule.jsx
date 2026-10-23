@@ -432,16 +432,16 @@ function Schedule() {
                 For inquiries or emergency scheduling, connect directly with our support desk.
               </p>
             </div>
-            <div className="flex items-center gap-4 text-[0.9rem]">
+            <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2.5 sm:gap-4 w-full sm:w-auto text-[0.88rem] sm:text-[0.9rem]">
               <a
                 href="tel:+15108308771"
-                className="rounded-full border border-gold/40 px-5 py-2.5 text-halo hover:border-halo transition-colors"
+                className="rounded-full border border-gold/40 px-5 py-2.5 text-halo hover:border-halo transition-colors text-center"
               >
                 📞 +1 (510) 830-8771
               </a>
               <a
                 href="mailto:info@soulbodyhealingcenter.com"
-                className="rounded-full border border-[rgba(237,231,218,0.2)] px-5 py-2.5 text-vellum hover:border-vellum transition-colors"
+                className="rounded-full border border-[rgba(237,231,218,0.2)] px-5 py-2.5 text-vellum hover:border-vellum transition-colors text-center"
               >
                 ✉️ Email Us
               </a>
@@ -451,17 +451,17 @@ function Schedule() {
       </main>
 
       {/* ========================================================================= */}
-      {/* Interactive Consultation Booking Modal with Real-time Razorpay Checkout   */}
+      {/* Interactive Consultation Booking Modal with Real-time Checkout            */}
       {/* ========================================================================= */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-[#070B18]/80 backdrop-blur-md">
-          <div className="relative w-full max-w-2xl rounded-3xl border border-[rgba(232,206,140,0.25)] bg-[#0E1630] p-6 sm:p-8 shadow-2xl max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 xs:p-4 sm:p-6 overflow-y-auto bg-[#070B18]/80 backdrop-blur-md">
+          <div className="relative w-full max-w-2xl rounded-2xl sm:rounded-3xl border border-[rgba(232,206,140,0.25)] bg-[#0E1630] p-4.5 xs:p-6 sm:p-8 shadow-2xl max-h-[92dvh] overflow-y-auto">
             {/* Close Button */}
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
               aria-label="Close booking modal"
-              className="absolute top-5 right-5 flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(237,231,218,0.15)] bg-white/5 text-dim hover:text-vellum hover:bg-white/10 transition-colors cursor-pointer"
+              className="absolute top-4 right-4 sm:top-5 sm:right-5 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full border border-[rgba(237,231,218,0.15)] bg-white/5 text-dim hover:text-vellum hover:bg-white/10 transition-colors cursor-pointer text-sm"
             >
               ✕
             </button>

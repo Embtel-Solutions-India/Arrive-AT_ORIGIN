@@ -137,22 +137,22 @@ function BookDetail() {
       <main className="py-[clamp(48px,6vw,96px)]">
         <div className={shell}>
           {/* Breadcrumbs */}
-          <nav aria-label="Breadcrumbs" className="mb-8 flex items-center gap-2 text-xs text-dim">
+          <nav aria-label="Breadcrumbs" className="mb-6 sm:mb-8 flex flex-wrap items-center gap-1.5 text-xs text-dim">
             <Link to="/" className="text-dim hover:text-vellum">Home</Link>
             <span>/</span>
             <Link to="/books" className="text-dim hover:text-vellum">Books</Link>
             <span>/</span>
-            <span className="text-halo truncate">{book.title}</span>
+            <span className="text-halo truncate max-w-[220px] sm:max-w-none">{book.title}</span>
           </nav>
 
-          <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 items-start">
+          <div className="grid grid-cols-1 gap-8 lg:gap-12 lg:grid-cols-12 items-start">
             {/* Left Cover Image (5 cols) */}
             <div className="lg:col-span-5">
-              <div className="sticky top-28 overflow-hidden rounded-2xl border border-[rgba(237,231,218,0.16)] bg-black/40 p-4 shadow-2xl">
+              <div className="lg:sticky lg:top-28 overflow-hidden rounded-2xl border border-[rgba(237,231,218,0.16)] bg-black/40 p-3 sm:p-4 shadow-2xl">
                 <img
                   src={book.coverImage || "/aao-part-one.png"}
                   alt={book.title}
-                  className="w-full max-h-[560px] object-cover rounded-xl mx-auto shadow-md"
+                  className="w-full max-h-[460px] sm:max-h-[560px] object-cover rounded-xl mx-auto shadow-md"
                 />
               </div>
             </div>

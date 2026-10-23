@@ -57,23 +57,23 @@ function About() {
       </div>
 
       {/* Action CTA */}
-      <div className="rounded-2xl border border-halo/30 bg-halo/5 p-6 sm:p-8 text-center flex flex-col sm:flex-row items-center justify-between gap-6">
-        <div className="text-left max-w-lg">
+      <div className="rounded-2xl border border-halo/30 bg-halo/5 p-5 sm:p-8 text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="max-w-lg">
           <h3 className="font-display text-xl text-vellum mb-1">Begin Your Counsel</h3>
           <p className="text-xs sm:text-sm text-dim">
             Private 1-on-1 sessions and transformation packages available online worldwide or in-person.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-3 w-full sm:w-auto">
           <Link
             to="/schedule"
-            className="rounded-full bg-halo px-6 py-2.5 text-xs font-bold text-void hover:bg-white transition-colors no-underline whitespace-nowrap"
+            className="rounded-full bg-halo px-6 py-2.5 text-xs font-bold text-void hover:bg-white transition-colors no-underline whitespace-nowrap text-center"
           >
             Schedule Consultation
           </Link>
           <Link
             to="/books"
-            className="rounded-full border border-[rgba(237,231,218,0.25)] px-5 py-2.5 text-xs text-vellum hover:border-halo transition-colors no-underline whitespace-nowrap"
+            className="rounded-full border border-[rgba(237,231,218,0.25)] px-5 py-2.5 text-xs text-vellum hover:border-halo transition-colors no-underline whitespace-nowrap text-center"
           >
             Explore Books
           </Link>
