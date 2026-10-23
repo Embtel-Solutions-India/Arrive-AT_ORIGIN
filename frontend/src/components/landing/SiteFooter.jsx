@@ -82,6 +82,11 @@ function SiteFooter() {
                 </a>
               </li>
               <li>
+                <a href="/#healing-center" className="hover:text-vellum transition-colors no-underline block py-0.5">
+                  Soul Body Healing Center
+                </a>
+              </li>
+              <li>
                 <Link to="/about" className="hover:text-vellum transition-colors no-underline block py-0.5">
                   About Dr. Alka
                 </Link>

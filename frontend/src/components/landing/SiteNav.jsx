@@ -8,6 +8,7 @@ const navLinks = [
   { href: "/#threshold", label: "The meta-human" },
   { href: "/#frameworks", label: "Frameworks" },
   { href: "/#practice", label: "Practice" },
+  { href: "/#healing-center", label: "Healing Center" },
   { to: "/books", label: "Book Store" },
   { to: "/blog", label: "Blog" },
   { href: "/#about", label: "About" },

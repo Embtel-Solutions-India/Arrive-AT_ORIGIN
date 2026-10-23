@@ -8,6 +8,7 @@ import HeroCanvas from "../components/landing/HeroCanvas";
 import ThresholdCompare from "../components/landing/ThresholdCompare";
 import FrameworkTabs from "../components/landing/FrameworkTabs";
 import Reveal from "../components/landing/Reveal";
+import HealingCenterSection from "../components/landing/HealingCenterSection";
 import { useCart } from "../context/CartContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { apiUrl } from "../utils/api";
@@ -612,6 +613,65 @@ function Home() {
           </div>
         </section>
 
+        {/* BOOKS - BOOK CAROUSEL SLIDER (AFTER 3RD SECTION) */}
+        <section className="relative bg-vellum-2 border-t border-[rgba(42,38,24,0.12)] py-[clamp(72px,10vw,132px)] text-ink" id="books">
+          <div className={shell}>
+            <Reveal className="mb-[clamp(36px,5vw,64px)] flex flex-wrap items-end justify-between gap-6">
+              <div className="max-w-[34ch]">
+                <h2 className={`${heading} mb-[0.34em] text-[clamp(2.2rem,4.6vw,3.9rem)] text-ink`}>
+                  The written body of work.
+                </h2>
+                <p className="max-w-[56ch] text-[#4A4638]">
+                  The books are not companion products to the practice — they are where the frameworks are set down in
+                  full. The AAO series is the spine; the earlier titles are the inquiry that led to it.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsBooksPaused((prev) => !prev)}
+                  className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white/70 px-4 py-2.5 text-xs font-semibold text-ink hover:border-ink hover:bg-white transition-all cursor-pointer shadow-sm"
+                  title={isBooksPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
+                  aria-label={isBooksPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
+                >
+                  <span className="text-sm leading-none" aria-hidden="true">
+                    {isBooksPaused ? "▶" : "⏸"}
+                  </span>
+                  <span>{isBooksPaused ? "Resume Scroll" : "Pause Scroll"}</span>
+                </button>
+                <Link
+                  to="/books"
+                  className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-xs font-bold uppercase tracking-wider text-vellum hover:bg-gold hover:text-ink transition-colors no-underline shadow-sm"
+                >
+                  Visit Book Store & Orders →
+                </Link>
+              </div>
+            </Reveal>
+
+            <Reveal as="div" className="book-marquee -mx-[clamp(20px,5vw,64px)]">
+              <div
+                className="book-track"
+                style={{ animationPlayState: isBooksPaused ? "paused" : undefined }}
+              >
+                {[...liveBooks, ...liveBooks].map((book, i) => (
+                  <BookCard key={`${book.title}-${i}`} book={book} hidden={i >= liveBooks.length} />
+                ))}
+              </div>
+            </Reveal>
+
+            <Reveal className="mt-8 flex flex-wrap gap-[22px] text-[0.9rem] text-[#4A4638]">
+              <span>
+                <b className="block font-display text-[1.3rem] font-normal text-ink">हिन्दी</b> AAO in Hindi — in
+                translation
+              </span>
+              <span>
+                <b className="block font-display text-[1.3rem] font-normal text-ink">ਪੰਜਾਬੀ</b> AAO in Punjabi — in
+                translation
+              </span>
+            </Reveal>
+          </div>
+        </section>
+
         {/* FRAMEWORKS */}
         <section className="relative py-[clamp(72px,10vw,132px)]" id="frameworks">
           <div className={shell}>
@@ -707,66 +767,8 @@ function Home() {
           </div>
         </section>
 
-        {/* BOOKS */}
-        <section className="relative bg-vellum-2 py-[clamp(72px,10vw,132px)] text-ink" id="books">
-          <div className={shell}>
-            <Reveal className="mb-[clamp(36px,5vw,64px)] flex flex-wrap items-end justify-between gap-6">
-              <div className="max-w-[34ch]">
-                <h2 className={`${heading} mb-[0.34em] text-[clamp(2.2rem,4.6vw,3.9rem)] text-ink`}>
-                  The written body of work.
-                </h2>
-                <p className="max-w-[56ch] text-[#4A4638]">
-                  The books are not companion products to the practice — they are where the frameworks are set down in
-                  full. The AAO series is the spine; the earlier titles are the inquiry that led to it.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsBooksPaused((prev) => !prev)}
-                  className="inline-flex items-center gap-2 rounded-full border border-ink/20 bg-white/70 px-4 py-2.5 text-xs font-semibold text-ink hover:border-ink hover:bg-white transition-all cursor-pointer shadow-sm"
-                  title={isBooksPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
-                  aria-label={isBooksPaused ? "Resume auto-scroll" : "Pause auto-scroll"}
-                >
-                  <span className="text-sm leading-none" aria-hidden="true">
-                    {isBooksPaused ? "▶" : "⏸"}
-                  </span>
-                  <span>{isBooksPaused ? "Resume Scroll" : "Pause Scroll"}</span>
-                </button>
-                <Link
-                  to="/books"
-                  className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-xs font-bold uppercase tracking-wider text-vellum hover:bg-gold hover:text-ink transition-colors no-underline shadow-sm"
-                >
-                  Visit Book Store & Orders →
-                </Link>
-              </div>
-            </Reveal>
-
-            <Reveal as="div" className="book-marquee -mx-[clamp(20px,5vw,64px)]">
-              <div
-                className="book-track"
-                style={{ animationPlayState: isBooksPaused ? "paused" : undefined }}
-              >
-                {[...liveBooks, ...liveBooks].map((book, i) => (
-                  <BookCard key={`${book.title}-${i}`} book={book} hidden={i >= liveBooks.length} />
-                ))}
-              </div>
-            </Reveal>
-
-            <Reveal className="mt-8 flex flex-wrap gap-[22px] text-[0.9rem] text-[#4A4638]">
-              <span>
-                <b className="block font-display text-[1.3rem] font-normal text-ink">हिन्दी</b> AAO in Hindi — in
-                translation
-              </span>
-              <span>
-                <b className="block font-display text-[1.3rem] font-normal text-ink">ਪੰਜਾਬੀ</b> AAO in Punjabi — in
-                translation
-              </span>
-            </Reveal>
-          </div>
-        </section>
-
-
+        {/* SOUL BODY HEALING CENTER */}
+        <HealingCenterSection />
 
         {/* VOICES / GOOGLE REVIEWS */}
         <section className="relative bg-vellum py-[clamp(72px,10vw,132px)] text-ink" id="voices">
@@ -780,10 +782,10 @@ function Home() {
               </p>
             </Reveal>
 
-            {/* Elfsight Google Reviews | Soul Body Healing Centre */}
+            {/* Elfsight Google Reviews | Arriveatorigin */}
             <Reveal className="my-8 w-full min-h-[300px]">
               <div
-                className="elfsight-app-3a7e5042-128d-438e-aa63-5a702876d9a9"
+                className="elfsight-app-ca14bac0-8871-4a18-9d5c-44476575dab0"
                 data-elfsight-app-lazy
               />
             </Reveal>
