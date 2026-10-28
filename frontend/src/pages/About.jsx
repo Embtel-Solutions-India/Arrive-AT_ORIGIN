@@ -1,8 +1,17 @@
 import { Link } from "react-router-dom";
+import SEO from "../components/seo/SEO";
 
 function About() {
   return (
     <div className="py-8 px-4 sm:px-6 max-w-4xl mx-auto space-y-12">
+      <SEO
+        title="About Dr. Alka Chopra Madan, D.Msc. | Metaphysician & Author"
+        description="Learn about Dr. Alka Chopra Madan, D.Msc., author of the Arrive at Origin series and founder of Soul Body Healing Center with 38+ years in holistic practice and metaphysics."
+        keywords="About Dr Alka Chopra Madan, Doctorate in Metaphysics, Soul Body Healing Center founder, metaphysician Fremont CA, author Arrive at Origin, Concept Clearing method"
+        canonical="https://arriveatorigin.com/about"
+        ogType="profile"
+        ogImage="https://arriveatorigin.com/dr-alka-chopra-madan.png"
+      />
       {/* Intro Header */}
       <div className="border-b border-[rgba(237,231,218,0.12)] pb-8">
         <span className="text-xs font-semibold tracking-widest text-halo uppercase mb-2 block">

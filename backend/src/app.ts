@@ -10,6 +10,8 @@ import { apiLimiter } from "./middleware/rateLimit.js";
 import { originGuard } from "./middleware/csrf.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { apiRouter } from "./routes/index.js";
+import { seoController } from "./modules/seo/seo.controller.js";
+import { asyncHandler } from "./utils/asyncHandler.js";
 import { logger } from "./utils/logger.js";
 import { uploadDir } from "./middleware/upload.js";
 
@@ -54,6 +56,11 @@ export function createApp() {
 
   app.use(express.json({ limit: "10mb" }));
   app.use(cookieParser());
+
+  // Root SEO endpoints for search engines
+  app.get("/sitemap.xml", asyncHandler(seoController.getSitemapXml));
+  app.get("/robots.txt", asyncHandler(seoController.getRobotsTxt));
+
   app.use("/api", apiLimiter, originGuard, apiRouter);
 
   app.use(notFoundHandler);

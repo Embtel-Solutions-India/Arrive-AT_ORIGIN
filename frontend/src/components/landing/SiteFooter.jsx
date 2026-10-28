@@ -149,6 +149,11 @@ function SiteFooter() {
                   Administrative Access →
                 </Link>
               </li>
+              <li>
+                <a href="/sitemap.xml" target="_blank" rel="noreferrer" className="text-dim hover:text-vellum transition-colors no-underline block py-0.5">
+                  XML Sitemap
+                </a>
+              </li>
             </ul>
           </div>
 

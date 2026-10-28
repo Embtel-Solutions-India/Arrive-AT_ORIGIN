@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
+import SEO from "../components/seo/SEO";
 import { useCart } from "../context/CartContext";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { apiUrl } from "../utils/api";
@@ -107,6 +108,11 @@ function OrderSuccess() {
 
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.6]">
+      <SEO
+        title="Order Confirmation | Soul Body Healing Center"
+        description="Your order has been confirmed successfully."
+        noindex={true}
+      />
       <ScrollProgress />
       <SiteNav />
       <main className="py-[clamp(64px,10vw,120px)] text-center">

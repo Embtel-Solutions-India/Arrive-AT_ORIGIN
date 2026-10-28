@@ -9,6 +9,7 @@ import ThresholdCompare from "../components/landing/ThresholdCompare";
 import FrameworkTabs from "../components/landing/FrameworkTabs";
 import Reveal from "../components/landing/Reveal";
 import HealingCenterSection from "../components/landing/HealingCenterSection";
+import SEO from "../components/seo/SEO";
 import { useCart } from "../context/CartContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { apiUrl } from "../utils/api";
@@ -461,6 +462,14 @@ function Home() {
 
   return (
     <div className="bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.62] font-normal selection:bg-gold selection:text-void">
+      <SEO
+        title="Dr. Alka Chopra Madan — Metaphysics, the Meta-Human & AAO | Fremont, CA"
+        description="Dr. Alka Chopra Madan, D.Msc., works with the meta-human — the part of a person that conditioning did not build. Metaphysical counsel, Concept Clearing, AAO (Arrive at Origin) and Living from Origin. Fremont, California and online."
+        keywords="Dr. Alka Chopra Madan, metaphysics, meta-human, Arrive at Origin, Soul Body Healing Center, Concept Clearing, Living from Origin, spiritual counsel Fremont CA, grief counsel, metaphysical healing"
+        canonical="https://arriveatorigin.com/"
+        ogType="website"
+        ogImage="https://arriveatorigin.com/dr-alka-chopra-madan.png"
+      />
       <ScrollProgress />
       <SiteNav />
 

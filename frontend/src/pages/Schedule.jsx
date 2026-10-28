@@ -4,6 +4,7 @@ import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import Reveal from "../components/landing/Reveal";
+import SEO from "../components/seo/SEO";
 import StripeCheckoutModal from "../components/payment/StripeCheckoutModal";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { apiUrl } from "../utils/api";
@@ -327,6 +328,14 @@ function Schedule() {
 
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.62] font-normal selection:bg-gold selection:text-void">
+      <SEO
+        title="Schedule a Metaphysical Session | Dr. Alka Chopra Madan"
+        description="Book private 1-on-1 metaphysical counsel, couples alignment, somatic grief release, or a 5/10-session mastery series with Dr. Alka Chopra Madan in Fremont, CA & online."
+        keywords="schedule metaphysical session, book spiritual counsel, couples alignment counsel, somatic grief release, Dr Alka Chopra Madan consultation, metaphysical therapy Fremont CA"
+        canonical="https://arriveatorigin.com/schedule"
+        ogType="website"
+        ogImage="https://arriveatorigin.com/dr-alka-chopra-madan.png"
+      />
       <ScrollProgress />
       <SiteNav />
 

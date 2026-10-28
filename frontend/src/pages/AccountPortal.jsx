@@ -4,6 +4,7 @@ import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import Reveal from "../components/landing/Reveal";
+import SEO from "../components/seo/SEO";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { currencyService } from "../services/currencyService";
 import { getEbookPdfUrl, getEbookDownloadFilename } from "../utils/ebookUtils";
@@ -284,6 +285,13 @@ function AccountPortal() {
 
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.62] selection:bg-gold selection:text-void">
+      <SEO
+        title="Client Account Portal | Soul Body Healing Center"
+        description="Access your personal client account, active consultation bookings, purchase history, and purchased digital e-books."
+        keywords="client portal, Soul Body Healing Center account, bookings, purchased ebooks"
+        canonical="https://arriveatorigin.com/account"
+        noindex={true}
+      />
       <ScrollProgress />
       <SiteNav />
 

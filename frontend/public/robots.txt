@@ -1,0 +1,26 @@
+# robots.txt for https://arriveatorigin.com
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /schedule
+Allow: /books
+Allow: /books/*
+Allow: /blog
+Allow: /blog/*
+Allow: /dr-alka-chopra-madan-meta-human.html
+
+# Administrative and private user portal routes
+Disallow: /admin/
+Disallow: /account
+Disallow: /client-portal
+Disallow: /my-account
+Disallow: /portal
+Disallow: /checkout
+Disallow: /order-success/
+Disallow: /reset-password
+Disallow: /api/
+
+# Host and Sitemap
+Host: https://arriveatorigin.com
+Sitemap: https://arriveatorigin.com/sitemap.xml
+

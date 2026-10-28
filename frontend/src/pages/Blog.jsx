@@ -4,6 +4,7 @@ import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import BlogSidebar from "../components/blog/BlogSidebar";
+import SEO from "../components/seo/SEO";
 import { blogPosts as fallbackPosts } from "../data/blogPosts";
 import { apiUrl } from "../utils/api";
 
@@ -111,6 +112,14 @@ function Blog() {
 
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.62] selection:bg-gold selection:text-void">
+      <SEO
+        title="Metaphysical Insights & Inquiries | Dr. Alka Chopra Madan Blog"
+        description="Read essays and inquiries on metaphysics, grief, conscious relationships, and the practice of arriving at origin by Dr. Alka Chopra Madan."
+        keywords="metaphysics blog, spiritual healing articles, grief inquiry, living from origin essays, Dr Alka Chopra Madan blog, emotional clarity"
+        canonical="https://arriveatorigin.com/blog"
+        ogType="website"
+        ogImage="https://arriveatorigin.com/dr-alka-chopra-madan.png"
+      />
       <ScrollProgress />
       <SiteNav />
 

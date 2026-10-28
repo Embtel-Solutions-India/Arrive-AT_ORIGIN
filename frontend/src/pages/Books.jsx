@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
+import SEO from "../components/seo/SEO";
 import { useCart } from "../context/CartContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { apiUrl } from "../utils/api";
@@ -32,6 +33,14 @@ function Books() {
 
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.62] selection:bg-gold selection:text-void">
+      <SEO
+        title="Books & Publications by Dr. Alka Chopra Madan | Official Bookstore"
+        description="Explore published books and e-books by Dr. Alka Chopra Madan on metaphysics, emotional healing, and living from origin: Arrive at Origin (Part 1 & 2), Keeping It Simple, Your Path to Peace, and more."
+        keywords="Dr Alka Chopra Madan books, Arrive at Origin book, metaphysical books, spiritual healing books, Concept Clearing book, Keeping It Simple, Your Path to Peace"
+        canonical="https://arriveatorigin.com/books"
+        ogType="website"
+        ogImage="https://arriveatorigin.com/aao-part-one.png"
+      />
       <ScrollProgress />
       <SiteNav />
       <main className="py-[clamp(56px,8vw,110px)]">

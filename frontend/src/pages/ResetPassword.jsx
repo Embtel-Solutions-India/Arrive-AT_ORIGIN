@@ -4,6 +4,7 @@ import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import Reveal from "../components/landing/Reveal";
+import SEO from "../components/seo/SEO";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 
 const shell = "mx-auto w-full max-w-[1140px] px-[clamp(20px,4vw,48px)]";
@@ -54,6 +55,12 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.62] selection:bg-gold selection:text-void">
+      <SEO
+        title="Reset Password | Soul Body Healing Center"
+        description="Reset your client portal password securely."
+        canonical="https://arriveatorigin.com/reset-password"
+        noindex={true}
+      />
       <ScrollProgress />
       <SiteNav />
 

@@ -4,6 +4,7 @@ import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import NotFound from "./NotFound";
+import SEO from "../components/seo/SEO";
 import { useCart } from "../context/CartContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { apiUrl } from "../utils/api";
@@ -130,8 +131,43 @@ function BookDetail() {
     selectedFormat.toLowerCase().includes("e-book") ||
     selectedFormat.toLowerCase().includes("kindle");
 
+  const pageTitle = book.seo?.seoTitle || `${book.title} — Dr. Alka Chopra Madan | Official Bookstore`;
+  const rawDesc = book.seo?.metaDescription || book.subtitle || (book.description ? book.description.replace(/<[^>]+>/g, "").slice(0, 160) : "") || `Explore and order ${book.title} by Dr. Alka Chopra Madan.`;
+  const pageKeywords = book.seo?.focusKeyword || `${book.title}, Dr Alka Chopra Madan, Arrive at Origin, metaphysics books, spiritual guidance, Concept Clearing`;
+  const bookOgImage = book.coverImage?.startsWith("http") ? book.coverImage : `https://arriveatorigin.com${book.coverImage || "/aao-part-one.png"}`;
+  const bookCanonical = book.seo?.canonicalUrl || `https://arriveatorigin.com/books/${slug}`;
+
+  const bookSchema = {
+    "@context": "https://schema.org",
+    "@type": "Book",
+    "name": book.title,
+    "description": rawDesc,
+    "image": bookOgImage,
+    "url": bookCanonical,
+    "author": {
+      "@type": "Person",
+      "name": "Dr. Alka Chopra Madan, D.Msc.",
+      "url": "https://arriveatorigin.com/about"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Soul Body Healing Center",
+      "url": "https://arriveatorigin.com"
+    },
+    "inLanguage": "en"
+  };
+
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.7] selection:bg-gold selection:text-void">
+      <SEO
+        title={pageTitle}
+        description={rawDesc}
+        keywords={pageKeywords}
+        canonical={bookCanonical}
+        ogType="book"
+        ogImage={bookOgImage}
+        jsonLd={bookSchema}
+      />
       <ScrollProgress />
       <SiteNav />
       <main className="py-[clamp(48px,6vw,96px)]">

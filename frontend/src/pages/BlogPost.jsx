@@ -5,6 +5,7 @@ import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import BlogSidebar from "../components/blog/BlogSidebar";
 import NotFound from "./NotFound";
+import SEO from "../components/seo/SEO";
 import { blogPosts as fallbackPosts } from "../data/blogPosts";
 import { apiUrl } from "../utils/api";
 
@@ -85,8 +86,55 @@ function BlogPost() {
 
   if (!post) return <NotFound />;
 
+  const postTitle = post.seo?.seoTitle || `${post.title} | Dr. Alka Chopra Madan`;
+  const postDesc =
+    post.seo?.metaDescription ||
+    post.excerpt ||
+    (post.content ? post.content.replace(/<[^>]+>/g, "").slice(0, 160) : "") ||
+    "An inquiry by Dr. Alka Chopra Madan.";
+  const postKeywords =
+    post.seo?.focusKeyword ||
+    (Array.isArray(post.tags) && post.tags.length > 0
+      ? post.tags.join(", ")
+      : "metaphysics, Dr Alka Chopra Madan, Arrive at Origin, spiritual inquiry");
+  const postOgImage =
+    post.seo?.ogImage || post.featuredImage || "https://arriveatorigin.com/dr-alka-chopra-madan.png";
+  const postCanonical = post.seo?.canonicalUrl || `https://arriveatorigin.com/blog/${slug}`;
+  const postNoIndex = Boolean(post.seo?.noIndex);
+
+  const blogSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: postDesc,
+    image: postOgImage,
+    url: postCanonical,
+    datePublished: post.publishDate || post.createdAt,
+    dateModified: post.updatedAt || post.publishDate || post.createdAt,
+    author: {
+      "@type": "Person",
+      "name": post.authorName || "Dr. Alka Chopra Madan, D.Msc.",
+      "url": "https://arriveatorigin.com/about"
+    },
+    publisher: {
+      "@type": "Organization",
+      "name": "Soul Body Healing Center",
+      "url": "https://arriveatorigin.com"
+    }
+  };
+
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.75] selection:bg-gold selection:text-void">
+      <SEO
+        title={postTitle}
+        description={postDesc}
+        keywords={postKeywords}
+        canonical={postCanonical}
+        ogType="article"
+        ogImage={postOgImage}
+        noindex={postNoIndex}
+        jsonLd={blogSchema}
+      />
       <ScrollProgress />
       <SiteNav />
 

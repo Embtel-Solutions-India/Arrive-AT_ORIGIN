@@ -1,8 +1,14 @@
 import { Link } from "react-router-dom";
+import SEO from "../components/seo/SEO";
 
 function NotFound() {
   return (
     <section className="py-20 text-center max-w-xl mx-auto">
+      <SEO
+        title="404 — Page Not Found | Soul Body Healing Center"
+        description="The page you are looking for does not exist or has moved. Return to Origin."
+        noindex={true}
+      />
       <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-halo text-3xl font-display">
         404
       </div>

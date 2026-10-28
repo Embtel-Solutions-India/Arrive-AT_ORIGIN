@@ -4,6 +4,7 @@ import ScrollProgress from "../components/landing/ScrollProgress";
 import SiteNav from "../components/landing/SiteNav";
 import SiteFooter from "../components/landing/SiteFooter";
 import StripeCheckoutModal from "../components/payment/StripeCheckoutModal";
+import SEO from "../components/seo/SEO";
 import { useCart } from "../context/CartContext";
 import { useCustomerAuth } from "../context/CustomerAuthContext";
 import { useCurrency } from "../context/CurrencyContext";
@@ -296,6 +297,12 @@ function Checkout() {
   if (items.length === 0) {
     return (
       <div className="min-h-svh bg-void text-vellum">
+        <SEO
+          title="Checkout | Soul Body Healing Center"
+          description="Complete your order securely."
+          canonical="https://arriveatorigin.com/checkout"
+          noindex={true}
+        />
         <ScrollProgress />
         <SiteNav />
         <main className="py-24 text-center">
@@ -318,6 +325,12 @@ function Checkout() {
 
   return (
     <div className="min-h-svh bg-void text-vellum text-[clamp(16px,1.05vw,18px)] leading-[1.6] selection:bg-gold selection:text-void">
+      <SEO
+        title="Secure Checkout | Soul Body Healing Center"
+        description="Complete your order for Dr. Alka Chopra Madan's books and publications securely via Stripe or Razorpay."
+        canonical="https://arriveatorigin.com/checkout"
+        noindex={true}
+      />
       <ScrollProgress />
       <SiteNav />
       <main className="py-[clamp(48px,6vw,96px)]">
